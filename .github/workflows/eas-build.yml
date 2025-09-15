@@ -1,0 +1,19 @@
+name: EAS Build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i -g eas-cli
+      - run: npm ci
+      - run: eas build --profile production --platform all --non-interactive
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_PUBLIC_API_URL: https://241runners-api-v2.azurewebsites.net
