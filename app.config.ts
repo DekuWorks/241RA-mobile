@@ -58,10 +58,9 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
-    // Temporarily disabled Firebase plugins for build testing
-    // "@react-native-firebase/app",
-    // "@react-native-firebase/messaging",
-    // "@react-native-firebase/crashlytics"
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
+    "@react-native-firebase/crashlytics"
   ],
   extra: {
     eas: {
