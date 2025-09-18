@@ -1,16 +1,65 @@
 {
-  "cli": { "version": ">= 14.0.0" },
+  "cli": {
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
-    "preview": {
+    "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "autoIncrement": "version",
-      "env": { "EXPO_PUBLIC_API_URL": "https://241runners-api-v2.azurewebsites.net" }
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://241runners-api-v2.azurewebsites.net",
+        "EXPO_PUBLIC_ENABLE_CRASH": "true",
+        "EXPO_PUBLIC_API_URL": "https://241runners-api-v2.azurewebsites.net",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      }
     },
     "production": {
-      "autoIncrement": "buildNumber",
-      "env": { "EXPO_PUBLIC_API_URL": "https://241runners-api-v2.azurewebsites.net" }
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://241runners-api-v2.azurewebsites.net",
+        "EXPO_PUBLIC_ENABLE_CRASH": "true",
+        "EXPO_PUBLIC_API_URL": "https://241runners-api-v2.azurewebsites.net",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
+      }
     }
   },
-  "submit": { "production": {} }
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "your-app-store-connect-app-id",
+        "appleTeamId": "your-apple-team-id"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    }
+  }
 }

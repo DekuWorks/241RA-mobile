@@ -1,34 +1,79 @@
 import 'dotenv/config';
+import { ExpoConfig } from 'expo/config';
 
-export default {
-  expo: {
-    name: "241Runners",
-    slug: "241runners",
-    scheme: "241runners",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/icon.png",
-    splash: { image: "./assets/splash.png", resizeMode: "contain", backgroundColor: "#000000" },
-    userInterfaceStyle: "automatic",
-    ios: {
-      bundleIdentifier: "org.241runners.app",
-      supportsTablet: false,
-      infoPlist: {
-        NSCameraUsageDescription: "Used to capture photos for sightings and case updates.",
-        NSLocationWhenInUseUsageDescription: "Used to attach accurate locations to reports and nearby alerts.",
-        NSPhotoLibraryAddUsageDescription: "Used to save images you capture for case reports."
+const config: ExpoConfig = {
+  name: "241RA",
+  slug: "241runners",
+  scheme: 'org.runners241.app',
+  version: '1.0.0',
+  orientation: 'portrait',
+  icon: './assets/icon.png',
+  splash: {
+    image: './assets/splash-icon.png',
+    resizeMode: 'contain',
+    backgroundColor: '#000000',
+  },
+  userInterfaceStyle: 'automatic',
+  owner: '241-runners-awareness',
+  ios: {
+    bundleIdentifier: "org.runners241.app",
+    supportsTablet: true,
+    googleServicesFile: "./ios/GoogleService-Info.plist",
+    infoPlist: {
+      NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
+      NSLocationWhenInUseUsageDescription:
+        'Used to attach accurate locations to reports and nearby alerts.',
+      NSPhotoLibraryAddUsageDescription: 'Used to save images you capture for case reports.',
+      ITSAppUsesNonExemptEncryption: false,
+    },
+    associatedDomains: ['applinks:241runnersawareness.org'],
+  },
+  android: {
+    package: "org.runners241.app",
+    googleServicesFile: "./android/app/google-services.json",
+    adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
+    permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+  },
+  plugins: [
+    'expo-router',
+    'expo-secure-store',
+    'expo-notifications',
+    'expo-location',
+    'expo-camera',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow 241Runners to access your photos to report sightings.',
+        cameraPermission:
+          'Allow 241Runners to access your camera to capture evidence for sightings.',
       },
-      associatedDomains: ["applinks:241runnersawareness.org"]
+    ],
+    [
+      '@sentry/react-native/expo',
+      {
+        url: 'https://sentry.io/',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        project: '241runners-mobile',
+        organization: '241-runners-awareness',
+      },
+    ],
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
+    "@react-native-firebase/crashlytics"
+  ],
+  extra: {
+    eas: {
+      projectId: 'bb791d4e-1e0d-4c6c-a23d-a619d34d3d7e',
     },
-    android: {
-      package: "org.earth241runners.app",
-      adaptiveIcon: { foregroundImage: "./assets/icon.png", backgroundColor: "#000000" },
-      permissions: ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
-    },
-    plugins: ["expo-router", "expo-secure-store", "expo-notifications", "expo-location"],
-    extra: {
-      apiUrl: process.env.EXPO_PUBLIC_API_URL,
-      sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN
-    }
-  }
+    EXPO_PUBLIC_API_BASE: "https://241runners-api-v2.azurewebsites.net",
+    EXPO_PUBLIC_ENABLE_CRASH: "true",
+    apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  },
+  linking: {
+    scheme: 'org.runners241.app',
+    prefixes: ['org.runners241.app://', 'https://241runnersawareness.org'],
+  },
 };
+
+export default config;

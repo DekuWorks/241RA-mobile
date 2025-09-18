@@ -5,66 +5,107 @@ Web repo: https://github.com/DekuWorks/241RunnersAwareness
 API (shared with web): https://241runners-api-v2.azurewebsites.net/swagger/index.html
 
 ## Overview
+
 - **Framework:** Expo (React Native + TypeScript)
 - **Platforms:** iOS (App Store), Android (Google Play)
 - **Backend:** Azure App Service (.NET 8 Web API) — same DB & users as the static site
 - **Auth:** Email/Password, Google OAuth, 2FA (TOTP + backup codes)
 
-## Env
+## Environment Configuration
+
+### Local Development
+
 Create `.env` from example:
+
 ```bash
 cp .env.example .env
 ```
 
-Key:
+**Required Variables:**
+
 - `EXPO_PUBLIC_API_URL=https://241runners-api-v2.azurewebsites.net`
 
+### EAS Build (Preview/Production)
+
+Environment variables are configured per profile in EAS:
+
+- **Preview:** `EXPO_PUBLIC_API_URL` set in EAS secrets
+- **Production:** `EXPO_PUBLIC_API_URL` set in EAS secrets
+
+**Important:** Never commit `.env` files. Only `EXPO_PUBLIC_*` variables are exposed to the client. Use EAS secrets for sensitive values.
+
 ## Scripts
+
 ```bash
+# Development
 npm i
 npm run start
 npm run ios
 npm run android
-npm run build:preview
-npm run build:prod
+
+# Code Quality
+npm run lint          # ESLint check
+npm run lint:fix      # ESLint fix
+npm run format        # Prettier format
+npm run format:check  # Prettier check
+npm run typecheck     # TypeScript check
+
+# Testing
+npm run test          # Run tests
+npm run test:watch    # Watch mode
+
+# Building
+npm run build:preview # EAS preview build
+npm run build:prod    # EAS production build
+npm run clean         # Clear Expo cache
 ```
 
 ## Bundle IDs
-- **iOS:** `org.241runners.app`
-- **Android:** `org.earth241runners.app`
+
+- **iOS:** `org.runners241.app`
+- **Android:** `org.runners241.app`
 
 ## Permissions
+
 - **Camera:** capture evidence for sightings
 - **Location (When In Use):** attach coordinates to reports; enable nearby alerts
 
 ## Security
-- Tokens stored with SecureStore
-- TLS only; minimal PII on device; redacted logs in prod
+
+- **Token Storage:** SecureStore (iOS Keychain, Android Keystore)
+- **API Client:** Centralized with 401 interceptor and token refresh
+- **Error Handling:** Production errors redacted, sensitive data filtered
+- **TLS:** All API communication encrypted
+- **Observability:** Sentry integration for production error tracking
 
 ## Notes
+
 - Same users, roles, and database as the static site
 - Feature parity delivered in phases; see project board for roadmap
 
 ---
 
 ## 6) Expo/EAS Accounts & App IDs
+
 - [ ] Apple Developer ($99/yr) + connect in EAS
 - [ ] Google Play Developer ($25 one-off) + connect in EAS
-- [ ] iOS bundle ID: `org.241runners.app`
-- [ ] Android package: `org.earth241runners.app`
+- [ ] iOS bundle ID: `org.runners241.app`
+- [ ] Android package: `org.runners241.app`
 
 ---
 
 ## 7) Keys & Permissions
+
 - [ ] **Maps:** set Google Maps keys (Android & iOS if using Google provider)
 - [ ] **Notifications:** configure Expo push (device token → your API)
 - [ ] **OAuth:** add mobile redirect URIs to your provider:
-  - iOS: `org.241runners.app:/oauthredirect`
-  - Android: `org.earth241runners.app:/oauthredirect`
+  - iOS: `org.runners241.app:/oauthredirect`
+  - Android: `org.runners241.app:/oauthredirect`
 
 ---
 
 ## 8) Minimal E2E Smoke Test (must pass)
+
 - [ ] Existing web user logs into mobile (email/2FA)
 - [ ] Cases list loads (from v2 API)
 - [ ] Case detail opens
@@ -74,6 +115,7 @@ npm run build:prod
 ---
 
 ## 9) First Builds
+
 ```bash
 # Internal preview builds
 npm run build:preview
@@ -85,6 +127,7 @@ npm run submit:android
 ```
 
 ## 10) Store Metadata (later)
+
 - Icons (1024 px), splash, 6–8 screenshots (Home, Cases, Map, Report, Admin)
 - Privacy Policy & Terms → static site URLs
 - Data Safety (Play) & Privacy Labels (Apple): camera + location (when in use)
