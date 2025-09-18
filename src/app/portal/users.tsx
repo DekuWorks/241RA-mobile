@@ -184,13 +184,13 @@ export default function PortalUsersScreen() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin':
-        return colors.error[700];
+        return colors.error;
       case 'admin':
-        return colors.warning[600];
+        return colors.warning;
       case 'moderator':
         return colors.info[600];
       case 'user':
-        return colors.success[500];
+        return colors.success;
       default:
         return colors.gray[500];
     }
@@ -330,7 +330,7 @@ export default function PortalUsersScreen() {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: user.isActive ? colors.success[500] : colors.gray[500] },
+                    { backgroundColor: user.isActive ? colors.success : colors.gray[500] },
                   ]}
                 >
                   <Text style={styles.badgeText}>{user.isActive ? 'ACTIVE' : 'INACTIVE'}</Text>

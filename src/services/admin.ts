@@ -466,10 +466,17 @@ export class AdminService {
       
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { role });
+      console.log('Role update result:', result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update user role:', error);
-      throw new Error('Failed to update user role');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      throw new Error(`Failed to update user role: ${error.message}`);
     }
   }
 
@@ -480,10 +487,17 @@ export class AdminService {
       
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { isActive });
+      console.log('Status toggle result:', result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to toggle user status:', error);
-      throw new Error('Failed to update user status');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      throw new Error(`Failed to update user status: ${error.message}`);
     }
   }
 
