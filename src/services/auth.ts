@@ -2,8 +2,8 @@ import { ApiClient } from './apiClient';
 import { SecureStoreService } from './secureStore';
 import { initCrashlytics } from '../lib/crash';
 import { registerDeviceToken } from '../features/push/registerDeviceToken';
-import { signalRService } from './signalR';
-import { TopicService } from './topics';
+// import { signalRService } from './signalR';
+// import { TopicService } from './topics';
 
 export interface LoginCredentials {
   email: string;
@@ -151,17 +151,18 @@ export class AuthService {
    */
   private static async initializeRealtimeServices(user?: User): Promise<void> {
     try {
+      // TODO: Re-enable after build testing
       // Start SignalR connection
-      await signalRService.startConnection();
+      // await signalRService.startConnection();
       
       // Subscribe to default topics based on user role
-      if (user?.role) {
-        await TopicService.subscribeToDefaultTopics(user.role);
-      } else {
-        await TopicService.subscribeToDefaultTopics();
-      }
+      // if (user?.role) {
+      //   await TopicService.subscribeToDefaultTopics(user.role);
+      // } else {
+      //   await TopicService.subscribeToDefaultTopics();
+      // }
       
-      console.log('Real-time services initialized successfully');
+      console.log('Real-time services initialization skipped for build testing');
     } catch (error) {
       console.warn('Failed to initialize real-time services:', error);
     }

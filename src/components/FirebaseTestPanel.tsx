@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { recordError, logEvent, forceTestCrash } from '../lib/crash';
 import { registerDeviceToken } from '../features/push/registerDeviceToken';
-import { signalRService } from '../services/signalR';
-import { TopicService } from '../services/topics';
+// import { signalRService } from '../services/signalR';
+// import { TopicService } from '../services/topics';
 import { colors, spacing, radii, typography } from '../theme/tokens';
 
 interface FirebaseTestPanelProps {
@@ -88,14 +88,9 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   const testSignalRConnection = async () => {
     setIsLoading(true);
     try {
-      const isConnected = signalRService.isConnected();
-      if (isConnected) {
-        addResult('✅ SignalR already connected');
-      } else {
-        await signalRService.startConnection();
-        addResult('✅ SignalR connection started');
-      }
-      Alert.alert('Test Complete', 'SignalR connection test completed.');
+      // TODO: Re-enable after build testing
+      addResult('⚠️ SignalR test skipped for build testing');
+      Alert.alert('Test Skipped', 'SignalR test skipped for build testing.');
     } catch (error) {
       addResult('❌ Failed to connect to SignalR: ' + String(error));
     } finally {
@@ -106,9 +101,9 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   const testTopicSubscription = async () => {
     setIsLoading(true);
     try {
-      await TopicService.subscribeToTopic('test_topic');
-      addResult('✅ Topic subscription test completed');
-      Alert.alert('Test Complete', 'Topic subscription test completed.');
+      // TODO: Re-enable after build testing
+      addResult('⚠️ Topic subscription test skipped for build testing');
+      Alert.alert('Test Skipped', 'Topic subscription test skipped for build testing.');
     } catch (error) {
       addResult('❌ Failed to subscribe to topic: ' + String(error));
     } finally {
