@@ -24,7 +24,11 @@
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "image": "latest"
+        "image": "latest",
+        "googleServicesFile": {
+          "type": "base64",
+          "data": "$GOOGLE_SERVICE_INFO_PLIST"
+        }
       },
       "android": {
         "buildType": "apk",
