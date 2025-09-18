@@ -18,7 +18,8 @@
         "EXPO_PUBLIC_API_BASE": "https://241runners-api-v2.azurewebsites.net",
         "EXPO_PUBLIC_ENABLE_CRASH": "true",
         "EXPO_PUBLIC_API_URL": "https://241runners-api-v2.azurewebsites.net",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "GOOGLE_SERVICE_INFO_PLIST": "$GOOGLE_SERVICE_INFO_PLIST"
       },
       "ios": {
         "resourceClass": "m-medium",

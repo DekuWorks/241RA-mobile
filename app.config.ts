@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: "org.runners241.app",
     supportsTablet: true,
-    googleServicesFile: "./ios/GoogleService-Info.plist",
+    googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./ios/GoogleService-Info.plist",
     infoPlist: {
       NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
       NSLocationWhenInUseUsageDescription:
