@@ -1,6 +1,15 @@
-import crashlytics from "@react-native-firebase/crashlytics";
+// import crashlytics from "@react-native-firebase/crashlytics";
 
 const ENABLED = String(process.env.EXPO_PUBLIC_ENABLE_CRASH).toLowerCase() === "true";
+
+// Stub functions for build testing
+const crashlytics = () => ({
+  setCrashlyticsCollectionEnabled: (enabled: boolean) => console.log('Crashlytics enabled:', enabled),
+  setUserId: (userId: string) => console.log('Crashlytics userId set:', userId),
+  recordError: (error: Error) => console.log('Crashlytics error recorded:', error.message),
+  log: (message: string) => console.log('Crashlytics log:', message),
+  crash: () => console.log('Crashlytics test crash triggered')
+});
 
 export function initCrashlytics(userId?: string) {
   crashlytics().setCrashlyticsCollectionEnabled(ENABLED);
