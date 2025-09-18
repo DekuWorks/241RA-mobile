@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: "org.runners241.app",
     supportsTablet: true,
-    googleServicesFile: "./ios/GoogleService-Info.plist",
+    // googleServicesFile: "./ios/GoogleService-Info.plist", // Temporarily disabled for build
     infoPlist: {
       NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
       NSLocationWhenInUseUsageDescription:
@@ -30,7 +30,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: "org.runners241.app",
-    googleServicesFile: "./android/app/google-services.json",
+    // googleServicesFile: "./android/app/google-services.json", // Temporarily disabled for build
     adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
   },
