@@ -59,7 +59,8 @@ const config: ExpoConfig = {
     ],
     "@react-native-firebase/app",
     "@react-native-firebase/messaging",
-    "@react-native-firebase/crashlytics"
+    "@react-native-firebase/crashlytics",
+    "@react-native-firebase/analytics"
   ],
   extra: {
     eas: {
