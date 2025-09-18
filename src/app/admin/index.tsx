@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService } from '../../services/admin';
+import { FirebaseTestPanel } from '../../components/FirebaseTestPanel';
 
 interface DashboardStats {
   totalCases: number;
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showFirebaseTests, setShowFirebaseTests] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -153,6 +155,11 @@ export default function AdminDashboard() {
             icon="📝"
             onPress={() => router.push('/admin/logs')}
           />
+          <QuickActionButton
+            title="Firebase Tests"
+            icon="🔥"
+            onPress={() => setShowFirebaseTests(!showFirebaseTests)}
+          />
         </View>
       </View>
 
@@ -184,6 +191,13 @@ export default function AdminDashboard() {
           <Text style={styles.emptyText}>No recent activity</Text>
         )}
       </View>
+
+      {/* Firebase Test Panel */}
+      {showFirebaseTests && (
+        <View style={styles.section}>
+          <FirebaseTestPanel />
+        </View>
+      )}
     </ScrollView>
   );
 }
