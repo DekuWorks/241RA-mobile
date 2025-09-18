@@ -361,7 +361,10 @@ export default function PortalUsersScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.roleButton]}
+                style={[
+                  styles.roleButton,
+                  { backgroundColor: colors.info[600], borderColor: colors.info[500] }
+                ]}
                 onPress={() => {
                   let newRole: string;
                   if (user.role === 'super_admin') {
@@ -374,7 +377,7 @@ export default function PortalUsersScreen() {
                   handleRoleChange(user.id, newRole);
                 }}
               >
-                <Text style={styles.actionButtonText}>
+                <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
                   {user.role === 'super_admin' 
                     ? 'Demote to Admin' 
                     : user.role === 'admin' 
