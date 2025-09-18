@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { recordError, logEvent, forceTestCrash } from '../lib/crash';
 import { registerDeviceToken } from '../features/push/registerDeviceToken';
+import { signalRService } from '../services/signalR';
+import { TopicService } from '../services/topics';
 import { colors, spacing, radii, typography } from '../theme/tokens';
 
 interface FirebaseTestPanelProps {
@@ -83,6 +85,37 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
     Alert.alert('Test Complete', 'Custom log event sent to Crashlytics.');
   };
 
+  const testSignalRConnection = async () => {
+    setIsLoading(true);
+    try {
+      const isConnected = signalRService.isConnected();
+      if (isConnected) {
+        addResult('✅ SignalR already connected');
+      } else {
+        await signalRService.startConnection();
+        addResult('✅ SignalR connection started');
+      }
+      Alert.alert('Test Complete', 'SignalR connection test completed.');
+    } catch (error) {
+      addResult('❌ Failed to connect to SignalR: ' + String(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testTopicSubscription = async () => {
+    setIsLoading(true);
+    try {
+      await TopicService.subscribeToTopic('test_topic');
+      addResult('✅ Topic subscription test completed');
+      Alert.alert('Test Complete', 'Topic subscription test completed.');
+    } catch (error) {
+      addResult('❌ Failed to subscribe to topic: ' + String(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearResults = () => {
     setTestResults([]);
   };
@@ -122,6 +155,22 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>Test Custom Logging</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.signalrButton]}
+          onPress={testSignalRConnection}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>Test SignalR Connection</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.topicButton]}
+          onPress={testTopicSubscription}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>Test Topic Subscription</Text>
         </TouchableOpacity>
       </View>
 
@@ -181,6 +230,12 @@ const styles = StyleSheet.create({
   },
   logButton: {
     backgroundColor: colors.success,
+  },
+  signalrButton: {
+    backgroundColor: colors.purple[600],
+  },
+  topicButton: {
+    backgroundColor: colors.orange[600],
   },
   resultsContainer: {
     marginTop: spacing.lg,

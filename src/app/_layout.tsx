@@ -6,6 +6,7 @@ import { NotificationService } from '../services/notifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
 import { attachForegroundMessaging, setupBackgroundMessageHandler } from '../features/push/registerDeviceToken';
+import { signalRService } from '../services/signalR';
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,11 @@ export default function Root() {
     };
 
     initializeApp();
+
+    // Cleanup function
+    return () => {
+      signalRService.stopConnection();
+    };
   }, []);
 
   return (

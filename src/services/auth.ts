@@ -2,6 +2,8 @@ import { ApiClient } from './apiClient';
 import { SecureStoreService } from './secureStore';
 import { initCrashlytics } from '../lib/crash';
 import { registerDeviceToken } from '../features/push/registerDeviceToken';
+import { signalRService } from './signalR';
+import { TopicService } from './topics';
 
 export interface LoginCredentials {
   email: string;
@@ -58,6 +60,9 @@ export class AuthService {
       } catch (error) {
         console.warn('Failed to register device token:', error);
       }
+
+      // Initialize real-time services
+      await this.initializeRealtimeServices(data.user);
     }
 
     return data;
@@ -85,6 +90,9 @@ export class AuthService {
       } catch (error) {
         console.warn('Failed to register device token:', error);
       }
+
+      // Initialize real-time services
+      await this.initializeRealtimeServices(data.user);
     }
 
     return data;
@@ -135,6 +143,27 @@ export class AuthService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Initialize real-time services after successful login
+   */
+  private static async initializeRealtimeServices(user?: User): Promise<void> {
+    try {
+      // Start SignalR connection
+      await signalRService.startConnection();
+      
+      // Subscribe to default topics based on user role
+      if (user?.role) {
+        await TopicService.subscribeToDefaultTopics(user.role);
+      } else {
+        await TopicService.subscribeToDefaultTopics();
+      }
+      
+      console.log('Real-time services initialized successfully');
+    } catch (error) {
+      console.warn('Failed to initialize real-time services:', error);
     }
   }
 }
