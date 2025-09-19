@@ -8,6 +8,7 @@ import { OfflineIndicator } from '../components/OfflineIndicator';
 import {
   attachForegroundMessaging,
   setupBackgroundMessageHandler,
+  setQueryClient as setPushQueryClient,
 } from '../features/push/registerDeviceToken';
 import { signalRService } from '../services/signalR';
 import { GoogleAuthService } from '../services/googleAuth';
@@ -61,6 +62,12 @@ export default function Root() {
         } catch (googleError) {
           console.warn('Google Sign-In initialization failed:', googleError);
         }
+
+        // Set up SignalR with React Query client
+        signalRService.setQueryClient(qc);
+        
+        // Set up push notifications with React Query client
+        setPushQueryClient(qc);
 
         // Hide splash screen
         setTimeout(() => SplashScreen.hideAsync(), 300);

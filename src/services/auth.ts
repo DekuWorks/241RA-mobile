@@ -113,10 +113,7 @@ export class AuthService {
 
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const userId = await SecureTokenService.getUserId();
-      if (!userId) return null;
-
-      const data = await ApiClient.get(`/api/users/${userId}`);
+      const data = await ApiClient.get('/api/auth/me');
       return data;
     } catch (error) {
       console.error('Failed to get current user:', error);
@@ -125,7 +122,7 @@ export class AuthService {
   }
 
   static async isAuthenticated(): Promise<boolean> {
-    return await SecureTokenService.hasValidTokens();
+    return await SecureTokenService.isAuthenticated();
   }
 
   static async enableTwoFactor(): Promise<{ qrCode: string; backupCodes: string[] }> {

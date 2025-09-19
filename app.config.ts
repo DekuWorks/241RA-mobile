@@ -78,6 +78,7 @@ const config: ExpoConfig = {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    oauthRedirectUri: 'org.runners241.app:/oauthredirect',
   },
 };
 

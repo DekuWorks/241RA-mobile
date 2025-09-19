@@ -2,10 +2,16 @@ import * as signalR from '@microsoft/signalr';
 import { API_BASE } from '../config/api';
 import { SecureTokenService } from './secureTokens';
 import { logEvent } from '../lib/crash';
+import { QueryClient } from '@tanstack/react-query';
 
 export class SignalRService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting = false;
+  private queryClient: QueryClient | null = null;
+
+  setQueryClient(queryClient: QueryClient): void {
+    this.queryClient = queryClient;
+  }
 
   async startConnection(): Promise<void> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
@@ -83,8 +89,32 @@ export class SignalRService {
       logEvent('signalr_case_updated', { caseId: payload.id });
 
       // Invalidate case queries
-      // You can use React Query or similar here
-      // queryClient.invalidateQueries(['case', payload.id]);
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['case', payload.id] });
+      }
+    });
+
+    // Handle new case notifications
+    this.connection.on('newCase', (payload: any) => {
+      console.log('New case via SignalR:', payload);
+      logEvent('signalr_new_case', { caseId: payload.id });
+
+      // Invalidate cases list
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['cases'] });
+      }
+    });
+
+    // Handle admin notices
+    this.connection.on('adminNotice', (payload: any) => {
+      console.log('Admin notice via SignalR:', payload);
+      logEvent('signalr_admin_notice', { noticeId: payload.id });
+
+      // Invalidate user data to refresh admin status
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['user'] });
+      }
     });
 
     // Handle urgent notifications

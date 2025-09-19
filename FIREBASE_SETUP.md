@@ -1,14 +1,34 @@
-# Firebase Integration Setup for 241RA Mobile App
+# Push Notifications & Real-time Updates Implementation
 
 ## Overview
-This document outlines the Firebase integration implemented for the 241RA mobile app, including Crashlytics for crash reporting and Firebase Cloud Messaging (FCM) for push notifications.
+This document outlines the complete implementation of push notifications and real-time updates for the 241RA mobile app, including Firebase Cloud Messaging (FCM) for push notifications, SignalR for live in-app updates, and topic-based subscriptions.
+
+## Architecture
+
+### Push Notifications (Closed App)
+- **Android**: Firebase Cloud Messaging (FCM)
+- **iOS**: APNs via Firebase
+- **Flow**: App registers device → Azure API stores tokens → .NET backend sends pushes
+- **No Firebase DB**: All user data remains in SQL backend
+
+### Live In-App Updates (Open App)
+- **SignalR Hub**: `/hubs/alerts` from .NET API
+- **Events**: `caseUpdated`, `newCase`, `adminNotice`
+- **Cache Invalidation**: React Query integration for real-time UI updates
+
+### Topics System
+- **Global**: `org_all` (all users)
+- **Role-based**: `role_admin` (admin users)
+- **Case-specific**: `case_{id}` (case followers)
 
 ## What's Implemented
 
-### 1. Firebase Dependencies
+### 1. Dependencies
 - `@react-native-firebase/app` - Core Firebase SDK
 - `@react-native-firebase/messaging` - Push notifications
 - `@react-native-firebase/crashlytics` - Crash reporting
+- `@microsoft/signalr` - Real-time communication
+- `@tanstack/react-query` - Cache management
 
 ### 2. Configuration Files
 
@@ -43,14 +63,36 @@ This document outlines the Firebase integration implemented for the 241RA mobile
 - `registerDeviceToken()` - Register FCM token with API
 - `attachForegroundMessaging()` - Handle foreground messages
 - `setupBackgroundMessageHandler()` - Handle background messages
+- `setQueryClient()` - React Query integration for cache invalidation
 - Automatic device token registration after login
+- Topic-based message handling with cache invalidation
 
-### 5. Integration Points
+### 5. SignalR Real-time Updates (src/services/signalR.ts)
+- `startConnection()` - Connect to `/hubs/alerts` with JWT authentication
+- `setQueryClient()` - React Query integration for cache invalidation
+- Event handlers: `caseUpdated`, `newCase`, `adminNotice`
+- Automatic reconnection with exponential backoff
+- Group management for topic subscriptions
+
+### 6. Topic Management (src/services/topics.ts)
+- `subscribeToTopic()` - Subscribe to specific topics
+- `subscribeToDefaultTopics()` - Auto-subscribe based on user role
+- Topic types: global (`org_all`), role-based (`role_admin`), case-specific (`case_{id}`)
+- Integration with backend topic subscription endpoints
+
+### 7. Integration Points
 
 #### Auth Service Integration
 - Crashlytics initialized with user ID after successful login
 - Device token registration after authentication
+- SignalR connection and topic subscriptions after login
 - Works with both regular login and Google login
+
+#### React Query Integration
+- SignalR events trigger cache invalidation
+- Push notification data messages trigger cache invalidation
+- Automatic UI updates when data changes
+- Offline-first caching strategy
 
 #### Error Boundary Integration
 - Automatic error reporting to Crashlytics
@@ -58,7 +100,9 @@ This document outlines the Firebase integration implemented for the 241RA mobile
 
 #### App Layout Integration
 - Firebase messaging handlers initialized at app startup
+- SignalR connection setup with React Query client
 - Background message handling setup
+- Automatic cleanup on app unmount
 
 ## Security & Privacy
 
@@ -85,15 +129,39 @@ This document outlines the Firebase integration implemented for the 241RA mobile
 5. Download `google-services.json` → place in `android/app/` directory
 6. Enable Crashlytics for both platforms
 
-### 2. API Endpoint
-Ensure your backend has the `/api/devices` endpoint to handle device token registration:
+### 2. Backend API Endpoints
+
+#### Device Registration
 ```json
 POST /api/devices
 {
   "platform": "ios|android",
-  "fcmToken": "firebase_token_string"
+  "fcmToken": "firebase_token_string",
+  "appVersion": "1.0.0"
 }
 ```
+
+#### Topic Subscriptions
+```json
+POST /topics/subscribe
+{
+  "topic": "org_all|role_admin|case_{id}"
+}
+
+POST /topics/unsubscribe
+{
+  "topic": "org_all|role_admin|case_{id}"
+}
+
+GET /topics/subscriptions
+Response: [{ "topic": "string", "subscribed": boolean }]
+```
+
+#### SignalR Hub
+- **Endpoint**: `/hubs/alerts`
+- **Authentication**: JWT token via `accessTokenFactory`
+- **Events**: `caseUpdated`, `newCase`, `adminNotice`
+- **Groups**: Support for topic-based groups
 
 ### 3. Build & Test
 ```bash

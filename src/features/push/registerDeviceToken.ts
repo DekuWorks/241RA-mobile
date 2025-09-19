@@ -9,11 +9,19 @@ try {
 import { Platform } from 'react-native';
 import { http } from '../../lib/http';
 import { logEvent, recordError } from '../../lib/crash';
+import { QueryClient } from '@tanstack/react-query';
 
 interface RegisterDeviceDto {
   platform: string;
   fcmToken: string;
   appVersion: string;
+}
+
+// Global query client reference for cache invalidation
+let globalQueryClient: QueryClient | null = null;
+
+export function setQueryClient(queryClient: QueryClient): void {
+  globalQueryClient = queryClient;
 }
 
 export async function registerDeviceToken(): Promise<void> {
@@ -127,17 +135,47 @@ function handleDataMessage(data: { [key: string]: string | object }) {
 
   switch (messageType) {
     case 'case_updated':
-      // Invalidate case queries - you can use React Query or similar
       console.log('Case updated:', data.caseId);
-      // Example: queryClient.invalidateQueries(['case', data.caseId]);
+      // Invalidate case queries
+      if (globalQueryClient) {
+        globalQueryClient.invalidateQueries({ queryKey: ['cases'] });
+        globalQueryClient.invalidateQueries({ queryKey: ['case', data.caseId] });
+      }
+      break;
+    case 'new_case':
+      console.log('New case:', data.caseId);
+      // Invalidate cases list
+      if (globalQueryClient) {
+        globalQueryClient.invalidateQueries({ queryKey: ['cases'] });
+      }
+      break;
+    case 'admin_notice':
+      console.log('Admin notice:', data);
+      // Invalidate user data
+      if (globalQueryClient) {
+        globalQueryClient.invalidateQueries({ queryKey: ['user'] });
+      }
       break;
     case 'urgent_notification':
-      // Handle urgent admin notifications
       console.log('Urgent notification:', data);
+      // Invalidate relevant queries based on notification type
+      if (globalQueryClient && data.targetType) {
+        switch (data.targetType) {
+          case 'cases':
+            globalQueryClient.invalidateQueries({ queryKey: ['cases'] });
+            break;
+          case 'user':
+            globalQueryClient.invalidateQueries({ queryKey: ['user'] });
+            break;
+        }
+      }
       break;
     case 'system_maintenance':
-      // Handle system maintenance notifications
       console.log('System maintenance:', data);
+      // Invalidate all queries for fresh data after maintenance
+      if (globalQueryClient) {
+        globalQueryClient.invalidateQueries();
+      }
       break;
     default:
       console.log('Unknown message type:', messageType);
