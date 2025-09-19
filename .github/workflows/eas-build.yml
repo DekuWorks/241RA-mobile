@@ -22,4 +22,5 @@ jobs:
       - name: Build iOS
         run: eas build --profile preview --platform ios --non-interactive
         env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_API_URL: https://241runners-api-v2.azurewebsites.net
