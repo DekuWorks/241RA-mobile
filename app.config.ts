@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'org.runners241.app',
     supportsTablet: true,
-    googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST,
+    // googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || undefined,
     infoPlist: {
       NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
       NSLocationWhenInUseUsageDescription:
@@ -66,10 +66,10 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
-    // Firebase plugins
-    '@react-native-firebase/app',
-    '@react-native-firebase/messaging',
-    '@react-native-firebase/crashlytics',
+    // Firebase plugins (temporarily disabled for build testing)
+    // '@react-native-firebase/app',
+    // '@react-native-firebase/messaging',
+    // '@react-native-firebase/crashlytics',
   ],
   extra: {
     eas: {
