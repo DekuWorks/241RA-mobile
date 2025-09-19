@@ -115,8 +115,15 @@ export class AuthService {
     try {
       const data = await ApiClient.get('/api/auth/me');
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get current user:', error);
+      
+      // If we get a 401, the token is invalid, clear it
+      if (error?.response?.status === 401) {
+        console.log('Token is invalid, clearing stored tokens');
+        await SecureTokenService.clearAll();
+      }
+      
       return null;
     }
   }

@@ -13,15 +13,21 @@ export default function Home() {
     try {
       const isAuthenticated = await AuthService.isAuthenticated();
       if (isAuthenticated) {
-        // Check if user is admin/moderator and redirect accordingly
+        // Validate token with server by getting current user
         const user = await AuthService.getCurrentUser();
-        if (
-          user &&
-          (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin')
-        ) {
-          router.replace('/portal');
+        if (user) {
+          // Token is valid, check if user is admin/moderator and redirect accordingly
+          if (
+            user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'
+          ) {
+            router.replace('/portal');
+          } else {
+            router.replace('/cases');
+          }
         } else {
-          router.replace('/cases');
+          // Token exists but is invalid, clear it and redirect to login
+          console.log('Token exists but is invalid, redirecting to login');
+          router.replace('/login');
         }
       } else {
         router.replace('/login');
