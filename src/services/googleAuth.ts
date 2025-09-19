@@ -11,11 +11,17 @@ export class GoogleAuthService {
     try {
       GoogleSignin.configure({
         // Get this from Google Cloud Console
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '933970195369-67fjn7t28p7q8a3grar5a46jad4mvinq.apps.googleusercontent.com',
+        webClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+          '933970195369-67fjn7t28p7q8a3grar5a46jad4mvinq.apps.googleusercontent.com',
         // iOS client ID (if different from web client ID)
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '933970195369-5qqs8ju3elg8ujeklqsgsoqae60bo3gb.apps.googleusercontent.com',
+        iosClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+          '933970195369-5qqs8ju3elg8ujeklqsgsoqae60bo3gb.apps.googleusercontent.com',
         // Android client ID (if different from web client ID)
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
+        androidClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+          '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
         // Enable offline access
         offlineAccess: true,
         // Force consent screen
@@ -50,7 +56,7 @@ export class GoogleAuthService {
 
       // Sign in
       const userInfo = await GoogleSignin.signIn();
-      
+
       console.log('Google Sign-In successful:', userInfo);
 
       // Get the ID token
@@ -63,7 +69,7 @@ export class GoogleAuthService {
 
       // Send token to your backend for verification
       const authResponse = await AuthService.loginWithGoogle(idToken);
-      
+
       return {
         success: true,
         user: authResponse.user,

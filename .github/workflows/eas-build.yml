@@ -11,9 +11,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm i -g eas-cli
-      - run: npm ci
-      - run: eas build --profile production --platform all --non-interactive
+          cache: 'npm'
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build iOS
+        run: eas build --profile production --platform ios --non-interactive
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
           EXPO_PUBLIC_API_URL: https://241runners-api-v2.azurewebsites.net

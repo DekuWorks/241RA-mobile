@@ -37,46 +37,48 @@ const testUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=New+Y
 
 console.log('🔄 Testing API key with Google Maps Geocoding API...');
 
-https.get(testUrl, (res) => {
-  let data = '';
-  
-  res.on('data', chunk => {
-    data += chunk;
-  });
-  
-  res.on('end', () => {
-    try {
-      const response = JSON.parse(data);
-      
-      if (response.status === 'OK') {
-        console.log('✅ Google Maps API key is working!');
-        console.log(`   Found ${response.results.length} results for "New York"`);
-        console.log(`   First result: ${response.results[0].formatted_address}`);
-        console.log('');
-        console.log('🎉 Your Google Maps integration is ready!');
-        console.log('');
-        console.log('📋 Next steps:');
-        console.log('   1. Run: npm run start');
-        console.log('   2. Navigate to the Map screen in your app');
-        console.log('   3. Verify the map loads correctly');
-      } else {
-        console.log(`❌ Google Maps API error: ${response.status}`);
-        if (response.error_message) {
-          console.log(`   Error: ${response.error_message}`);
+https
+  .get(testUrl, res => {
+    let data = '';
+
+    res.on('data', chunk => {
+      data += chunk;
+    });
+
+    res.on('end', () => {
+      try {
+        const response = JSON.parse(data);
+
+        if (response.status === 'OK') {
+          console.log('✅ Google Maps API key is working!');
+          console.log(`   Found ${response.results.length} results for "New York"`);
+          console.log(`   First result: ${response.results[0].formatted_address}`);
+          console.log('');
+          console.log('🎉 Your Google Maps integration is ready!');
+          console.log('');
+          console.log('📋 Next steps:');
+          console.log('   1. Run: npm run start');
+          console.log('   2. Navigate to the Map screen in your app');
+          console.log('   3. Verify the map loads correctly');
+        } else {
+          console.log(`❌ Google Maps API error: ${response.status}`);
+          if (response.error_message) {
+            console.log(`   Error: ${response.error_message}`);
+          }
+          console.log('');
+          console.log('🔧 Possible solutions:');
+          console.log('   - Check if the API key is correct');
+          console.log('   - Verify that Geocoding API is enabled');
+          console.log('   - Check if billing is enabled on your Google Cloud project');
+          console.log('   - Verify API key restrictions (if any)');
         }
-        console.log('');
-        console.log('🔧 Possible solutions:');
-        console.log('   - Check if the API key is correct');
-        console.log('   - Verify that Geocoding API is enabled');
-        console.log('   - Check if billing is enabled on your Google Cloud project');
-        console.log('   - Verify API key restrictions (if any)');
+      } catch (error) {
+        console.log('❌ Failed to parse response from Google Maps API');
+        console.log(`   Error: ${error.message}`);
       }
-    } catch (error) {
-      console.log('❌ Failed to parse response from Google Maps API');
-      console.log(`   Error: ${error.message}`);
-    }
+    });
+  })
+  .on('error', error => {
+    console.log('❌ Network error testing Google Maps API');
+    console.log(`   Error: ${error.message}`);
   });
-}).on('error', (error) => {
-  console.log('❌ Network error testing Google Maps API');
-  console.log(`   Error: ${error.message}`);
-});

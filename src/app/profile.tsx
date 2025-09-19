@@ -87,7 +87,7 @@ export default function ProfileScreen() {
                       {
                         text: 'Disable',
                         style: 'destructive',
-                        onPress: async (code) => {
+                        onPress: async code => {
                           if (code && code.length === 6) {
                             await AuthService.disableTwoFactor(code);
                             setTwoFactorEnabled(false);
@@ -310,7 +310,7 @@ export default function ProfileScreen() {
         {renderNotificationsSection()}
         {renderAppSection()}
       </View>
-      
+
       <TwoFactorSetup
         visible={showTwoFactorSetup}
         onClose={() => setShowTwoFactorSetup(false)}

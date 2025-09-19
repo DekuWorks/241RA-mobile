@@ -29,7 +29,7 @@ export async function registerDeviceToken(): Promise<void> {
     console.warn('Firebase Messaging not available');
     return;
   }
-  
+
   try {
     // Request permission for push notifications
     const authStatus = await messaging().requestPermission();
@@ -76,7 +76,7 @@ export function attachForegroundMessaging() {
     console.warn('Firebase Messaging not available');
     return;
   }
-  
+
   messaging().onMessage(async remoteMessage => {
     console.log('Foreground message received:', remoteMessage);
 
@@ -111,7 +111,7 @@ export function setupBackgroundMessageHandler() {
     console.warn('Firebase Messaging not available');
     return;
   }
-  
+
   messaging().setBackgroundMessageHandler(async remoteMessage => {
     console.log('Background message received:', remoteMessage);
 

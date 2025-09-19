@@ -55,7 +55,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       const result = await GoogleAuthService.signIn();
-      
+
       if (result.success) {
         // Login successful, navigate to main app
         router.replace('/');

@@ -37,7 +37,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'org.runners241.app',
-    googleServicesFile: "./android/app/google-services.json",
+    googleServicesFile: './android/app/google-services.json',
     adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
     config: {

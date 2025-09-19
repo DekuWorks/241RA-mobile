@@ -48,7 +48,7 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
     try {
       setIsLoading(true);
       const isValid = await AuthService.verifyTwoFactor(verificationCode);
-      
+
       if (isValid) {
         setStep('backup');
       } else {
@@ -75,17 +75,16 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Enable Two-Factor Authentication</Text>
       <Text style={styles.stepDescription}>
-        Two-factor authentication adds an extra layer of security to your account by requiring a code from your authenticator app.
+        Two-factor authentication adds an extra layer of security to your account by requiring a
+        code from your authenticator app.
       </Text>
-      
+
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleEnable2FA}
         disabled={isLoading}
       >
-        <Text style={styles.buttonText}>
-          {isLoading ? 'Setting up...' : 'Enable 2FA'}
-        </Text>
+        <Text style={styles.buttonText}>{isLoading ? 'Setting up...' : 'Enable 2FA'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -96,16 +95,16 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
       <Text style={styles.stepDescription}>
         Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
       </Text>
-      
+
       <View style={styles.qrCodeContainer}>
         <Text style={styles.qrCodePlaceholder}>QR Code would be displayed here</Text>
         <Text style={styles.qrCodeText}>{qrCode}</Text>
       </View>
-      
+
       <Text style={styles.stepDescription}>
         After scanning, enter the 6-digit code from your authenticator app:
       </Text>
-      
+
       <TextInput
         style={styles.codeInput}
         value={verificationCode}
@@ -116,15 +115,13 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
         maxLength={6}
         autoFocus
       />
-      
+
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleVerifyCode}
         disabled={isLoading || verificationCode.length !== 6}
       >
-        <Text style={styles.buttonText}>
-          {isLoading ? 'Verifying...' : 'Verify Code'}
-        </Text>
+        <Text style={styles.buttonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -133,9 +130,10 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Save Backup Codes</Text>
       <Text style={styles.stepDescription}>
-        Save these backup codes in a safe place. You can use them to access your account if you lose your authenticator device:
+        Save these backup codes in a safe place. You can use them to access your account if you lose
+        your authenticator device:
       </Text>
-      
+
       <View style={styles.backupCodesContainer}>
         {backupCodes.map((code, index) => (
           <Text key={index} style={styles.backupCode}>
@@ -143,11 +141,11 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
           </Text>
         ))}
       </View>
-      
+
       <Text style={styles.warningText}>
         ⚠️ Each backup code can only be used once. Store them securely!
       </Text>
-      
+
       <TouchableOpacity style={styles.button} onPress={handleComplete}>
         <Text style={styles.buttonText}>Complete Setup</Text>
       </TouchableOpacity>
@@ -164,7 +162,7 @@ export function TwoFactorSetup({ visible, onClose, onSuccess }: TwoFactorSetupPr
           <Text style={styles.headerTitle}>Two-Factor Authentication</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <ScrollView style={styles.content}>
           {step === 'setup' && renderSetupStep()}
           {step === 'verify' && renderVerifyStep()}

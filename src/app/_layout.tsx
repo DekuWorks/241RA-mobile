@@ -65,7 +65,7 @@ export default function Root() {
 
         // Set up SignalR with React Query client
         signalRService.setQueryClient(qc);
-        
+
         // Set up push notifications with React Query client
         setPushQueryClient(qc);
 

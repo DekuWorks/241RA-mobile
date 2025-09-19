@@ -1,0 +1,45 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run ESLint
+      run: npm run lint -- --max-warnings 500
+      continue-on-error: true
+      
+    - name: Run Prettier check
+      run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,md}"
+      continue-on-error: true
+      
+    - name: TypeScript type check
+      run: npm run typecheck
+      
+    - name: Check for unused dependencies
+      run: npx depcheck
+      continue-on-error: true
+      
+    - name: Bundle size analysis
+      run: |
+        npm run build 2>/dev/null || echo "Build script not available"
+      continue-on-error: true

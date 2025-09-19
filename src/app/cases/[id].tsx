@@ -5,14 +5,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  // Alert,
   Dimensions,
   Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
-import { CasesService, Case } from '../../services/cases';
+import { CasesService } from '../../services/cases';
 
 const { width } = Dimensions.get('window');
 
