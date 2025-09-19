@@ -87,7 +87,7 @@ export default function ProfileScreen() {
                       {
                         text: 'Disable',
                         style: 'destructive',
-                        onPress: async code => {
+                        onPress: async (code?: string) => {
                           if (code && code.length === 6) {
                             await AuthService.disableTwoFactor(code);
                             setTwoFactorEnabled(false);

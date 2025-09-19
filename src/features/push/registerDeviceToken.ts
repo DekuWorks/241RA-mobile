@@ -77,7 +77,7 @@ export function attachForegroundMessaging() {
     return;
   }
 
-  messaging().onMessage(async remoteMessage => {
+  messaging().onMessage(async (remoteMessage: any) => {
     console.log('Foreground message received:', remoteMessage);
 
     // Handle data-only messages
@@ -112,7 +112,7 @@ export function setupBackgroundMessageHandler() {
     return;
   }
 
-  messaging().setBackgroundMessageHandler(async remoteMessage => {
+  messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
     console.log('Background message received:', remoteMessage);
 
     // Handle data-only messages in background

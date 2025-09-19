@@ -6,12 +6,12 @@ import { AuthService } from '../../services/auth';
 import { UserDataService } from '../../services/userData';
 
 // Add comprehensive error logging
-const logError = (error: any, context: string) => {
-  console.error(`[PORTAL ERROR] ${context}:`, error);
-  console.error('Error stack:', error?.stack);
-  console.error('Error message:', error?.message);
-  console.error('Error type:', typeof error);
-};
+// const logError = (error: any, context: string) => {
+//   console.error(`[PORTAL ERROR] ${context}:`, error);
+//   console.error('Error stack:', error?.stack);
+//   console.error('Error message:', error?.message);
+//   console.error('Error type:', typeof error);
+// };
 
 interface PortalStats {
   totalCases: number;

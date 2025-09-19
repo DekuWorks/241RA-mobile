@@ -19,9 +19,9 @@ export class GoogleAuthService {
           process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
           '933970195369-5qqs8ju3elg8ujeklqsgsoqae60bo3gb.apps.googleusercontent.com',
         // Android client ID (if different from web client ID)
-        androidClientId:
-          process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
-          '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
+        // androidClientId:
+        //   process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+        //   '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
         // Enable offline access
         offlineAccess: true,
         // Force consent screen
@@ -31,7 +31,7 @@ export class GoogleAuthService {
         // Hosted domain (optional)
         hostedDomain: '',
         // Login hint (optional)
-        loginHint: '',
+        // loginHint: '',
         // Scopes
         scopes: ['profile', 'email'],
       });
@@ -113,7 +113,8 @@ export class GoogleAuthService {
 
   static async isSignedIn(): Promise<boolean> {
     try {
-      return await GoogleSignin.isSignedIn();
+      const user = await GoogleSignin.getCurrentUser();
+      return user !== null;
     } catch (error) {
       console.error('Error checking Google Sign-In status:', error);
       return false;

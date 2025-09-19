@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
-// import { View, Text, StyleSheet } from 'react-native';
-// import { colors, spacing, typography } from '../../theme/tokens';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, spacing, typography } from '../../theme/tokens';
 
 export default function AdminLayout() {
   return (

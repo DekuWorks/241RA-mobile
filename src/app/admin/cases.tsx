@@ -62,16 +62,16 @@ export default function AdminCasesScreen() {
     }
   };
 
-  const handlePriorityChange = async (caseId: string, newPriority: string) => {
-    try {
-      await AdminService.updateCasePriority(caseId, newPriority);
-      await loadCases(); // Refresh the list
-      Alert.alert('Success', 'Case priority updated successfully');
-    } catch (error) {
-      console.error('Failed to update case priority:', error);
-      Alert.alert('Error', 'Failed to update case priority');
-    }
-  };
+  // const handlePriorityChange = async (caseId: string, newPriority: string) => {
+  //   try {
+  //     await AdminService.updateCasePriority(caseId, newPriority);
+  //     await loadCases(); // Refresh the list
+  //     Alert.alert('Success', 'Case priority updated successfully');
+  //   } catch (error) {
+  //     console.error('Failed to update case priority:', error);
+  //     Alert.alert('Error', 'Failed to update case priority');
+  //   }
+  // };
 
   const getStatusColor = (status: string) => {
     switch (status) {

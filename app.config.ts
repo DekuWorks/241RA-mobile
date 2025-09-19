@@ -40,9 +40,6 @@ const config: ExpoConfig = {
     googleServicesFile: './android/app/google-services.json',
     adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
-    config: {
-      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    },
   },
   plugins: [
     'expo-router',
