@@ -27,6 +27,8 @@ const config: ExpoConfig = {
       ITSAppUsesNonExemptEncryption: false,
       NSPrivacyPolicyURL: 'https://241runnersawareness.org/privacy',
       NSPrivacyPolicyUsageDescription: 'Privacy policy for 241Runners app',
+      UIBackgroundModes: ['remote-notification'],
+      FirebaseAppDelegateProxyEnabled: true,
     },
     associatedDomains: ['applinks:241runnersawareness.org'],
     config: {
