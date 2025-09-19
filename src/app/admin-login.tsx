@@ -81,31 +81,27 @@ export default function AdminLoginScreen() {
       } else {
         // Verify admin role after successful authentication
         console.log('Login successful, verifying admin role...');
-        
+
         // Get user data from the response or fetch it separately
         let user = response.user;
-        
+
         // If user data is not in the response, fetch it using getCurrentUser
         if (!user) {
           console.log('User data not in response, fetching current user...');
           try {
-            user = await AuthService.getCurrentUser() || undefined;
+            user = (await AuthService.getCurrentUser()) || undefined;
             console.log('Fetched user data:', user);
           } catch (userError) {
             console.error('Failed to fetch user data:', userError);
-            Alert.alert(
-              'Error',
-              'Failed to verify user permissions. Please try again.',
-              [
-                {
-                  text: 'OK',
-                  onPress: async () => {
-                    await AuthService.logout();
-                    router.replace('/login');
-                  },
+            Alert.alert('Error', 'Failed to verify user permissions. Please try again.', [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  await AuthService.logout();
+                  router.replace('/login');
                 },
-              ]
-            );
+              },
+            ]);
             return;
           }
         }
@@ -114,9 +110,11 @@ export default function AdminLoginScreen() {
         console.log('User role check:', {
           role: user?.role,
           isAdmin: user?.role === 'admin',
-          isModerator: user?.role === 'moderator', 
+          isModerator: user?.role === 'moderator',
           isSuperAdmin: user?.role === 'super_admin',
-          hasAccess: user && (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin')
+          hasAccess:
+            user &&
+            (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'),
         });
 
         if (
@@ -129,7 +127,7 @@ export default function AdminLoginScreen() {
             // Store user data and navigate to admin portal
             await UserDataService.setUserData(user);
             console.log('User data stored successfully');
-            
+
             // Test if we can access the portal
             console.log('Testing portal access...');
             const testUserData = await UserDataService.getUserData();
@@ -150,16 +148,12 @@ export default function AdminLoginScreen() {
             );
           } catch (storageError) {
             console.error('Failed to store user data:', storageError);
-            Alert.alert(
-              'Storage Error',
-              'Failed to store user data. Please try again.',
-              [
-                {
-                  text: 'Retry',
-                  onPress: () => handleAdminLogin(),
-                },
-              ]
-            );
+            Alert.alert('Storage Error', 'Failed to store user data. Please try again.', [
+              {
+                text: 'Retry',
+                onPress: () => handleAdminLogin(),
+              },
+            ]);
           }
         } else {
           console.log('Access denied - insufficient privileges');

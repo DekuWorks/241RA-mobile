@@ -9,10 +9,70 @@ import {
   RefreshControl,
   TextInput,
   Switch,
-  Picker,
+  Modal,
 } from 'react-native';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService, PortalSettings, SystemConfiguration } from '../../services/admin';
+
+// Simple dropdown component
+interface DropdownProps {
+  selectedValue: string;
+  onValueChange: (value: string) => void;
+  options: { label: string; value: string }[];
+  style?: any;
+}
+
+const Dropdown: React.FC<DropdownProps> = ({ selectedValue, onValueChange, options, style }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(opt => opt.value === selectedValue);
+
+  return (
+    <>
+      <TouchableOpacity style={[styles.picker, style]} onPress={() => setIsOpen(true)}>
+        <Text style={styles.pickerText}>{selectedOption?.label || 'Select...'}</Text>
+        <Text style={styles.pickerArrow}>▼</Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsOpen(false)}
+        >
+          <View style={styles.modalContent}>
+            {options.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  selectedValue === option.value && styles.modalOptionSelected,
+                ]}
+                onPress={() => {
+                  onValueChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    selectedValue === option.value && styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+};
 
 export default function PortalSettingsScreen() {
   const [settings, setSettings] = useState<PortalSettings | null>(null);
@@ -20,7 +80,9 @@ export default function PortalSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'appearance' | 'features' | 'integrations' | 'system'>('general');
+  const [activeTab, setActiveTab] = useState<
+    'general' | 'security' | 'appearance' | 'features' | 'integrations' | 'system'
+  >('general');
 
   useEffect(() => {
     loadSettings();
@@ -82,25 +144,21 @@ export default function PortalSettingsScreen() {
   };
 
   const handleClearCache = async (cacheType?: string) => {
-    Alert.alert(
-      'Clear Cache',
-      `This will clear the ${cacheType || 'all'} cache. Continue?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          onPress: async () => {
-            try {
-              await AdminService.clearCache(cacheType as any);
-              Alert.alert('Success', 'Cache cleared successfully');
-              loadSettings();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to clear cache');
-            }
-          },
+    Alert.alert('Clear Cache', `This will clear the ${cacheType || 'all'} cache. Continue?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        onPress: async () => {
+          try {
+            await AdminService.clearCache(cacheType as any);
+            Alert.alert('Success', 'Cache cleared successfully');
+            loadSettings();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to clear cache');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const onRefresh = async () => {
@@ -192,12 +250,12 @@ export default function PortalSettingsScreen() {
         {activeTab === 'general' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>General Settings</Text>
-            
+
             <SettingRow title="Site Name" description="The name of your portal">
               <TextInput
                 style={styles.textInput}
                 value={settings.general.siteName}
-                onChangeText={(text) =>
+                onChangeText={text =>
                   setSettings({ ...settings, general: { ...settings.general, siteName: text } })
                 }
                 placeholder="Site Name"
@@ -208,8 +266,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textAreaInput}
                 value={settings.general.siteDescription}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, general: { ...settings.general, siteDescription: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    general: { ...settings.general, siteDescription: text },
+                  })
                 }
                 placeholder="Site Description"
                 multiline
@@ -218,26 +279,32 @@ export default function PortalSettingsScreen() {
             </SettingRow>
 
             <SettingRow title="Timezone" description="Default timezone for the portal">
-              <Picker
+              <Dropdown
                 selectedValue={settings.general.timezone}
-                style={styles.picker}
-                onValueChange={(value) =>
+                onValueChange={(value: string) =>
                   setSettings({ ...settings, general: { ...settings.general, timezone: value } })
                 }
-              >
-                <Picker.Item label="Eastern Time" value="America/New_York" />
-                <Picker.Item label="Central Time" value="America/Chicago" />
-                <Picker.Item label="Mountain Time" value="America/Denver" />
-                <Picker.Item label="Pacific Time" value="America/Los_Angeles" />
-                <Picker.Item label="UTC" value="UTC" />
-              </Picker>
+                options={[
+                  { label: 'Eastern Time', value: 'America/New_York' },
+                  { label: 'Central Time', value: 'America/Chicago' },
+                  { label: 'Mountain Time', value: 'America/Denver' },
+                  { label: 'Pacific Time', value: 'America/Los_Angeles' },
+                  { label: 'UTC', value: 'UTC' },
+                ]}
+              />
             </SettingRow>
 
-            <SettingRow title="Maintenance Mode" description="Enable maintenance mode to restrict access">
+            <SettingRow
+              title="Maintenance Mode"
+              description="Enable maintenance mode to restrict access"
+            >
               <Switch
                 value={settings.general.maintenanceMode}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, general: { ...settings.general, maintenanceMode: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    general: { ...settings.general, maintenanceMode: value },
+                  })
                 }
               />
             </SettingRow>
@@ -245,17 +312,26 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Allow Registration" description="Allow new users to register">
               <Switch
                 value={settings.general.allowRegistration}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, general: { ...settings.general, allowRegistration: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    general: { ...settings.general, allowRegistration: value },
+                  })
                 }
               />
             </SettingRow>
 
-            <SettingRow title="Require Email Verification" description="Require email verification for new users">
+            <SettingRow
+              title="Require Email Verification"
+              description="Require email verification for new users"
+            >
               <Switch
                 value={settings.general.requireEmailVerification}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, general: { ...settings.general, requireEmailVerification: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    general: { ...settings.general, requireEmailVerification: value },
+                  })
                 }
               />
             </SettingRow>
@@ -265,25 +341,34 @@ export default function PortalSettingsScreen() {
         {activeTab === 'security' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Security Settings</Text>
-            
+
             <SettingRow title="Session Timeout" description="Session timeout in minutes">
               <TextInput
                 style={styles.numberInput}
                 value={settings.security.sessionTimeout.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, security: { ...settings.security, sessionTimeout: parseInt(text) || 30 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, sessionTimeout: parseInt(text) || 30 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="30"
               />
             </SettingRow>
 
-            <SettingRow title="Max Login Attempts" description="Maximum failed login attempts before lockout">
+            <SettingRow
+              title="Max Login Attempts"
+              description="Maximum failed login attempts before lockout"
+            >
               <TextInput
                 style={styles.numberInput}
                 value={settings.security.maxLoginAttempts.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, security: { ...settings.security, maxLoginAttempts: parseInt(text) || 5 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, maxLoginAttempts: parseInt(text) || 5 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="5"
@@ -294,19 +379,28 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.numberInput}
                 value={settings.security.lockoutDuration.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, security: { ...settings.security, lockoutDuration: parseInt(text) || 15 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, lockoutDuration: parseInt(text) || 15 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="15"
               />
             </SettingRow>
 
-            <SettingRow title="Require Two-Factor Authentication" description="Require 2FA for all users">
+            <SettingRow
+              title="Require Two-Factor Authentication"
+              description="Require 2FA for all users"
+            >
               <Switch
                 value={settings.security.requireTwoFactor}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, security: { ...settings.security, requireTwoFactor: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, requireTwoFactor: value },
+                  })
                 }
               />
             </SettingRow>
@@ -315,19 +409,28 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.numberInput}
                 value={settings.security.passwordMinLength.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, security: { ...settings.security, passwordMinLength: parseInt(text) || 8 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, passwordMinLength: parseInt(text) || 8 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="8"
               />
             </SettingRow>
 
-            <SettingRow title="Require Special Characters" description="Require special characters in passwords">
+            <SettingRow
+              title="Require Special Characters"
+              description="Require special characters in passwords"
+            >
               <Switch
                 value={settings.security.passwordRequireSpecialChars}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, security: { ...settings.security, passwordRequireSpecialChars: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, passwordRequireSpecialChars: value },
+                  })
                 }
               />
             </SettingRow>
@@ -336,8 +439,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.numberInput}
                 value={settings.security.apiRateLimit.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, security: { ...settings.security, apiRateLimit: parseInt(text) || 100 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    security: { ...settings.security, apiRateLimit: parseInt(text) || 100 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="100"
@@ -349,27 +455,36 @@ export default function PortalSettingsScreen() {
         {activeTab === 'appearance' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Appearance Settings</Text>
-            
+
             <SettingRow title="Theme" description="Default theme for the portal">
-              <Picker
+              <Dropdown
                 selectedValue={settings.appearance.theme}
-                style={styles.picker}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, theme: value } })
+                onValueChange={(value: string) =>
+                  setSettings({
+                    ...settings,
+                    appearance: {
+                      ...settings.appearance,
+                      theme: value as 'light' | 'dark' | 'auto',
+                    },
+                  })
                 }
-              >
-                <Picker.Item label="Light" value="light" />
-                <Picker.Item label="Dark" value="dark" />
-                <Picker.Item label="Auto" value="auto" />
-              </Picker>
+                options={[
+                  { label: 'Light', value: 'light' },
+                  { label: 'Dark', value: 'dark' },
+                  { label: 'Auto', value: 'auto' },
+                ]}
+              />
             </SettingRow>
 
             <SettingRow title="Primary Color" description="Primary color for the portal">
               <TextInput
                 style={styles.textInput}
                 value={settings.appearance.primaryColor}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, primaryColor: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    appearance: { ...settings.appearance, primaryColor: text },
+                  })
                 }
                 placeholder="#2563eb"
               />
@@ -379,8 +494,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={settings.appearance.secondaryColor}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, secondaryColor: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    appearance: { ...settings.appearance, secondaryColor: text },
+                  })
                 }
                 placeholder="#64748b"
               />
@@ -390,8 +508,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={settings.appearance.logoUrl}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, logoUrl: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    appearance: { ...settings.appearance, logoUrl: text },
+                  })
                 }
                 placeholder="https://example.com/logo.png"
               />
@@ -401,8 +522,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={settings.appearance.faviconUrl}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, faviconUrl: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    appearance: { ...settings.appearance, faviconUrl: text },
+                  })
                 }
                 placeholder="https://example.com/favicon.ico"
               />
@@ -412,8 +536,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textAreaInput}
                 value={settings.appearance.customCss}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, appearance: { ...settings.appearance, customCss: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    appearance: { ...settings.appearance, customCss: text },
+                  })
                 }
                 placeholder="/* Custom CSS */"
                 multiline
@@ -426,12 +553,15 @@ export default function PortalSettingsScreen() {
         {activeTab === 'features' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Feature Settings</Text>
-            
+
             <SettingRow title="Enable Analytics" description="Enable analytics tracking">
               <Switch
                 value={settings.features.enableAnalytics}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableAnalytics: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableAnalytics: value },
+                  })
                 }
               />
             </SettingRow>
@@ -439,8 +569,11 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Enable Reports" description="Enable report generation">
               <Switch
                 value={settings.features.enableReports}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableReports: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableReports: value },
+                  })
                 }
               />
             </SettingRow>
@@ -448,8 +581,11 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Enable Backups" description="Enable automatic backups">
               <Switch
                 value={settings.features.enableBackups}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableBackups: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableBackups: value },
+                  })
                 }
               />
             </SettingRow>
@@ -457,8 +593,11 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Enable Logging" description="Enable system logging">
               <Switch
                 value={settings.features.enableLogging}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableLogging: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableLogging: value },
+                  })
                 }
               />
             </SettingRow>
@@ -466,8 +605,11 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Enable Audit Trail" description="Enable audit trail tracking">
               <Switch
                 value={settings.features.enableAuditTrail}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableAuditTrail: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableAuditTrail: value },
+                  })
                 }
               />
             </SettingRow>
@@ -475,8 +617,11 @@ export default function PortalSettingsScreen() {
             <SettingRow title="Enable API Access" description="Enable API access">
               <Switch
                 value={settings.features.enableApiAccess}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, features: { ...settings.features, enableApiAccess: value } })
+                onValueChange={value =>
+                  setSettings({
+                    ...settings,
+                    features: { ...settings.features, enableApiAccess: value },
+                  })
                 }
               />
             </SettingRow>
@@ -486,13 +631,19 @@ export default function PortalSettingsScreen() {
         {activeTab === 'integrations' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Integration Settings</Text>
-            
-            <SettingRow title="Google Maps API Key" description="API key for Google Maps integration">
+
+            <SettingRow
+              title="Google Maps API Key"
+              description="API key for Google Maps integration"
+            >
               <TextInput
                 style={styles.textInput}
                 value={settings.integrations.googleMapsApiKey}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, googleMapsApiKey: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    integrations: { ...settings.integrations, googleMapsApiKey: text },
+                  })
                 }
                 placeholder="AIza..."
                 secureTextEntry
@@ -500,25 +651,34 @@ export default function PortalSettingsScreen() {
             </SettingRow>
 
             <SettingRow title="Email Provider" description="Email service provider">
-              <Picker
+              <Dropdown
                 selectedValue={settings.integrations.emailProvider}
-                style={styles.picker}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, emailProvider: value } })
+                onValueChange={(value: string) =>
+                  setSettings({
+                    ...settings,
+                    integrations: {
+                      ...settings.integrations,
+                      emailProvider: value as 'smtp' | 'sendgrid' | 'mailgun',
+                    },
+                  })
                 }
-              >
-                <Picker.Item label="SMTP" value="smtp" />
-                <Picker.Item label="SendGrid" value="sendgrid" />
-                <Picker.Item label="Mailgun" value="mailgun" />
-              </Picker>
+                options={[
+                  { label: 'SMTP', value: 'smtp' },
+                  { label: 'SendGrid', value: 'sendgrid' },
+                  { label: 'Mailgun', value: 'mailgun' },
+                ]}
+              />
             </SettingRow>
 
             <SettingRow title="SMTP Host" description="SMTP server hostname">
               <TextInput
                 style={styles.textInput}
                 value={settings.integrations.smtpHost}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, smtpHost: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    integrations: { ...settings.integrations, smtpHost: text },
+                  })
                 }
                 placeholder="smtp.gmail.com"
               />
@@ -528,8 +688,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.numberInput}
                 value={settings.integrations.smtpPort.toString()}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, smtpPort: parseInt(text) || 587 } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    integrations: { ...settings.integrations, smtpPort: parseInt(text) || 587 },
+                  })
                 }
                 keyboardType="numeric"
                 placeholder="587"
@@ -540,8 +703,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={settings.integrations.smtpUsername}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, smtpUsername: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    integrations: { ...settings.integrations, smtpUsername: text },
+                  })
                 }
                 placeholder="username"
               />
@@ -551,8 +717,11 @@ export default function PortalSettingsScreen() {
               <TextInput
                 style={styles.textInput}
                 value={settings.integrations.smtpPassword}
-                onChangeText={(text) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, smtpPassword: text } })
+                onChangeText={text =>
+                  setSettings({
+                    ...settings,
+                    integrations: { ...settings.integrations, smtpPassword: text },
+                  })
                 }
                 placeholder="password"
                 secureTextEntry
@@ -560,17 +729,23 @@ export default function PortalSettingsScreen() {
             </SettingRow>
 
             <SettingRow title="SMTP Encryption" description="SMTP encryption type">
-              <Picker
+              <Dropdown
                 selectedValue={settings.integrations.smtpEncryption}
-                style={styles.picker}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, integrations: { ...settings.integrations, smtpEncryption: value } })
+                onValueChange={(value: string) =>
+                  setSettings({
+                    ...settings,
+                    integrations: {
+                      ...settings.integrations,
+                      smtpEncryption: value as 'none' | 'tls' | 'ssl',
+                    },
+                  })
                 }
-              >
-                <Picker.Item label="None" value="none" />
-                <Picker.Item label="TLS" value="tls" />
-                <Picker.Item label="SSL" value="ssl" />
-              </Picker>
+                options={[
+                  { label: 'None', value: 'none' },
+                  { label: 'TLS', value: 'tls' },
+                  { label: 'SSL', value: 'ssl' },
+                ]}
+              />
             </SettingRow>
           </View>
         )}
@@ -578,7 +753,7 @@ export default function PortalSettingsScreen() {
         {activeTab === 'system' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>System Information</Text>
-            
+
             {systemConfig && (
               <>
                 <View style={styles.infoCard}>
@@ -633,7 +808,9 @@ export default function PortalSettingsScreen() {
                   <Text style={styles.infoCardTitle}>Cache Information</Text>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Enabled:</Text>
-                    <Text style={styles.infoValue}>{systemConfig.cacheInfo.enabled ? 'Yes' : 'No'}</Text>
+                    <Text style={styles.infoValue}>
+                      {systemConfig.cacheInfo.enabled ? 'Yes' : 'No'}
+                    </Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Type:</Text>
@@ -652,12 +829,9 @@ export default function PortalSettingsScreen() {
             )}
 
             <Text style={styles.sectionTitle}>System Actions</Text>
-            
+
             <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleClearCache()}
-              >
+              <TouchableOpacity style={styles.actionButton} onPress={() => handleClearCache()}>
                 <Text style={styles.actionButtonIcon}>🗑️</Text>
                 <Text style={styles.actionButtonText}>Clear All Cache</Text>
               </TouchableOpacity>
@@ -867,6 +1041,47 @@ const styles = StyleSheet.create({
     borderColor: colors.gray[300],
     borderRadius: radii.sm,
     minWidth: 150,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  pickerText: {
+    fontSize: typography.sizes.base,
+    color: colors.text,
+  },
+  pickerArrow: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[500],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    minWidth: 200,
+    maxHeight: 300,
+  },
+  modalOption: {
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  modalOptionSelected: {
+    backgroundColor: colors.primary,
+  },
+  modalOptionText: {
+    fontSize: typography.sizes.base,
+    color: colors.text,
+  },
+  modalOptionTextSelected: {
+    color: colors.white,
   },
   infoCard: {
     backgroundColor: colors.white,

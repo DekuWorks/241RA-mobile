@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { CasesService, Case } from '../services/cases';
+import { ENV } from '../config/env';
 
 const { width, height } = Dimensions.get('window');
 
@@ -128,6 +129,21 @@ export default function MapScreen() {
         <Text style={styles.errorText}>Failed to load cases</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
           <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Check if Google Maps API key is available
+  if (!ENV.GOOGLE_MAPS_API_KEY) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Google Maps API key not configured</Text>
+        <Text style={styles.errorSubtext}>
+          Please configure EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -343,8 +359,15 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: typography.sizes.lg,
     color: colors.error,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[400],
     marginBottom: spacing.lg,
     textAlign: 'center',
+    lineHeight: 20,
   },
   retryButton: {
     backgroundColor: colors.primary,

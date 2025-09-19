@@ -177,9 +177,9 @@ export default function PortalDatabaseScreen() {
       if (result.isHealthy) {
         Alert.alert('Database Health Check', 'Database is healthy with no issues found.');
       } else {
-        const issuesText = result.issues.map(issue => 
-          `${issue.severity.toUpperCase()}: ${issue.table} - ${issue.issue}`
-        ).join('\n');
+        const issuesText = result.issues
+          .map(issue => `${issue.severity.toUpperCase()}: ${issue.table} - ${issue.issue}`)
+          .join('\n');
         Alert.alert('Database Health Check', `Issues found:\n\n${issuesText}`);
       }
     } catch (error: any) {
@@ -244,7 +244,6 @@ export default function PortalDatabaseScreen() {
       Alert.alert('Error', 'Failed to create database backup');
     }
   };
-
 
   const StatCard = ({
     title,
@@ -335,42 +334,41 @@ export default function PortalDatabaseScreen() {
             <Text style={styles.actionTitle}>View Schema</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: colors.error[50] }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.error[50] }]}
             onPress={handleForceDeleteNonAdminUsers}
           >
             <Text style={styles.actionIcon}>⚠️</Text>
-            <Text style={[styles.actionTitle, { color: colors.error[600] }]}>Delete Non-Admins</Text>
+            <Text style={[styles.actionTitle, { color: colors.error[600] }]}>
+              Delete Non-Admins
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: colors.error[50] }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.error[50] }]}
             onPress={handleResetDatabase}
           >
             <Text style={styles.actionIcon}>🔄</Text>
             <Text style={[styles.actionTitle, { color: colors.error[600] }]}>Reset Database</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: colors.warning[50] }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.warning[50] }]}
             onPress={handleVacuumDatabase}
           >
             <Text style={styles.actionIcon}>🧹</Text>
             <Text style={[styles.actionTitle, { color: colors.warning[600] }]}>Vacuum DB</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: colors.info[50] }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.info[50] }]}
             onPress={handleReindexDatabase}
           >
             <Text style={styles.actionIcon}>📊</Text>
             <Text style={[styles.actionTitle, { color: colors.info[600] }]}>Reindex DB</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.actionButton} 
-            onPress={handleCheckIntegrity}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={handleCheckIntegrity}>
             <Text style={styles.actionIcon}>🔍</Text>
             <Text style={styles.actionTitle}>Health Check</Text>
           </TouchableOpacity>
@@ -382,9 +380,9 @@ export default function PortalDatabaseScreen() {
         <Text style={styles.sectionTitle}>Super Admin Actions</Text>
         <View style={styles.actionsGrid}>
           {tables.map(table => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={table.name}
-              style={[styles.actionButton, { backgroundColor: colors.error[50] }]} 
+              style={[styles.actionButton, { backgroundColor: colors.error[50] }]}
               onPress={() => handleTruncateTable(table.name)}
             >
               <Text style={styles.actionIcon}>🗑️</Text>

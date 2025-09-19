@@ -1,9 +1,9 @@
 import { ApiClient } from './apiClient';
-import { SecureStoreService } from './secureStore';
+import { SecureTokenService } from './secureTokens';
 import { initCrashlytics } from '../lib/crash';
 import { registerDeviceToken } from '../features/push/registerDeviceToken';
-// import { signalRService } from './signalR';
-// import { TopicService } from './topics';
+import { signalRService } from './signalR';
+import { TopicService } from './topics';
 
 export interface LoginCredentials {
   email: string;
@@ -37,11 +37,11 @@ export class AuthService {
     console.log('User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
 
     if (data.accessToken) {
-      await SecureStoreService.setAccessToken(String(data.accessToken));
+      await SecureTokenService.setAccessToken(String(data.accessToken));
 
       // Only store refreshToken if it exists
       if (data.refreshToken) {
-        await SecureStoreService.setRefreshToken(String(data.refreshToken));
+        await SecureTokenService.setRefreshToken(String(data.refreshToken));
       } else {
         console.log('No refreshToken in response, skipping storage');
       }
@@ -49,7 +49,7 @@ export class AuthService {
       // Ensure userId is converted to string
       const userId = String(data.user?.id || data.userId || '');
       console.log('Storing userId as string:', userId);
-      await SecureStoreService.setUserId(userId);
+      await SecureTokenService.setUserId(userId);
 
       // Initialize Crashlytics with user ID (GUID only, no PII)
       initCrashlytics(userId);
@@ -72,14 +72,14 @@ export class AuthService {
     const data = await ApiClient.post('/api/auth/google', { token: googleToken });
 
     if (data.accessToken) {
-      await SecureStoreService.setAccessToken(String(data.accessToken));
+      await SecureTokenService.setAccessToken(String(data.accessToken));
       if (data.refreshToken) {
-        await SecureStoreService.setRefreshToken(String(data.refreshToken));
+        await SecureTokenService.setRefreshToken(String(data.refreshToken));
       }
-      
+
       // Ensure userId is converted to string
       const userId = String(data.user?.id || data.userId || '');
-      await SecureStoreService.setUserId(userId);
+      await SecureTokenService.setUserId(userId);
 
       // Initialize Crashlytics with user ID (GUID only, no PII)
       initCrashlytics(userId);
@@ -107,13 +107,13 @@ export class AuthService {
       console.warn('Server logout failed:', error);
     } finally {
       // Always clear local tokens
-      await SecureStoreService.clearAll();
+      await SecureTokenService.clearAll();
     }
   }
 
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const userId = await SecureStoreService.getUserId();
+      const userId = await SecureTokenService.getUserId();
       if (!userId) return null;
 
       const data = await ApiClient.get(`/api/users/${userId}`);
@@ -125,7 +125,7 @@ export class AuthService {
   }
 
   static async isAuthenticated(): Promise<boolean> {
-    return await SecureStoreService.hasValidTokens();
+    return await SecureTokenService.hasValidTokens();
   }
 
   static async enableTwoFactor(): Promise<{ qrCode: string; backupCodes: string[] }> {
@@ -151,18 +151,17 @@ export class AuthService {
    */
   private static async initializeRealtimeServices(user?: User): Promise<void> {
     try {
-      // TODO: Re-enable after build testing
       // Start SignalR connection
-      // await signalRService.startConnection();
-      
+      await signalRService.startConnection();
+
       // Subscribe to default topics based on user role
-      // if (user?.role) {
-      //   await TopicService.subscribeToDefaultTopics(user.role);
-      // } else {
-      //   await TopicService.subscribeToDefaultTopics();
-      // }
-      
-      console.log('Real-time services initialization skipped for build testing');
+      if (user?.role) {
+        await TopicService.subscribeToDefaultTopics(user.role);
+      } else {
+        await TopicService.subscribeToDefaultTopics();
+      }
+
+      console.log('Real-time services initialized successfully');
     } catch (error) {
       console.warn('Failed to initialize real-time services:', error);
     }

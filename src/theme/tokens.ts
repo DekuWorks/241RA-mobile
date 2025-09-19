@@ -1,5 +1,6 @@
 export const colors = {
   bg: '#0b0b0b',
+  background: '#0b0b0b',
   text: '#f5f5f5',
   primary: '#0ea5e9',
   secondary: '#64748b',
@@ -7,13 +8,18 @@ export const colors = {
   warning: '#f59e0b',
   error: '#ef4444',
   white: '#ffffff',
+  surface: '#1f2937',
   info: {
+    50: '#eff6ff',
     500: '#3b82f6',
     600: '#2563eb',
   },
   purple: {
     500: '#8b5cf6',
     600: '#7c3aed',
+  },
+  orange: {
+    600: '#ea580c',
   },
   status: {
     missing: '#FFCC00',
@@ -55,5 +61,26 @@ export const typography = {
     medium: '500' as const,
     semibold: '600' as const,
     bold: '700' as const,
+  },
+  // Typography styles for components
+  h2: {
+    fontSize: 24,
+    fontWeight: '600' as const,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+  },
+  button: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+  },
+  caption: {
+    fontSize: 12,
+    fontWeight: '400' as const,
   },
 };

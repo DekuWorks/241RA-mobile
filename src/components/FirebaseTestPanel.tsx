@@ -24,16 +24,19 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
       // Test error recording
       const testError = new Error('Test Crashlytics Error - This is intentional for testing');
       recordError(testError);
-      
+
       // Test custom logging
       logEvent('firebase_test', {
         testType: 'error_recording',
         userId: userId || 'unknown',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       addResult('✅ Crashlytics error recorded successfully');
-      Alert.alert('Test Complete', 'Error recorded to Crashlytics. Check Firebase console in a few minutes.');
+      Alert.alert(
+        'Test Complete',
+        'Error recorded to Crashlytics. Check Firebase console in a few minutes.'
+      );
     } catch (error) {
       addResult('❌ Failed to record error: ' + String(error));
     } finally {
@@ -42,21 +45,17 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   };
 
   const testCrashlyticsCrash = () => {
-    Alert.alert(
-      'Test Crash',
-      'This will crash the app to test Crashlytics. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Crash App',
-          style: 'destructive',
-          onPress: () => {
-            addResult('🚨 Triggering test crash...');
-            forceTestCrash();
-          }
-        }
-      ]
-    );
+    Alert.alert('Test Crash', 'This will crash the app to test Crashlytics. Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Crash App',
+        style: 'destructive',
+        onPress: () => {
+          addResult('🚨 Triggering test crash...');
+          forceTestCrash();
+        },
+      },
+    ]);
   };
 
   const testPushNotification = async () => {
@@ -78,9 +77,9 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
       userId: userId || 'unknown',
       timestamp: Date.now(),
       appVersion: '1.0.0',
-      platform: 'ios'
+      platform: 'ios',
     });
-    
+
     addResult('✅ Custom log event sent');
     Alert.alert('Test Complete', 'Custom log event sent to Crashlytics.');
   };
@@ -118,7 +117,7 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Firebase Integration Tests</Text>
-      
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.errorButton]}
@@ -177,7 +176,7 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
               <Text style={styles.clearButtonText}>Clear</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.resultsList}>
             {testResults.map((result, index) => (
               <Text key={index} style={styles.resultText}>
@@ -261,6 +260,6 @@ const styles = StyleSheet.create({
   resultText: {
     ...typography.body,
     fontSize: 12,
-    color: colors.text.secondary,
+    color: colors.gray[400],
   },
 });

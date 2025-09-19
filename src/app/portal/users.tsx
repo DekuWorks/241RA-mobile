@@ -20,12 +20,12 @@ export default function PortalUsersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  
+
   // CRUD Modal States
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  
+
   // Form States
   const [newUser, setNewUser] = useState({
     email: '',
@@ -34,7 +34,7 @@ export default function PortalUsersScreen() {
     role: 'user',
     password: '',
   });
-  
+
   const [editUser, setEditUser] = useState({
     email: '',
     firstName: '',
@@ -145,7 +145,10 @@ export default function PortalUsersScreen() {
     if (!editingUser) return;
 
     try {
-      await AdminService.updateUser(editingUser.id, editUser);
+      await AdminService.updateUser(editingUser.id, {
+        ...editUser,
+        role: editUser.role as 'admin' | 'moderator' | 'super_admin',
+      });
       Alert.alert('Success', 'User updated successfully');
       setShowEditModal(false);
       setEditingUser(null);
@@ -232,10 +235,7 @@ export default function PortalUsersScreen() {
     >
       {/* Header Actions */}
       <View style={styles.headerActions}>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => setShowCreateModal(true)}
-        >
+        <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
           <Text style={styles.createButtonIcon}>➕</Text>
           <Text style={styles.createButtonText}>Create User</Text>
         </TouchableOpacity>
@@ -353,17 +353,14 @@ export default function PortalUsersScreen() {
             </View>
 
             <View style={styles.userActions}>
-              <TouchableOpacity
-                style={[styles.editButton]}
-                onPress={() => handleEditUser(user)}
-              >
+              <TouchableOpacity style={[styles.editButton]} onPress={() => handleEditUser(user)}>
                 <Text style={styles.actionButtonText}>✏️ Edit</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.roleButton,
-                  { backgroundColor: colors.info[600], borderColor: colors.info[500] }
+                  { backgroundColor: colors.info[600], borderColor: colors.info[500] },
                 ]}
                 onPress={() => {
                   let newRole: string;
@@ -378,18 +375,16 @@ export default function PortalUsersScreen() {
                 }}
               >
                 <Text style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
-                  {user.role === 'super_admin' 
-                    ? 'Demote to Admin' 
-                    : user.role === 'admin' 
-                    ? 'Promote to Super Admin' 
-                    : 'Promote to Admin'}
+                  {user.role === 'super_admin'
+                    ? 'Demote to Admin'
+                    : user.role === 'admin'
+                      ? 'Promote to Super Admin'
+                      : 'Promote to Admin'}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  user.isActive ? styles.deactivateButton : styles.activateButton,
-                ]}
+                style={[user.isActive ? styles.deactivateButton : styles.activateButton]}
                 onPress={() => handleStatusToggle(user.id, user.isActive)}
               >
                 <Text style={styles.actionButtonText}>
@@ -419,54 +414,53 @@ export default function PortalUsersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Create New User</Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Email"
               value={newUser.email}
-              onChangeText={(text) => setNewUser({ ...newUser, email: text })}
+              onChangeText={text => setNewUser({ ...newUser, email: text })}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="First Name"
               value={newUser.firstName}
-              onChangeText={(text) => setNewUser({ ...newUser, firstName: text })}
+              onChangeText={text => setNewUser({ ...newUser, firstName: text })}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Last Name"
               value={newUser.lastName}
-              onChangeText={(text) => setNewUser({ ...newUser, lastName: text })}
+              onChangeText={text => setNewUser({ ...newUser, lastName: text })}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Password"
               value={newUser.password}
-              onChangeText={(text) => setNewUser({ ...newUser, password: text })}
+              onChangeText={text => setNewUser({ ...newUser, password: text })}
               secureTextEntry
             />
 
             <View style={styles.modalRoleContainer}>
               <Text style={styles.modalLabel}>Role:</Text>
               <View style={styles.roleButtons}>
-                {['user', 'moderator', 'admin', 'super_admin'].map((role) => (
+                {['user', 'moderator', 'admin', 'super_admin'].map(role => (
                   <TouchableOpacity
                     key={role}
-                    style={[
-                      styles.roleButton,
-                      newUser.role === role && styles.selectedRoleButton,
-                    ]}
+                    style={[styles.roleButton, newUser.role === role && styles.selectedRoleButton]}
                     onPress={() => setNewUser({ ...newUser, role })}
                   >
-                    <Text style={[
-                      styles.roleButtonText,
-                      newUser.role === role && styles.selectedRoleButtonText,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.roleButtonText,
+                        newUser.role === role && styles.selectedRoleButtonText,
+                      ]}
+                    >
                       {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
                     </Text>
                   </TouchableOpacity>
@@ -481,10 +475,7 @@ export default function PortalUsersScreen() {
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={handleCreateUser}
-              >
+              <TouchableOpacity style={styles.modalSaveButton} onPress={handleCreateUser}>
                 <Text style={styles.modalSaveText}>Create User</Text>
               </TouchableOpacity>
             </View>
@@ -497,46 +488,45 @@ export default function PortalUsersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit User</Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Email"
               value={editUser.email}
-              onChangeText={(text) => setEditUser({ ...editUser, email: text })}
+              onChangeText={text => setEditUser({ ...editUser, email: text })}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="First Name"
               value={editUser.firstName}
-              onChangeText={(text) => setEditUser({ ...editUser, firstName: text })}
+              onChangeText={text => setEditUser({ ...editUser, firstName: text })}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Last Name"
               value={editUser.lastName}
-              onChangeText={(text) => setEditUser({ ...editUser, lastName: text })}
+              onChangeText={text => setEditUser({ ...editUser, lastName: text })}
             />
 
             <View style={styles.modalRoleContainer}>
               <Text style={styles.modalLabel}>Role:</Text>
               <View style={styles.roleButtons}>
-                {['user', 'moderator', 'admin', 'super_admin'].map((role) => (
+                {['user', 'moderator', 'admin', 'super_admin'].map(role => (
                   <TouchableOpacity
                     key={role}
-                    style={[
-                      styles.roleButton,
-                      editUser.role === role && styles.selectedRoleButton,
-                    ]}
+                    style={[styles.roleButton, editUser.role === role && styles.selectedRoleButton]}
                     onPress={() => setEditUser({ ...editUser, role })}
                   >
-                    <Text style={[
-                      styles.roleButtonText,
-                      editUser.role === role && styles.selectedRoleButtonText,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.roleButtonText,
+                        editUser.role === role && styles.selectedRoleButtonText,
+                      ]}
+                    >
                       {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
                     </Text>
                   </TouchableOpacity>
@@ -551,10 +541,7 @@ export default function PortalUsersScreen() {
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={handleUpdateUser}
-              >
+              <TouchableOpacity style={styles.modalSaveButton} onPress={handleUpdateUser}>
                 <Text style={styles.modalSaveText}>Update User</Text>
               </TouchableOpacity>
             </View>
@@ -708,16 +695,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: colors.gray[100], // Default background
   },
-  roleButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    minWidth: 80,
-    borderWidth: 2,
-    backgroundColor: colors.info[600], // Blue for role changes - better contrast
-    borderColor: colors.info[500],
-  },
   activateButton: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
@@ -756,7 +733,7 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     fontStyle: 'italic',
   },
-  
+
   // Header Actions
   headerActions: {
     padding: spacing.md,
@@ -794,7 +771,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
   },
-  
+
   // Enhanced Action Buttons - Traffic Light Theme
   editButton: {
     paddingVertical: spacing.sm,
@@ -816,7 +793,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444', // Red for delete (dangerous action)
     borderColor: '#DC2626',
   },
-  
+
   // Modal Styles
   modalOverlay: {
     flex: 1,

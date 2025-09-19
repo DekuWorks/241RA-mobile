@@ -181,7 +181,7 @@ export class AdminService {
       this.validateAdminAccess();
       // Use the existing /api/Admin/activity endpoint
       const data = await ApiClient.get('/api/Admin/activity');
-      
+
       // Handle the real API response structure
       if (data && data.data && Array.isArray(data.data)) {
         return data.data.map((activity: any) => ({
@@ -204,11 +204,16 @@ export class AdminService {
 
   private static getActivityTitle(action: string): string {
     switch (action) {
-      case 'USER_CREATE': return 'New User Created';
-      case 'CASE_STATUS': return 'Case Status Updated';
-      case 'USER_LOGIN': return 'User Login';
-      case 'CASE_CREATE': return 'New Case Created';
-      default: return 'Admin Activity';
+      case 'USER_CREATE':
+        return 'New User Created';
+      case 'CASE_STATUS':
+        return 'Case Status Updated';
+      case 'USER_LOGIN':
+        return 'User Login';
+      case 'CASE_CREATE':
+        return 'New Case Created';
+      default:
+        return 'Admin Activity';
     }
   }
 
@@ -256,7 +261,7 @@ export class AdminService {
     try {
       // Use the existing /api/Admin/stats endpoint
       const data = await ApiClient.get('/api/Admin/stats');
-      
+
       // Handle the real API response structure
       if (data && typeof data === 'object' && data.totals) {
         return {
@@ -398,27 +403,28 @@ export class AdminService {
   }): Promise<{ users: AdminUser[]; total: number; page: number; limit: number }> {
     try {
       this.validateAdminAccess();
-      
+
       // Use the existing /api/Admin/users-debug endpoint
       const data = await ApiClient.get('/api/Admin/users-debug');
-      
+
       // Transform the API response to match our expected format
       let users = data.users || [];
-      
+
       // Apply filters
       if (filters?.role && filters.role.length > 0) {
         users = users.filter((user: any) => filters.role!.includes(user.role));
       }
-      
+
       if (filters?.search) {
         const searchLower = filters.search.toLowerCase();
-        users = users.filter((user: any) => 
-          user.email.toLowerCase().includes(searchLower) ||
-          user.firstName?.toLowerCase().includes(searchLower) ||
-          user.lastName?.toLowerCase().includes(searchLower)
+        users = users.filter(
+          (user: any) =>
+            user.email.toLowerCase().includes(searchLower) ||
+            user.firstName?.toLowerCase().includes(searchLower) ||
+            user.lastName?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       if (filters?.isActive !== undefined) {
         users = users.filter((user: any) => {
           // Map API response to isActive field
@@ -426,7 +432,7 @@ export class AdminService {
           return isActive === filters.isActive;
         });
       }
-      
+
       // Transform to AdminUser format
       const transformedUsers: AdminUser[] = users.map((user: any) => ({
         id: user.id.toString(),
@@ -439,14 +445,14 @@ export class AdminService {
         lastLoginAt: user.lastLoginAt || null,
         actionsPerformed: user.actionsPerformed || 0,
       }));
-      
+
       // Apply pagination
       const page = filters?.page || 1;
       const limit = filters?.limit || 50;
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       const paginatedUsers = transformedUsers.slice(startIndex, endIndex);
-      
+
       return {
         users: paginatedUsers,
         total: transformedUsers.length,
@@ -463,7 +469,7 @@ export class AdminService {
     try {
       this.validateAdminAccess();
       console.log(`Updating user ${userId} role to ${role}`);
-      
+
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { role });
       console.log('Role update result:', result);
@@ -474,7 +480,7 @@ export class AdminService {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        url: error.config?.url
+        url: error.config?.url,
       });
       throw new Error(`Failed to update user role: ${error.message}`);
     }
@@ -484,7 +490,7 @@ export class AdminService {
     try {
       this.validateAdminAccess();
       console.log(`Toggling user ${userId} status to ${isActive ? 'active' : 'inactive'}`);
-      
+
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { isActive });
       console.log('Status toggle result:', result);
@@ -495,7 +501,7 @@ export class AdminService {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        url: error.config?.url
+        url: error.config?.url,
       });
       throw new Error(`Failed to update user status: ${error.message}`);
     }
@@ -630,13 +636,13 @@ export class AdminService {
   }> {
     try {
       this.validateAdminAccess();
-      
+
       // Get real data from available endpoints
       const [statsData, usersData] = await Promise.all([
         ApiClient.get('/api/Admin/stats'),
-        ApiClient.get('/api/Admin/users-debug')
+        ApiClient.get('/api/Admin/users-debug'),
       ]);
-      
+
       return {
         totalTables: 8, // Estimated based on typical app structure
         totalRecords: statsData.totals?.users || usersData.users?.length || 0,
@@ -666,40 +672,40 @@ export class AdminService {
   > {
     try {
       this.validateAdminAccess();
-      
+
       // Get real data from available endpoints
       const [statsData, usersData] = await Promise.all([
         ApiClient.get('/api/Admin/stats'),
-        ApiClient.get('/api/Admin/users-debug')
+        ApiClient.get('/api/Admin/users-debug'),
       ]);
-      
+
       const userCount = usersData.users?.length || 0;
       const caseCount = statsData.totals?.cases || 0;
-      
+
       return [
-        { 
-          name: 'Users', 
-          recordCount: userCount, 
-          size: `${Math.round(userCount * 0.001)} KB`, 
-          lastModified: new Date().toISOString() 
+        {
+          name: 'Users',
+          recordCount: userCount,
+          size: `${Math.round(userCount * 0.001)} KB`,
+          lastModified: new Date().toISOString(),
         },
-        { 
-          name: 'Cases', 
-          recordCount: caseCount, 
-          size: `${Math.round(caseCount * 0.002)} KB`, 
-          lastModified: new Date().toISOString() 
+        {
+          name: 'Cases',
+          recordCount: caseCount,
+          size: `${Math.round(caseCount * 0.002)} KB`,
+          lastModified: new Date().toISOString(),
         },
-        { 
-          name: 'Sightings', 
-          recordCount: 0, 
-          size: '0 KB', 
-          lastModified: new Date().toISOString() 
+        {
+          name: 'Sightings',
+          recordCount: 0,
+          size: '0 KB',
+          lastModified: new Date().toISOString(),
         },
-        { 
-          name: 'Notifications', 
-          recordCount: 0, 
-          size: '0 KB', 
-          lastModified: new Date().toISOString() 
+        {
+          name: 'Notifications',
+          recordCount: 0,
+          size: '0 KB',
+          lastModified: new Date().toISOString(),
         },
       ];
     } catch (error) {
@@ -708,7 +714,12 @@ export class AdminService {
         { name: 'Users', recordCount: 7, size: '0.01 KB', lastModified: new Date().toISOString() },
         { name: 'Cases', recordCount: 0, size: '0 KB', lastModified: new Date().toISOString() },
         { name: 'Sightings', recordCount: 0, size: '0 KB', lastModified: new Date().toISOString() },
-        { name: 'Notifications', recordCount: 0, size: '0 KB', lastModified: new Date().toISOString() },
+        {
+          name: 'Notifications',
+          recordCount: 0,
+          size: '0 KB',
+          lastModified: new Date().toISOString(),
+        },
       ];
     }
   }
@@ -752,7 +763,7 @@ export class AdminService {
       success: true,
       results: [],
       executionTime: '0.05s',
-      message: 'Query executed successfully (simulated)'
+      message: 'Query executed successfully (simulated)',
     };
   }
 
@@ -765,7 +776,6 @@ export class AdminService {
     // Database repair endpoint doesn't exist, simulate success
     console.log('Database repair completed (simulated)');
   }
-
 
   // Advanced Database Management
   static async forceDeleteUser(userId: string): Promise<void> {
@@ -816,11 +826,11 @@ export class AdminService {
   static async deleteAllNonAdminUsers(): Promise<{ deletedCount: number }> {
     try {
       this.validateAdminAccess();
-      
+
       // Get all users first
       const usersData = await ApiClient.get('/api/Admin/users-debug');
       const nonAdminUsers = usersData.users.filter((user: any) => user.role !== 'admin');
-      
+
       let deletedCount = 0;
       for (const user of nonAdminUsers) {
         try {
@@ -830,7 +840,7 @@ export class AdminService {
           console.warn(`Failed to delete user ${user.id}:`, error);
         }
       }
-      
+
       return { deletedCount };
     } catch (error: any) {
       console.error('Failed to delete non-admin users:', error);
@@ -953,19 +963,22 @@ export class AdminService {
     }
   }
 
-  static async alterTable(tableName: string, operations: {
-    addColumns?: Array<{
-      name: string;
-      type: string;
-      nullable?: boolean;
-    }>;
-    dropColumns?: string[];
-    modifyColumns?: Array<{
-      name: string;
-      type?: string;
-      nullable?: boolean;
-    }>;
-  }): Promise<void> {
+  static async alterTable(
+    tableName: string,
+    operations: {
+      addColumns?: Array<{
+        name: string;
+        type: string;
+        nullable?: boolean;
+      }>;
+      dropColumns?: string[];
+      modifyColumns?: Array<{
+        name: string;
+        type?: string;
+        nullable?: boolean;
+      }>;
+    }
+  ): Promise<void> {
     try {
       await this.validateSuperAdminAccess();
       await ApiClient.post(`/api/Admin/database/alter/${tableName}`, operations);
@@ -987,13 +1000,18 @@ export class AdminService {
     }
   }
 
-  static async bulkUpdate(tableName: string, updates: Array<{
-    where: Record<string, any>;
-    set: Record<string, any>;
-  }>): Promise<{ updatedCount: number }> {
+  static async bulkUpdate(
+    tableName: string,
+    updates: Array<{
+      where: Record<string, any>;
+      set: Record<string, any>;
+    }>
+  ): Promise<{ updatedCount: number }> {
     try {
       await this.validateSuperAdminAccess();
-      const result = await ApiClient.post(`/api/Admin/database/bulk-update/${tableName}`, { updates });
+      const result = await ApiClient.post(`/api/Admin/database/bulk-update/${tableName}`, {
+        updates,
+      });
       return result;
     } catch (error: any) {
       console.error(`Failed to bulk update ${tableName}:`, error);
@@ -1001,10 +1019,15 @@ export class AdminService {
     }
   }
 
-  static async bulkDelete(tableName: string, conditions: Record<string, any>): Promise<{ deletedCount: number }> {
+  static async bulkDelete(
+    tableName: string,
+    conditions: Record<string, any>
+  ): Promise<{ deletedCount: number }> {
     try {
       await this.validateSuperAdminAccess();
-      const result = await ApiClient.post(`/api/Admin/database/bulk-delete/${tableName}`, { conditions });
+      const result = await ApiClient.post(`/api/Admin/database/bulk-delete/${tableName}`, {
+        conditions,
+      });
       return result;
     } catch (error: any) {
       console.error(`Failed to bulk delete from ${tableName}:`, error);
@@ -1092,10 +1115,12 @@ export class AdminService {
     }
   }
 
-  static async bulkUpdateUserRoles(updates: Array<{
-    userId: string;
-    role: string;
-  }>): Promise<{ updatedCount: number }> {
+  static async bulkUpdateUserRoles(
+    updates: Array<{
+      userId: string;
+      role: string;
+    }>
+  ): Promise<{ updatedCount: number }> {
     try {
       await this.validateSuperAdminAccess();
       const result = await ApiClient.post('/api/Admin/users/bulk-update-roles', { updates });
@@ -1469,7 +1494,7 @@ export class AdminService {
       return {
         serverInfo: {
           version: '1.0.0',
-          uptime: Date.now() - (24 * 60 * 60 * 1000), // 24 hours
+          uptime: Date.now() - 24 * 60 * 60 * 1000, // 24 hours
           memoryUsage: 512, // MB
           cpuUsage: 15, // percentage
           diskUsage: 2048, // MB
@@ -1490,7 +1515,9 @@ export class AdminService {
     }
   }
 
-  static async updateSystemConfiguration(config: Partial<SystemConfiguration>): Promise<SystemConfiguration> {
+  static async updateSystemConfiguration(
+    config: Partial<SystemConfiguration>
+  ): Promise<SystemConfiguration> {
     try {
       await this.validateSuperAdminAccess();
       const data = await ApiClient.patch('/api/Admin/system/configuration', config);

@@ -20,7 +20,7 @@ export class SignalRService {
 
     try {
       this.isConnecting = true;
-      
+
       // Get access token
       const token = await SecureTokenService.getAccessToken();
       if (!token) {
@@ -44,9 +44,9 @@ export class SignalRService {
 
       // Start connection
       await this.connection.start();
-      
+
       logEvent('signalr_connected', {
-        connectionId: this.connection.connectionId || 'unknown'
+        connectionId: this.connection.connectionId || 'unknown',
       });
 
       console.log('SignalR connected successfully');
@@ -62,17 +62,17 @@ export class SignalRService {
     if (!this.connection) return;
 
     // Handle connection events
-    this.connection.onclose((error) => {
+    this.connection.onclose(error => {
       console.log('SignalR connection closed:', error);
       logEvent('signalr_disconnected', { error: error?.message || 'unknown' });
     });
 
-    this.connection.onreconnecting((error) => {
+    this.connection.onreconnecting(error => {
       console.log('SignalR reconnecting:', error);
       logEvent('signalr_reconnecting', { error: error?.message || 'unknown' });
     });
 
-    this.connection.onreconnected((connectionId) => {
+    this.connection.onreconnected(connectionId => {
       console.log('SignalR reconnected:', connectionId);
       logEvent('signalr_reconnected', { connectionId });
     });
@@ -81,7 +81,7 @@ export class SignalRService {
     this.connection.on('caseUpdated', (payload: any) => {
       console.log('Case updated via SignalR:', payload);
       logEvent('signalr_case_updated', { caseId: payload.id });
-      
+
       // Invalidate case queries
       // You can use React Query or similar here
       // queryClient.invalidateQueries(['case', payload.id]);

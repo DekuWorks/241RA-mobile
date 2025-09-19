@@ -1,6 +1,6 @@
-import axios from "axios";
-import { API_BASE } from "../config/api";
-import { SecureTokenService } from "../services/secureTokens";
+import axios from 'axios';
+import { API_BASE } from '../config/api';
+import { SecureTokenService } from '../services/secureTokens';
 
 // Get JWT token from secure store
 async function getJwt(): Promise<string | null> {
@@ -12,16 +12,16 @@ async function getJwt(): Promise<string | null> {
   }
 }
 
-export const http = axios.create({ 
-  baseURL: API_BASE, 
+export const http = axios.create({
+  baseURL: API_BASE,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
 });
 
 // Request interceptor to attach Bearer token
-http.interceptors.request.use(async (cfg) => {
+http.interceptors.request.use(async cfg => {
   const token = await getJwt();
   if (token && cfg.headers) {
     cfg.headers.Authorization = `Bearer ${token}`;
@@ -31,8 +31,8 @@ http.interceptors.request.use(async (cfg) => {
 
 // Response interceptor to handle token refresh and errors
 http.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  async error => {
     const originalRequest = error.config;
 
     // Handle 401 errors with token refresh

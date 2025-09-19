@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: "241RA",
-  slug: "241runners",
+  name: '241RA',
+  slug: '241runners',
   scheme: 'org.runners241.app',
   version: '1.0.0',
   orientation: 'portrait',
@@ -16,24 +16,31 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'automatic',
   owner: '241-runners-awareness',
   ios: {
-    bundleIdentifier: "org.runners241.app",
+    bundleIdentifier: 'org.runners241.app',
     supportsTablet: true,
-    // googleServicesFile will be handled by EAS environment variable
-    // googleServicesFile: "./ios/GoogleService-Info.plist",
+    googleServicesFile: "./ios/GoogleService-Info.plist",
     infoPlist: {
       NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
       NSLocationWhenInUseUsageDescription:
         'Used to attach accurate locations to reports and nearby alerts.',
       NSPhotoLibraryAddUsageDescription: 'Used to save images you capture for case reports.',
       ITSAppUsesNonExemptEncryption: false,
+      NSPrivacyPolicyURL: 'https://241runnersawareness.org/privacy',
+      NSPrivacyPolicyUsageDescription: 'Privacy policy for 241Runners app',
     },
     associatedDomains: ['applinks:241runnersawareness.org'],
+    config: {
+      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    },
   },
   android: {
-    package: "org.runners241.app",
-    // googleServicesFile: "./android/app/google-services.json", // Temporarily disabled for build
+    package: 'org.runners241.app',
+    googleServicesFile: "./android/app/google-services.json",
     adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+    config: {
+      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    },
   },
   plugins: [
     'expo-router',
@@ -53,27 +60,24 @@ const config: ExpoConfig = {
       '@sentry/react-native/expo',
       {
         url: 'https://sentry.io/',
-        authToken: process.env.SENTRY_AUTH_TOKEN,
         project: '241runners-mobile',
         organization: '241-runners-awareness',
       },
     ],
-    "@react-native-firebase/app",
-    "@react-native-firebase/messaging",
-    "@react-native-firebase/crashlytics"
+    // Firebase plugins
+    '@react-native-firebase/app',
+    '@react-native-firebase/messaging',
+    '@react-native-firebase/crashlytics',
   ],
   extra: {
     eas: {
       projectId: 'bb791d4e-1e0d-4c6c-a23d-a619d34d3d7e',
     },
-    EXPO_PUBLIC_API_BASE: "https://241runners-api-v2.azurewebsites.net",
-    EXPO_PUBLIC_ENABLE_CRASH: "true",
+    EXPO_PUBLIC_API_BASE: 'https://241runners-api-v2.azurewebsites.net',
+    EXPO_PUBLIC_ENABLE_CRASH: 'true',
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  },
-  linking: {
-    scheme: 'org.runners241.app',
-    prefixes: ['org.runners241.app://', 'https://241runnersawareness.org'],
+    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
 };
 

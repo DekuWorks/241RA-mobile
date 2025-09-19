@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Switch,
+  Linking,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, User } from '../services/auth';
 import { NotificationService } from '../services/notifications';
+import { APP_CONSTANTS } from '../config/constants';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 
 export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
 
   const {
     data: user,
@@ -52,8 +64,8 @@ export default function ProfileScreen() {
   const handleToggleTwoFactor = async (value: boolean) => {
     try {
       if (value) {
-        // Enable 2FA - would show setup flow
-        Alert.alert('2FA Setup', 'Two-factor authentication setup will be implemented');
+        // Show 2FA setup modal
+        setShowTwoFactorSetup(true);
       } else {
         // Disable 2FA
         Alert.alert(
@@ -65,9 +77,34 @@ export default function ProfileScreen() {
               text: 'Disable',
               style: 'destructive',
               onPress: async () => {
-                // In a real app, you'd prompt for the 2FA code
-                await AuthService.disableTwoFactor('123456'); // Placeholder
-                setTwoFactorEnabled(false);
+                try {
+                  // Prompt for 2FA code
+                  Alert.prompt(
+                    'Enter 2FA Code',
+                    'Enter your current 2FA code to disable two-factor authentication',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Disable',
+                        style: 'destructive',
+                        onPress: async (code) => {
+                          if (code && code.length === 6) {
+                            await AuthService.disableTwoFactor(code);
+                            setTwoFactorEnabled(false);
+                            Alert.alert('Success', 'Two-factor authentication has been disabled');
+                          } else {
+                            Alert.alert('Error', 'Please enter a valid 6-digit code');
+                          }
+                        },
+                      },
+                    ],
+                    'plain-text',
+                    '',
+                    'numeric'
+                  );
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to disable two-factor authentication');
+                }
               },
             },
           ]
@@ -76,6 +113,11 @@ export default function ProfileScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to update two-factor authentication settings');
     }
+  };
+
+  const handleTwoFactorSetupSuccess = () => {
+    setTwoFactorEnabled(true);
+    Alert.alert('Success', 'Two-factor authentication has been enabled successfully');
   };
 
   const handleTestNotification = async () => {
@@ -186,6 +228,19 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleOpenURL = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Cannot open this URL');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open URL');
+    }
+  };
+
   const renderAppSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>App</Text>
@@ -193,12 +248,25 @@ export default function ProfileScreen() {
         <Text style={styles.menuItemText}>About</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItem}>
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => handleOpenURL(APP_CONSTANTS.PRIVACY_POLICY_URL)}
+      >
         <Text style={styles.menuItemText}>Privacy Policy</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItem}>
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => handleOpenURL(APP_CONSTANTS.TERMS_OF_SERVICE_URL)}
+      >
         <Text style={styles.menuItemText}>Terms of Service</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => handleOpenURL(APP_CONSTANTS.SUPPORT_URL)}
+      >
+        <Text style={styles.menuItemText}>Support</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
     </View>
@@ -242,6 +310,12 @@ export default function ProfileScreen() {
         {renderNotificationsSection()}
         {renderAppSection()}
       </View>
+      
+      <TwoFactorSetup
+        visible={showTwoFactorSetup}
+        onClose={() => setShowTwoFactorSetup(false)}
+        onSuccess={handleTwoFactorSetupSuccess}
+      />
     </ScrollView>
   );
 }

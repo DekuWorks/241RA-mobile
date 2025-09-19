@@ -130,11 +130,7 @@ export default function CasesScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refetch}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}

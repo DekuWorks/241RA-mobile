@@ -5,8 +5,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { NotificationService } from '../services/notifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
-import { attachForegroundMessaging, setupBackgroundMessageHandler } from '../features/push/registerDeviceToken';
-// import { signalRService } from '../services/signalR';
+import {
+  attachForegroundMessaging,
+  setupBackgroundMessageHandler,
+} from '../features/push/registerDeviceToken';
+import { signalRService } from '../services/signalR';
+import { GoogleAuthService } from '../services/googleAuth';
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -51,6 +55,13 @@ export default function Root() {
           console.warn('Firebase messaging initialization failed:', firebaseError);
         }
 
+        // Initialize Google Sign-In
+        try {
+          await GoogleAuthService.configure();
+        } catch (googleError) {
+          console.warn('Google Sign-In initialization failed:', googleError);
+        }
+
         // Hide splash screen
         setTimeout(() => SplashScreen.hideAsync(), 300);
       } catch (error) {
@@ -64,7 +75,7 @@ export default function Root() {
 
     // Cleanup function
     return () => {
-      // signalRService.stopConnection();
+      signalRService.stopConnection();
     };
   }, []);
 

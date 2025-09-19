@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
+import { GoogleAuthService } from '../services/googleAuth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -45,6 +46,24 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       Alert.alert('Login Failed', error.response?.data?.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await GoogleAuthService.signIn();
+      
+      if (result.success) {
+        // Login successful, navigate to main app
+        router.replace('/');
+      } else {
+        Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
+      }
+    } catch (error: any) {
+      Alert.alert('Google Login Failed', error.message || 'Failed to sign in with Google');
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +133,24 @@ export default function LoginScreen() {
 
           <TouchableOpacity style={styles.linkButton}>
             <Text style={styles.linkText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Google Login Button */}
+        <View style={styles.googleSection}>
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.googleIcon}>🔍</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
         </View>
 
@@ -222,6 +259,34 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.gray[400],
     marginHorizontal: spacing.md,
+  },
+  googleSection: {
+    marginTop: spacing.lg,
+    width: '100%',
+  },
+  googleButton: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: radii.md,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.gray[900],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  googleIcon: {
+    fontSize: typography.sizes.lg,
+    marginRight: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[900],
   },
   adminButton: {
     backgroundColor: colors.gray[800],

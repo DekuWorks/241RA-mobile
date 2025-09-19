@@ -37,7 +37,7 @@ export class TopicService {
   static async subscribeToTopic(topic: string): Promise<void> {
     try {
       await http.post('/topics/subscribe', { topic });
-      
+
       logEvent('topic_subscribed', { topic });
       console.log('Subscribed to topic:', topic);
     } catch (error) {
@@ -53,7 +53,7 @@ export class TopicService {
   static async unsubscribeFromTopic(topic: string): Promise<void> {
     try {
       await http.post('/topics/unsubscribe', { topic });
-      
+
       logEvent('topic_unsubscribed', { topic });
       console.log('Unsubscribed from topic:', topic);
     } catch (error) {
@@ -99,11 +99,11 @@ export class TopicService {
   static async subscribeToRoleTopic(role: string): Promise<void> {
     const topicKey = role.toUpperCase() as keyof typeof TopicService.ROLE_TOPICS;
     const topic = TopicService.ROLE_TOPICS[topicKey];
-    
+
     if (!topic) {
       throw new Error(`Unknown role: ${role}`);
     }
-    
+
     await this.subscribeToTopic(topic);
   }
 
@@ -113,11 +113,11 @@ export class TopicService {
   static async subscribeToGeoRegion(region: string): Promise<void> {
     const topicKey = region.toUpperCase() as keyof typeof TopicService.GEO_TOPICS;
     const topic = TopicService.GEO_TOPICS[topicKey];
-    
+
     if (!topic) {
       throw new Error(`Unknown geographic region: ${region}`);
     }
-    
+
     await this.subscribeToTopic(topic);
   }
 
@@ -125,10 +125,7 @@ export class TopicService {
    * Subscribe to all default topics based on user role
    */
   static async subscribeToDefaultTopics(userRole?: string): Promise<void> {
-    const topics = [
-      TopicService.GLOBAL_TOPICS.ALL,
-      TopicService.GLOBAL_TOPICS.SYSTEM,
-    ];
+    const topics = [TopicService.GLOBAL_TOPICS.ALL, TopicService.GLOBAL_TOPICS.SYSTEM];
 
     // Add role-specific topic
     if (userRole) {
