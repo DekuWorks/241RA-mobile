@@ -9,6 +9,7 @@ import {
   Switch,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../theme/tokens';
@@ -44,9 +45,41 @@ export default function ProfileScreen() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await AuthService.logout();
-          await NotificationService.unregisterDevice();
-          router.replace('/login');
+          try {
+            console.log('Starting logout process...');
+            
+            // Clear all local data first
+            await AuthService.logout();
+            console.log('Auth service logout completed');
+            
+            // Unregister device for notifications
+            try {
+              await NotificationService.unregisterDevice();
+              console.log('Device unregistered');
+            } catch (notificationError) {
+              console.warn('Failed to unregister device:', notificationError);
+            }
+            
+            // Force clear any cached data
+            console.log('Clearing navigation and redirecting...');
+            
+            // Navigate to login and clear the navigation stack
+            router.dismissAll();
+            router.replace('/login');
+            
+            console.log('Logout completed successfully');
+          } catch (error) {
+            console.error('Logout error:', error);
+            // Even if there's an error, try to navigate to login
+            try {
+              router.dismissAll();
+              router.replace('/login');
+            } catch (navError) {
+              console.error('Navigation error:', navError);
+              // Last resort - try to navigate to home
+              router.replace('/');
+            }
+          }
         },
       },
     ]);
@@ -125,9 +158,22 @@ export default function ProfileScreen() {
     Alert.alert('Test Sent', 'A test notification has been sent');
   };
 
+  const renderProfileHeader = () => (
+    <View style={styles.profileHeader}>
+      <View style={styles.profileAvatar}>
+        <Text style={styles.avatarText}>USER</Text>
+      </View>
+      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+      <Text style={styles.profileEmail}>{user?.email}</Text>
+      <View style={styles.profileRoleBadge}>
+        <Text style={styles.profileRoleText}>{user?.role || 'User'}</Text>
+      </View>
+    </View>
+  );
+
   const renderProfileSection = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Profile</Text>
+      <Text style={styles.sectionTitle}>Personal Information</Text>
       <View style={styles.profileInfo}>
         <View style={styles.profileItem}>
           <Text style={styles.profileLabel}>Name</Text>
@@ -241,6 +287,28 @@ export default function ProfileScreen() {
     }
   };
 
+  const renderNavigationSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cases')}>
+        <Text style={styles.menuItemText}>View Cases</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/map')}>
+        <Text style={styles.menuItemText}>Map View</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/report-sighting')}>
+        <Text style={styles.menuItemText}>Report Sighting</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/')}>
+        <Text style={styles.menuItemText}>Home</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderAppSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>App</Text>
@@ -292,7 +360,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButtonText}>← Back</Text>
@@ -303,20 +371,24 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        {renderProfileSection()}
-        {renderAdminSection()}
-        {renderSecuritySection()}
-        {renderNotificationsSection()}
-        {renderAppSection()}
-      </View>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          {renderProfileHeader()}
+          {renderProfileSection()}
+          {renderNavigationSection()}
+          {renderAdminSection()}
+          {renderSecuritySection()}
+          {renderNotificationsSection()}
+          {renderAppSection()}
+        </View>
+      </ScrollView>
 
       <TwoFactorSetup
         visible={showTwoFactorSetup}
         onClose={() => setShowTwoFactorSetup(false)}
         onSuccess={handleTwoFactorSetupSuccess}
       />
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -324,6 +396,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -362,9 +437,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.gray[900],
+    minHeight: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[800],
   },
   backButtonText: {
     fontSize: typography.sizes.base,
@@ -382,7 +460,63 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   content: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    marginHorizontal: spacing.sm,
+  },
+  profileAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  avatarText: {
+    fontSize: 24,
+    color: colors.primary,
+    fontWeight: typography.weights.bold,
+  },
+  profileName: {
+    fontSize: typography.sizes['2xl'],
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  profileEmail: {
+    fontSize: typography.sizes.lg,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  profileRoleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+  },
+  profileRoleText: {
+    fontSize: typography.sizes.base,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: typography.weights.medium,
   },
   section: {
     marginBottom: spacing.xl,
@@ -397,6 +531,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[900],
     borderRadius: radii.lg,
     padding: spacing.lg,
+    marginHorizontal: spacing.sm,
   },
   profileItem: {
     flexDirection: 'row',
@@ -462,6 +597,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.lg,
     marginBottom: spacing.sm,
+    marginHorizontal: spacing.sm,
+    minHeight: 56,
   },
   menuItemText: {
     fontSize: typography.sizes.base,

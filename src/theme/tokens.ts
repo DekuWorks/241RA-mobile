@@ -2,13 +2,19 @@ export const colors = {
   bg: '#0b0b0b',
   background: '#0b0b0b',
   text: '#f5f5f5',
-  primary: '#0ea5e9',
+  primary: '#8C9900', // Traffic light green
   secondary: '#64748b',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  error: '#ef4444',
+  success: '#8C9900', // Traffic light green
+  warning: '#F4A62A', // Traffic light yellow
+  error: '#DA2121', // Traffic light red
   white: '#ffffff',
   surface: '#1f2937',
+  // Traffic light theme colors
+  trafficLight: {
+    red: '#DA2121',
+    yellow: '#F4A62A',
+    green: '#8C9900',
+  },
   info: {
     50: '#eff6ff',
     500: '#3b82f6',

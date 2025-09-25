@@ -1,47 +1,57 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { AuthService } from '../services/auth';
 import { colors, spacing, typography } from '../theme/tokens';
 
 export default function Home() {
+  const [loadingText, setLoadingText] = useState('Loading...');
+  
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const isAuthenticated = await AuthService.isAuthenticated();
-      if (isAuthenticated) {
-        // Validate token with server by getting current user
-        const user = await AuthService.getCurrentUser();
-        if (user) {
-          // Token is valid, check if user is admin/moderator and redirect accordingly
-          if (
-            user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'
-          ) {
-            router.replace('/portal');
-          } else {
-            router.replace('/cases');
-          }
-        } else {
-          // Token exists but is invalid, clear it and redirect to login
-          console.log('Token exists but is invalid, redirecting to login');
-          router.replace('/login');
+      setLoadingText('Starting app...');
+      console.log('App starting - redirecting to login screen');
+      
+      // Add a small delay to ensure proper initialization
+      setTimeout(() => {
+        setLoadingText('Redirecting to login...');
+        try {
+          router.push('/login');
+          console.log('Navigation to login initiated');
+        } catch (navError) {
+          console.error('Navigation error:', navError);
+          setLoadingText('Navigation failed, retrying...');
+          // Retry after a delay
+          setTimeout(() => {
+            router.push('/login');
+          }, 1000);
         }
-      } else {
-        router.replace('/login');
-      }
+      }, 500);
+      
     } catch (error) {
-      console.error('Auth check failed:', error);
-      router.replace('/login');
+      console.error('Navigation error:', error);
+      setLoadingText('Error occurred, retrying...');
+      // Fallback to login screen
+      setTimeout(() => {
+        try {
+          router.push('/login');
+        } catch (fallbackError) {
+          console.error('Fallback navigation also failed:', fallbackError);
+          setLoadingText('Unable to navigate. Please restart the app.');
+        }
+      }, 1000);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>241Runners Portal</Text>
-      <Text style={styles.subtitle}>Loading...</Text>
+      <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+      <Text style={styles.title}>241 Runners</Text>
+      <Text style={styles.subtitle}>{loadingText}</Text>
     </View>
   );
 }
@@ -54,6 +64,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     padding: spacing.lg,
   },
+  spinner: {
+    marginBottom: spacing.lg,
+  },
   title: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
@@ -63,5 +76,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: typography.sizes.base,
     color: colors.gray[400],
+    textAlign: 'center',
   },
 });

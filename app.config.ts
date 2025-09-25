@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: '241RA',
+  name: '241 Runners',
   slug: '241runners',
   scheme: 'org.runners241.app',
   version: '1.0.0',
@@ -38,7 +38,7 @@ const config: ExpoConfig = {
   android: {
     package: 'org.runners241.app',
     googleServicesFile: './android/app/google-services.json',
-    adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#000000' },
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
   },
   plugins: [

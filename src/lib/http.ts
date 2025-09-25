@@ -42,7 +42,7 @@ http.interceptors.response.use(
       try {
         const refreshToken = await SecureTokenService.getRefreshToken();
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE}/api/auth/refresh`, {
+          const response = await axios.post(`${API_BASE}/api/v1/auth/refresh`, {
             refreshToken: refreshToken,
           });
 

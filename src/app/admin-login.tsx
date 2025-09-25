@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: typography.sizes.md,
-    color: colors.primary,
+    color: colors.trafficLight.green,
     fontWeight: typography.weights.medium,
   },
   adminIcon: {
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes['3xl'],
     fontWeight: typography.weights.bold,
-    color: colors.primary,
+    color: colors.trafficLight.green,
     marginBottom: spacing.sm,
   },
   subtitle: {
@@ -355,9 +355,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   adminNotice: {
-    backgroundColor: colors.warning + '20',
+    backgroundColor: colors.trafficLight.yellow + '20',
     borderWidth: 1,
-    borderColor: colors.warning,
+    borderColor: colors.trafficLight.yellow,
     borderRadius: radii.md,
     padding: spacing.md,
     marginBottom: spacing.xl,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   noticeTitle: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    color: colors.warning,
+    color: colors.trafficLight.yellow,
     marginBottom: spacing.sm,
   },
   noticeText: {
@@ -395,12 +395,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   adminButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.trafficLight.red,
     borderRadius: radii.lg,
     padding: spacing.lg,
     alignItems: 'center',
     marginTop: spacing.lg,
-    shadowColor: colors.primary,
+    shadowColor: colors.trafficLight.red,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

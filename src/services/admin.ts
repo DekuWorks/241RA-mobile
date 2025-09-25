@@ -1,5 +1,6 @@
 import { ApiClient } from './apiClient';
 import { AuthService } from './auth';
+import { RealtimeSyncService } from './realtimeSync';
 
 export interface AdminUser {
   id: string;
@@ -161,8 +162,8 @@ export class AdminService {
   static async getAdminProfile(): Promise<AdminProfile> {
     try {
       this.validateAdminAccess();
-      // Use the existing /api/auth/profile endpoint
-      const data = await ApiClient.get('/api/auth/profile');
+      // Use the existing /api/v1/auth/profile endpoint
+      const data = await ApiClient.get('/api/v1/auth/profile');
 
       // Validate response data structure
       if (!data || !data.id || !data.email || !data.role) {
@@ -234,8 +235,8 @@ export class AdminService {
 
   static async updateAdminProfile(updates: Partial<AdminProfile>): Promise<AdminProfile> {
     try {
-      // Use the existing /api/auth/profile endpoint
-      const data = await ApiClient.patch('/api/auth/profile', updates);
+      // Use the existing /api/v1/auth/profile endpoint
+      const data = await ApiClient.patch('/api/v1/auth/profile', updates);
       return data;
     } catch (error) {
       console.error('Failed to update admin profile:', error);
@@ -245,8 +246,8 @@ export class AdminService {
 
   static async changeAdminPassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
-      // Use the existing /api/auth/change-password endpoint
-      await ApiClient.post('/api/auth/change-password', {
+      // Use the existing /api/v1/auth/change-password endpoint
+      await ApiClient.post('/api/v1/auth/change-password', {
         currentPassword,
         newPassword,
       });
@@ -376,16 +377,39 @@ export class AdminService {
 
   static async updateCaseStatus(caseId: string, status: string): Promise<AdminCase> {
     const data = await ApiClient.patch(`/api/admin/cases/${caseId}/status`, { status });
+    
+    // The backend should trigger SignalR events automatically
+    // This ensures real-time updates across all connected clients
+    console.log('Case status updated - SignalR events should be triggered by backend');
+    
+    // Ensure real-time sync for this operation
+    await RealtimeSyncService.syncCaseOperation('status_change', caseId, { newStatus: status });
+    
     return data;
   }
 
   static async updateCasePriority(caseId: string, priority: string): Promise<AdminCase> {
     const data = await ApiClient.patch(`/api/admin/cases/${caseId}/priority`, { priority });
+    
+    // The backend should trigger SignalR events automatically
+    // This ensures real-time updates across all connected clients
+    console.log('Case priority updated - SignalR events should be triggered by backend');
+    
+    // Ensure real-time sync for this operation
+    await RealtimeSyncService.syncCaseOperation('priority_change', caseId, { newPriority: priority });
+    
     return data;
   }
 
   static async deleteCase(caseId: string): Promise<void> {
     await ApiClient.delete(`/api/admin/cases/${caseId}`);
+    
+    // The backend should trigger SignalR events automatically
+    // This ensures real-time updates across all connected clients
+    console.log('Case deleted - SignalR events should be triggered by backend');
+    
+    // Ensure real-time sync for this operation
+    await RealtimeSyncService.syncCaseOperation('delete', caseId);
   }
 
   static async getCaseDetails(caseId: string): Promise<AdminCase> {
@@ -473,6 +497,14 @@ export class AdminService {
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { role });
       console.log('Role update result:', result);
+      
+      // The backend should trigger SignalR events automatically
+      // This ensures real-time updates across all connected clients
+      console.log('User role updated - SignalR events should be triggered by backend');
+      
+      // Ensure real-time sync for this operation
+      await RealtimeSyncService.syncUserOperation('role_change', userId, { newRole: role });
+      
       return result;
     } catch (error: any) {
       console.error('Failed to update user role:', error);
@@ -494,6 +526,14 @@ export class AdminService {
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/Admin/users/${userId}`, { isActive });
       console.log('Status toggle result:', result);
+      
+      // The backend should trigger SignalR events automatically
+      // This ensures real-time updates across all connected clients
+      console.log('User status updated - SignalR events should be triggered by backend');
+      
+      // Ensure real-time sync for this operation
+      await RealtimeSyncService.syncUserOperation('status_change', userId, { isActive });
+      
       return result;
     } catch (error: any) {
       console.error('Failed to toggle user status:', error);
@@ -511,6 +551,13 @@ export class AdminService {
     try {
       this.validateAdminAccess();
       await ApiClient.delete(`/api/Admin/users/${userId}`);
+      
+      // The backend should trigger SignalR events automatically
+      // This ensures real-time updates across all connected clients
+      console.log('User deleted - SignalR events should be triggered by backend');
+      
+      // Ensure real-time sync for this operation
+      await RealtimeSyncService.syncUserOperation('delete', userId);
     } catch (error) {
       console.error('Failed to delete user:', error);
       throw new Error('Failed to delete user');

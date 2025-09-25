@@ -41,8 +41,21 @@ export default function LoginScreen() {
       if (response.requiresTwoFactor && !requiresTwoFactor) {
         setRequiresTwoFactor(true);
       } else {
-        // Login successful, navigate to main app
-        router.replace('/');
+        // Login successful, check user role and redirect accordingly
+        if (response.user) {
+          if (
+            response.user.role === 'admin' || 
+            response.user.role === 'moderator' || 
+            response.user.role === 'super_admin'
+          ) {
+            router.replace('/portal');
+          } else {
+            router.replace('/profile');
+          }
+        } else {
+          // Fallback to profile if no user data
+          router.replace('/profile');
+        }
       }
     } catch (error: any) {
       Alert.alert('Login Failed', error.response?.data?.message || 'Invalid email or password');
@@ -57,8 +70,21 @@ export default function LoginScreen() {
       const result = await GoogleAuthService.signIn();
 
       if (result.success) {
-        // Login successful, navigate to main app
-        router.replace('/');
+        // Login successful, check user role and redirect accordingly
+        if (result.user) {
+          if (
+            result.user.role === 'admin' || 
+            result.user.role === 'moderator' || 
+            result.user.role === 'super_admin'
+          ) {
+            router.replace('/portal');
+          } else {
+            router.replace('/profile');
+          }
+        } else {
+          // Fallback to profile if no user data
+          router.replace('/profile');
+        }
       } else {
         Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
       }
@@ -134,6 +160,13 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.linkButton}>
             <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
+          
+          <View style={styles.signupSection}>
+            <Text style={styles.signupText}>Don't have an account?</Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.signupLink}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Google Login Button */}
@@ -219,11 +252,16 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.trafficLight.green,
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
     marginTop: spacing.lg,
+    shadowColor: colors.trafficLight.green,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonDisabled: {
     backgroundColor: colors.gray[600],
@@ -239,7 +277,21 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: typography.sizes.sm,
-    color: colors.primary,
+    color: colors.trafficLight.green,
+  },
+  signupSection: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  signupText: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[400],
+    marginBottom: spacing.xs,
+  },
+  signupLink: {
+    fontSize: typography.sizes.sm,
+    color: colors.trafficLight.green,
+    fontWeight: typography.weights.semibold,
   },
   adminSection: {
     marginTop: spacing.xl,
@@ -291,13 +343,13 @@ const styles = StyleSheet.create({
   adminButton: {
     backgroundColor: colors.gray[800],
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: colors.trafficLight.yellow,
     borderRadius: radii.lg,
     padding: spacing.lg,
     alignItems: 'center',
-    shadowColor: colors.primary,
+    shadowColor: colors.trafficLight.yellow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
@@ -308,7 +360,7 @@ const styles = StyleSheet.create({
   adminButtonText: {
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
-    color: colors.primary,
+    color: colors.trafficLight.yellow,
     marginBottom: spacing.xs,
   },
   adminSubtext: {

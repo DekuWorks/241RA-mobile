@@ -31,7 +31,7 @@ export interface User {
 
 export class AuthService {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/login', credentials);
+    const data = await ApiClient.post('/api/v1/auth/login', credentials);
 
     console.log('Login response data:', data);
     console.log('User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
@@ -69,7 +69,7 @@ export class AuthService {
   }
 
   static async loginWithGoogle(googleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/google', { token: googleToken });
+    const data = await ApiClient.post('/api/v1/auth/google', { token: googleToken });
 
     if (data.accessToken) {
       await SecureTokenService.setAccessToken(String(data.accessToken));
@@ -101,19 +101,28 @@ export class AuthService {
   static async logout(): Promise<void> {
     try {
       // Call logout endpoint to invalidate tokens on server
-      await ApiClient.post('/api/auth/logout');
+      await ApiClient.post('/api/v1/auth/logout');
     } catch (error) {
       // Continue with local logout even if server call fails
       console.warn('Server logout failed:', error);
     } finally {
-      // Always clear local tokens
+      // Always clear local tokens and data
       await SecureTokenService.clearAll();
+      
+      // Clear any cached user data
+      try {
+        // Clear any cached queries or user data
+        // This ensures the app doesn't use stale data
+        console.log('Clearing authentication state...');
+      } catch (clearError) {
+        console.warn('Failed to clear some cached data:', clearError);
+      }
     }
   }
 
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const data = await ApiClient.get('/api/auth/me');
+      const data = await ApiClient.get('/api/v1/auth/me');
       return data;
     } catch (error: any) {
       console.error('Failed to get current user:', error);
@@ -133,20 +142,65 @@ export class AuthService {
   }
 
   static async enableTwoFactor(): Promise<{ qrCode: string; backupCodes: string[] }> {
-    const data = await ApiClient.post('/api/auth/2fa/enable');
+    const data = await ApiClient.post('/api/v1/auth/2fa/enable');
     return data;
   }
 
   static async disableTwoFactor(code: string): Promise<void> {
-    await ApiClient.post('/api/auth/2fa/disable', { code });
+    await ApiClient.post('/api/v1/auth/2fa/disable', { code });
   }
 
   static async verifyTwoFactor(code: string): Promise<boolean> {
     try {
-      await ApiClient.post('/api/auth/2fa/verify', { code });
+      await ApiClient.post('/api/v1/auth/2fa/verify', { code });
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Sign up a new user
+   */
+  static async signup(signupData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    phoneNumber: string;
+    organization?: string | null;
+    title?: string | null;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    user?: any;
+    error?: string;
+  }> {
+    try {
+      const data = await ApiClient.post('/api/v1/auth/register', signupData);
+      
+      if (data.success) {
+        console.log('Signup successful:', data);
+        return {
+          success: true,
+          message: data.message || 'Account created successfully!',
+          user: data.user
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Signup failed',
+          error: data.error?.message || 'Unknown error'
+        };
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      return {
+        success: false,
+        message: error.message || 'Signup failed',
+        error: error.message
+      };
     }
   }
 

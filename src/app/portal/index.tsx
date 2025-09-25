@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AuthService } from '../../services/auth';
 import { UserDataService } from '../../services/userData';
+import { NotificationService } from '../../services/notifications';
+import { RealtimeSyncService } from '../../services/realtimeSync';
 
 // Add comprehensive error logging
 // const logError = (error: any, context: string) => {
@@ -93,6 +96,15 @@ export default function PortalHub() {
         });
       }
 
+      // Initialize real-time synchronization for admin operations
+      try {
+        await RealtimeSyncService.initializeAdminSync();
+        console.log('[PORTAL] Real-time admin sync initialized');
+      } catch (syncError) {
+        console.warn('[PORTAL] Real-time sync initialization failed:', syncError);
+        // Don't fail the entire portal load if sync fails
+      }
+
       console.log('[PORTAL] Data load completed successfully');
     } catch (error: any) {
       console.error('[PORTAL] Error occurred:', error);
@@ -103,15 +115,30 @@ export default function PortalHub() {
   };
 
   const handleLogout = async () => {
+    console.log('Admin portal logout button pressed!');
     Alert.alert('Logout', 'Are you sure you want to logout from the portal?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await AuthService.logout();
-          await UserDataService.clearUserData();
-          router.replace('/login');
+          try {
+            console.log('Starting admin logout process...');
+            // Clear all local data first
+            await AuthService.logout();
+            await UserDataService.clearUserData();
+            await NotificationService.unregisterDevice();
+            
+            // Navigate to login and clear the navigation stack
+            router.dismissAll();
+            router.replace('/login');
+            console.log('Admin logout completed successfully');
+          } catch (error) {
+            console.error('Admin logout error:', error);
+            // Even if there's an error, try to navigate to login
+            router.dismissAll();
+            router.replace('/login');
+          }
         },
       },
     ]);
@@ -157,7 +184,7 @@ export default function PortalHub() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Simple Welcome Header */}
       <View style={styles.header}>
         <View style={styles.welcomeSection}>
@@ -172,8 +199,9 @@ export default function PortalHub() {
         </TouchableOpacity>
       </View>
 
-      {/* Simple Stats */}
-      <View style={styles.statsSection}>
+      <ScrollView style={styles.scrollContainer}>
+        {/* Simple Stats */}
+        <View style={styles.statsSection}>
         <Text style={styles.sectionTitle}>Portal Overview</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
@@ -216,23 +244,24 @@ export default function PortalHub() {
           style={styles.moduleCard}
           onPress={() => router.push('/portal/analytics')}
         >
-          <Text style={styles.moduleTitle}>📈 Analytics & Reports</Text>
+          <Text style={styles.moduleTitle}>Analytics & Reports</Text>
           <Text style={styles.moduleDescription}>View detailed analytics and generate reports</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/settings')}>
-          <Text style={styles.moduleTitle}>⚙️ Portal Settings</Text>
+          <Text style={styles.moduleTitle}>Portal Settings</Text>
           <Text style={styles.moduleDescription}>Configure portal settings and preferences</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const getRoleColor = (role: string) => {
   switch (role) {
     case 'super_admin':
-      return colors.error[600];
+      return colors.error;
     case 'admin':
       return colors.warning[600];
     case 'moderator':
@@ -246,6 +275,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[50],
+  },
+  scrollContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -266,7 +298,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.sizes.md,
-    color: colors.error[600],
+    color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -290,9 +322,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
+    minHeight: 80,
   },
   welcomeSection: {
     flex: 1,
+    marginRight: spacing.md,
   },
   welcomeText: {
     fontSize: typography.sizes.md,
@@ -316,14 +350,21 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   logoutButton: {
-    backgroundColor: colors.error[600],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.error,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderRadius: radii.md,
+    minWidth: 90,
+    alignItems: 'center',
+    shadowColor: colors.error,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoutButtonText: {
     color: colors.white,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
   },
   statsSection: {

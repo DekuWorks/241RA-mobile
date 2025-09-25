@@ -9,11 +9,13 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { CasesService, Case, CaseFilters } from '../services/cases';
 import { AuthService } from '../services/auth';
+import { NotificationService } from '../services/notifications';
 
 export default function CasesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,8 +50,20 @@ export default function CasesScreen() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await AuthService.logout();
-          router.replace('/login');
+          try {
+            // Clear all local data first
+            await AuthService.logout();
+            await NotificationService.unregisterDevice();
+            
+            // Navigate to login and clear the navigation stack
+            router.dismissAll();
+            router.replace('/login');
+          } catch (error) {
+            console.error('Cases logout error:', error);
+            // Even if there's an error, try to navigate to login
+            router.dismissAll();
+            router.replace('/login');
+          }
         },
       },
     ]);
@@ -71,7 +85,7 @@ export default function CasesScreen() {
       </Text>
 
       <View style={styles.caseFooter}>
-        <Text style={styles.caseLocation}>📍 {item.location.city || 'Unknown Location'}</Text>
+        <Text style={styles.caseLocation}>{item.location.city || 'Unknown Location'}</Text>
         <Text style={styles.caseDate}>{new Date(item.reportedAt).toLocaleDateString()}</Text>
       </View>
     </TouchableOpacity>
@@ -98,15 +112,15 @@ export default function CasesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Cases</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={() => router.push('/map')} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>🗺️</Text>
+            <Text style={styles.headerButtonText}>Map</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/profile')} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>👤</Text>
+            <Text style={styles.headerButtonText}>Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout}>
             <Text style={styles.logoutText}>Logout</Text>
@@ -135,7 +149,7 @@ export default function CasesScreen() {
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

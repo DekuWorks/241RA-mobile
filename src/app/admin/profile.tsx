@@ -12,6 +12,8 @@ import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService } from '../../services/admin';
 import { AuthService } from '../../services/auth';
+import { UserDataService } from '../../services/userData';
+import { NotificationService } from '../../services/notifications';
 
 interface AdminProfile {
   id: string;
@@ -78,8 +80,21 @@ export default function AdminProfileScreen() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await AuthService.logout();
-          router.replace('/login');
+          try {
+            // Clear all local data first
+            await AuthService.logout();
+            await UserDataService.clearUserData();
+            await NotificationService.unregisterDevice();
+            
+            // Navigate to login and clear the navigation stack
+            router.dismissAll();
+            router.replace('/login');
+          } catch (error) {
+            console.error('Admin profile logout error:', error);
+            // Even if there's an error, try to navigate to login
+            router.dismissAll();
+            router.replace('/login');
+          }
         },
       },
     ]);
@@ -268,7 +283,7 @@ export default function AdminProfileScreen() {
 const getRoleColor = (role: string) => {
   switch (role) {
     case 'super_admin':
-      return colors.error[600];
+      return colors.error;
     case 'admin':
       return colors.warning[600];
     case 'moderator':
@@ -302,7 +317,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.sizes.lg,
-    color: colors.error[600],
+    color: colors.error,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
@@ -502,7 +517,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   logoutButton: {
-    backgroundColor: colors.error[600],
+    backgroundColor: colors.error,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
     alignItems: 'center',

@@ -55,7 +55,7 @@ export class ApiClient {
           try {
             const refreshToken = await SecureTokenService.getRefreshToken();
             if (refreshToken) {
-              const response = await axios.post(`${ENV.API_URL}/api/auth/refresh`, {
+              const response = await axios.post(`${ENV.API_URL}/api/v1/auth/refresh`, {
                 refreshToken: refreshToken,
               });
 
