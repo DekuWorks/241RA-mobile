@@ -31,7 +31,7 @@ export interface User {
 
 export class AuthService {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/login', credentials);
+    const data = await ApiClient.post('/api/v1/auth/oauth/login', credentials);
 
     console.log('Login response data:', data);
     console.log('User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
@@ -69,7 +69,76 @@ export class AuthService {
   }
 
   static async loginWithGoogle(googleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/google', { token: googleToken });
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+      provider: 'google',
+      token: googleToken 
+    });
+
+    if (data.accessToken) {
+      await SecureTokenService.setAccessToken(String(data.accessToken));
+      if (data.refreshToken) {
+        await SecureTokenService.setRefreshToken(String(data.refreshToken));
+      }
+
+      // Ensure userId is converted to string
+      const userId = String(data.user?.id || data.userId || '');
+      await SecureTokenService.setUserId(userId);
+
+      // Initialize Crashlytics with user ID (GUID only, no PII)
+      initCrashlytics(userId);
+
+      // Register device token for push notifications
+      try {
+        await registerDeviceToken();
+      } catch (error) {
+        console.warn('Failed to register device token:', error);
+      }
+
+      // Initialize real-time services
+      await this.initializeRealtimeServices(data.user);
+    }
+
+    return data;
+  }
+
+  static async loginWithApple(appleToken: string): Promise<AuthResponse> {
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+      provider: 'apple',
+      token: appleToken 
+    });
+
+    if (data.accessToken) {
+      await SecureTokenService.setAccessToken(String(data.accessToken));
+      if (data.refreshToken) {
+        await SecureTokenService.setRefreshToken(String(data.refreshToken));
+      }
+
+      // Ensure userId is converted to string
+      const userId = String(data.user?.id || data.userId || '');
+      await SecureTokenService.setUserId(userId);
+
+      // Initialize Crashlytics with user ID (GUID only, no PII)
+      initCrashlytics(userId);
+
+      // Register device token for push notifications
+      try {
+        await registerDeviceToken();
+      } catch (error) {
+        console.warn('Failed to register device token:', error);
+      }
+
+      // Initialize real-time services
+      await this.initializeRealtimeServices(data.user);
+    }
+
+    return data;
+  }
+
+  static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+      provider: 'microsoft',
+      token: microsoftToken 
+    });
 
     if (data.accessToken) {
       await SecureTokenService.setAccessToken(String(data.accessToken));

@@ -78,6 +78,27 @@ export default function PortalLayout() {
           headerTitle: 'System Logs',
         }}
       />
+      <Stack.Screen
+        name="monitoring"
+        options={{
+          title: 'System Monitoring',
+          headerTitle: 'System Monitoring',
+        }}
+      />
+      <Stack.Screen
+        name="sla-config"
+        options={{
+          title: 'SLA Configuration',
+          headerTitle: 'SLA Configuration',
+        }}
+      />
+      <Stack.Screen
+        name="triage-queue"
+        options={{
+          title: 'Triage Queue',
+          headerTitle: 'Triage Queue',
+        }}
+      />
     </Stack>
   );
 }

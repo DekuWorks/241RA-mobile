@@ -23,16 +23,16 @@ export class GoogleAuthService {
         //   process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
         //   '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
         // Enable offline access
-        offlineAccess: true,
+        offlineAccess: false,
         // Force consent screen
-        forceCodeForRefreshToken: true,
+        forceCodeForRefreshToken: false,
         // Account selection
         accountName: '',
         // Hosted domain (optional)
         hostedDomain: '',
         // Login hint (optional)
         // loginHint: '',
-        // Scopes
+        // Scopes - minimal required scopes
         scopes: ['profile', 'email'],
       });
 

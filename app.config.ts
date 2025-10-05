@@ -20,15 +20,16 @@ const config: ExpoConfig = {
     supportsTablet: true,
     // googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || undefined,
     infoPlist: {
-      NSCameraUsageDescription: 'Used to capture photos for sightings and case updates.',
+      NSCameraUsageDescription: '241 Runners uses your camera to capture photos for sighting reports and case updates. Photos are securely stored and only used for the intended reporting purpose.',
       NSLocationWhenInUseUsageDescription:
-        'Used to attach accurate locations to reports and nearby alerts.',
-      NSPhotoLibraryAddUsageDescription: 'Used to save images you capture for case reports.',
+        '241 Runners uses your location to provide accurate location data for sighting reports and to show nearby alerts. Location data is encrypted and only used for app functionality.',
+      NSPhotoLibraryAddUsageDescription: '241 Runners can save images you capture to your photo library for case reports. This helps you keep copies of important evidence.',
       ITSAppUsesNonExemptEncryption: false,
-      NSPrivacyPolicyURL: 'https://241runnersawareness.org/privacy',
-      NSPrivacyPolicyUsageDescription: 'Privacy policy for 241Runners app',
+      NSPrivacyPolicyURL: 'https://241runnersawareness.org/privacy-policy',
+      NSPrivacyPolicyUsageDescription: 'View our comprehensive privacy policy to understand how we collect, use, store, and protect your personal information and data.',
       UIBackgroundModes: ['remote-notification'],
       FirebaseAppDelegateProxyEnabled: true,
+      NSUserTrackingUsageDescription: 'This app does not track users across other apps or websites.',
     },
     associatedDomains: ['applinks:241runnersawareness.org'],
     config: {
@@ -47,6 +48,7 @@ const config: ExpoConfig = {
     'expo-notifications',
     'expo-location',
     'expo-camera',
+    // 'expo-apple-authentication', // Temporarily disabled for production build
     [
       'expo-image-picker',
       {

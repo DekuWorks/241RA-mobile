@@ -13,7 +13,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
-import { GoogleAuthService } from '../services/googleAuth';
+import { AppleAuthService } from '../services/appleAuth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -64,10 +64,10 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleAppleLogin = async () => {
     setIsLoading(true);
     try {
-      const result = await GoogleAuthService.signIn();
+      const result = await AppleAuthService.signIn();
 
       if (result.success) {
         // Login successful, check user role and redirect accordingly
@@ -86,10 +86,10 @@ export default function LoginScreen() {
           router.replace('/profile');
         }
       } else {
-        Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
+        Alert.alert('Apple Login Failed', result.error || 'Failed to sign in with Apple');
       }
     } catch (error: any) {
-      Alert.alert('Google Login Failed', error.message || 'Failed to sign in with Google');
+      Alert.alert('Apple Login Failed', error.message || 'Failed to sign in with Apple');
     } finally {
       setIsLoading(false);
     }
@@ -169,8 +169,8 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Google Login Button */}
-        <View style={styles.googleSection}>
+        {/* Apple Login Button */}
+        <View style={styles.appleSection}>
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
@@ -178,12 +178,12 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
-            onPress={handleGoogleLogin}
+            style={[styles.appleButton, isLoading && styles.buttonDisabled]}
+            onPress={handleAppleLogin}
             disabled={isLoading}
           >
-            <Text style={styles.googleIcon}>🔍</Text>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            <Text style={styles.appleIcon}>🍎</Text>
+            <Text style={styles.appleButtonText}>Continue with Apple</Text>
           </TouchableOpacity>
         </View>
 
@@ -312,33 +312,32 @@ const styles = StyleSheet.create({
     color: colors.gray[400],
     marginHorizontal: spacing.md,
   },
-  googleSection: {
+  appleSection: {
     marginTop: spacing.lg,
     width: '100%',
   },
-  googleButton: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.gray[300],
+  appleButton: {
+    backgroundColor: colors.black,
     borderRadius: radii.md,
     padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.gray[900],
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
-  googleIcon: {
+  appleIcon: {
     fontSize: typography.sizes.lg,
     marginRight: spacing.sm,
+    color: colors.white,
   },
-  googleButtonText: {
+  appleButtonText: {
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
-    color: colors.gray[900],
+    color: colors.white,
   },
   adminButton: {
     backgroundColor: colors.gray[800],

@@ -13,6 +13,18 @@ export class SignalRService {
     this.queryClient = queryClient;
   }
 
+  private async getUserRole(): Promise<string | null> {
+    try {
+      // Try to get user role from secure storage or user data
+      const { UserDataService } = await import('./userData');
+      const userData = await UserDataService.getUserData();
+      return userData?.role || null;
+    } catch (error) {
+      console.warn('Failed to get user role for SignalR:', error);
+      return null;
+    }
+  }
+
   async startConnection(): Promise<void> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
       console.log('SignalR already connected');
@@ -34,9 +46,18 @@ export class SignalRService {
         return;
       }
 
+      // Determine which hub to use based on user role
+      const userRole = await this.getUserRole();
+      const hubUrl = userRole === 'admin' || userRole === 'super_admin' || userRole === 'moderator'
+        ? `${API_BASE}/hubs/admin`    // AdminHub for admin users
+        : `${API_BASE}/hubs/alerts`;  // AlertsHub for regular users
+
+      console.log('🔌 Connecting to SignalR hub:', hubUrl);
+      console.log('👤 User role:', userRole, '→ Using', userRole?.includes('admin') || userRole === 'moderator' ? 'AdminHub' : 'AlertsHub');
+
       // Create connection
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${API_BASE}/hubs/alerts`, {
+        .withUrl(hubUrl, {
           accessTokenFactory: async () => token,
           skipNegotiation: true,
           transport: signalR.HttpTransportType.WebSockets,
@@ -289,6 +310,159 @@ export class SignalRService {
         }
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       }
+    });
+
+    // Admin-specific event handlers (from static site RealtimeClient)
+    this.connection.on('NewUserRegistration', (data: any) => {
+      console.log('👤 New user registration:', data);
+      logEvent('signalr_new_user_registration', { userId: data.userData?.id });
+      
+      // Invalidate user queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['users'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      }
+    });
+
+    this.connection.on('CaseCreated', (data: any) => {
+      console.log('📋 New case created:', data);
+      logEvent('signalr_case_created', { caseId: data.caseData?.id });
+      
+      // Invalidate case queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      }
+    });
+
+    this.connection.on('CaseUpdated', (data: any) => {
+      console.log('📋 Case updated:', data);
+      logEvent('signalr_case_updated_admin', { caseId: data.id });
+      
+      // Invalidate case queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['case', data.id] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'cases'] });
+      }
+    });
+
+    this.connection.on('caseDeleted', (data: any) => {
+      console.log('🗑️ Case deleted:', data);
+      logEvent('signalr_case_deleted_admin', { caseId: data.data?.id });
+      
+      // Invalidate case queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'cases'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      }
+    });
+
+    // Admin connection tracking
+    this.connection.on('AdminConnected', (data: any) => {
+      console.log('👑 Admin connected:', data);
+      logEvent('signalr_admin_connected', { adminId: data.adminId, adminName: data.adminName });
+      
+      // Invalidate admin queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'online'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'activity'] });
+      }
+    });
+
+    this.connection.on('AdminDisconnected', (data: any) => {
+      console.log('👑 Admin disconnected:', data);
+      logEvent('signalr_admin_disconnected', { adminId: data.adminId, adminName: data.adminName });
+      
+      // Invalidate admin queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'online'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'activity'] });
+      }
+    });
+
+    this.connection.on('CurrentAdmins', (data: any) => {
+      console.log('👥 Current admins:', data);
+      logEvent('signalr_current_admins', { count: data.length });
+      
+      // Update admin list in cache
+      if (this.queryClient) {
+        this.queryClient.setQueryData(['admin', 'online'], data);
+      }
+    });
+
+    this.connection.on('UserChanged', (data: any) => {
+      console.log('👤 User changed:', data);
+      logEvent('signalr_user_changed_admin', { userId: data.userId, operation: data.operation });
+      
+      // Invalidate user queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['users'] });
+        this.queryClient.invalidateQueries({ queryKey: ['user', data.userId] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      }
+    });
+
+    this.connection.on('RunnerChanged', (data: any) => {
+      console.log('🏃 Runner changed:', data);
+      logEvent('signalr_runner_changed', { runnerId: data.runnerId, operation: data.operation });
+      
+      // Invalidate runner queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['runners'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'runners'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      }
+    });
+
+    this.connection.on('AdminProfileChanged', (data: any) => {
+      console.log('👑 Admin profile changed:', data);
+      logEvent('signalr_admin_profile_changed', { adminId: data.adminId, operation: data.operation });
+      
+      // Invalidate admin profile queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'profile'] });
+        this.queryClient.invalidateQueries({ queryKey: ['user'] });
+      }
+    });
+
+    this.connection.on('DataVersionChanged', (data: any) => {
+      console.log('📊 Data version changed:', data);
+      logEvent('signalr_data_version_changed', { dataType: data.dataType, version: data.version });
+      
+      // Invalidate all relevant queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+      }
+    });
+
+    this.connection.on('AdminActivity', (data: any) => {
+      console.log('👑 Admin activity:', data);
+      logEvent('signalr_admin_activity', { adminId: data.adminId, activity: data.activity });
+      
+      // Invalidate admin activity queries
+      if (this.queryClient) {
+        this.queryClient.invalidateQueries({ queryKey: ['admin', 'activity'] });
+      }
+    });
+
+    this.connection.on('OnlineAdmins', (data: any) => {
+      console.log('👥 Online admins:', data);
+      logEvent('signalr_online_admins', { count: data.length });
+      
+      // Update online admins in cache
+      if (this.queryClient) {
+        this.queryClient.setQueryData(['admin', 'online'], data);
+      }
+    });
+
+    this.connection.on('Pong', (data: any) => {
+      console.log('🏓 Pong received:', data);
+      // Update last ping time for connection monitoring
     });
   }
 

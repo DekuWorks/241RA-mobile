@@ -20,6 +20,15 @@ export default function PortalUsersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  
+  // Bulk Operations State
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  
+  // Advanced Filters
+  const [dateRange, setDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
+  const [activityLevel, setActivityLevel] = useState<string>('');
 
   // CRUD Modal States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -44,7 +53,7 @@ export default function PortalUsersScreen() {
 
   useEffect(() => {
     loadUsers();
-  }, [searchQuery, selectedRole, selectedStatus]);
+  }, [searchQuery, selectedRole, selectedStatus, dateRange, activityLevel]);
 
   const loadUsers = async () => {
     try {
@@ -184,6 +193,138 @@ export default function PortalUsersScreen() {
     );
   };
 
+  // Bulk Operations Functions
+  const toggleUserSelection = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+    setShowBulkActions(newSelected.size > 0);
+  };
+
+  const selectAllUsers = () => {
+    const allUserIds = new Set(users.map(user => user.id));
+    setSelectedUsers(allUserIds);
+    setShowBulkActions(true);
+  };
+
+  const clearSelection = () => {
+    setSelectedUsers(new Set());
+    setShowBulkActions(false);
+  };
+
+  const handleBulkRoleChange = async (newRole: string) => {
+    if (selectedUsers.size === 0) return;
+
+    Alert.alert(
+      'Bulk Role Change',
+      `Change role to ${newRole} for ${selectedUsers.size} users?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              const promises = Array.from(selectedUsers).map(userId => 
+                AdminService.updateUserRole(userId, newRole)
+              );
+              await Promise.all(promises);
+              Alert.alert('Success', `Updated roles for ${selectedUsers.size} users`);
+              clearSelection();
+              await loadUsers();
+            } catch (error: any) {
+              console.error('Failed to bulk update roles:', error);
+              Alert.alert('Error', error.message || 'Failed to update user roles');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkStatusChange = async (isActive: boolean) => {
+    if (selectedUsers.size === 0) return;
+
+    Alert.alert(
+      'Bulk Status Change',
+      `${isActive ? 'Activate' : 'Deactivate'} ${selectedUsers.size} users?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              const promises = Array.from(selectedUsers).map(userId => 
+                AdminService.toggleUserStatus(userId, isActive)
+              );
+              await Promise.all(promises);
+              Alert.alert('Success', `${isActive ? 'Activated' : 'Deactivated'} ${selectedUsers.size} users`);
+              clearSelection();
+              await loadUsers();
+            } catch (error: any) {
+              console.error('Failed to bulk update status:', error);
+              Alert.alert('Error', error.message || 'Failed to update user status');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedUsers.size === 0) return;
+
+    Alert.alert(
+      'Bulk Delete Users',
+      `Are you sure you want to delete ${selectedUsers.size} users? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const promises = Array.from(selectedUsers).map(userId => 
+                AdminService.forceDeleteUser(userId)
+              );
+              await Promise.all(promises);
+              Alert.alert('Success', `Deleted ${selectedUsers.size} users`);
+              clearSelection();
+              await loadUsers();
+            } catch (error: any) {
+              console.error('Failed to bulk delete users:', error);
+              Alert.alert('Error', error.message || 'Failed to delete users');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const exportUsers = () => {
+    // Simple CSV export functionality
+    const csvData = users.map(user => ({
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      role: user.role,
+      status: user.isActive ? 'Active' : 'Inactive',
+      created: new Date(user.createdAt).toLocaleDateString(),
+      lastLogin: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'
+    }));
+
+    const csvContent = [
+      'Name,Email,Role,Status,Created,Last Login',
+      ...csvData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    // In a real app, you'd use a file sharing library
+    console.log('CSV Export:', csvContent);
+    Alert.alert('Export Complete', 'User data has been exported to console (implement file sharing for production)');
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin':
@@ -235,10 +376,81 @@ export default function PortalUsersScreen() {
     >
       {/* Header Actions */}
       <View style={styles.headerActions}>
-        <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
-          <Text style={styles.createButtonIcon}>➕</Text>
-          <Text style={styles.createButtonText}>Create User</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActionsRow}>
+          <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
+            <Text style={styles.createButtonIcon}>➕</Text>
+            <Text style={styles.createButtonText}>Create User</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]} 
+            onPress={() => {
+              setBulkMode(!bulkMode);
+              if (bulkMode) {
+                clearSelection();
+              }
+            }}
+          >
+            <Text style={styles.bulkModeButtonText}>
+              {bulkMode ? 'Exit Bulk' : 'Bulk Mode'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.exportButton} onPress={exportUsers}>
+            <Text style={styles.exportButtonText}>📊 Export</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {bulkMode && (
+          <View style={styles.bulkControls}>
+            <TouchableOpacity style={styles.selectAllButton} onPress={selectAllUsers}>
+              <Text style={styles.selectAllButtonText}>Select All ({users.length})</Text>
+            </TouchableOpacity>
+            {selectedUsers.size > 0 && (
+              <TouchableOpacity style={styles.clearSelectionButton} onPress={clearSelection}>
+                <Text style={styles.clearSelectionButtonText}>Clear ({selectedUsers.size})</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+        
+        {showBulkActions && selectedUsers.size > 0 && (
+          <View style={styles.bulkActions}>
+            <Text style={styles.bulkActionsTitle}>{selectedUsers.size} users selected</Text>
+            <View style={styles.bulkActionsRow}>
+              <TouchableOpacity 
+                style={styles.bulkActionButton} 
+                onPress={() => handleBulkRoleChange('admin')}
+              >
+                <Text style={styles.bulkActionButtonText}>Make Admin</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.bulkActionButton} 
+                onPress={() => handleBulkRoleChange('moderator')}
+              >
+                <Text style={styles.bulkActionButtonText}>Make Moderator</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.bulkActionButton} 
+                onPress={() => handleBulkStatusChange(true)}
+              >
+                <Text style={styles.bulkActionButtonText}>Activate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.bulkActionButton} 
+                onPress={() => handleBulkStatusChange(false)}
+              >
+                <Text style={styles.bulkActionButtonText}>Deactivate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.bulkActionButton, styles.bulkDeleteButton]} 
+                onPress={handleBulkDelete}
+              >
+                <Text style={styles.bulkActionButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Search and Filters */}
@@ -315,7 +527,21 @@ export default function PortalUsersScreen() {
       {/* Users List */}
       <View style={styles.usersContainer}>
         {users.map(user => (
-          <View key={user.id} style={styles.userCard}>
+          <View key={user.id} style={[
+            styles.userCard, 
+            bulkMode && selectedUsers.has(user.id) && styles.selectedUserCard
+          ]}>
+            {bulkMode && (
+              <TouchableOpacity 
+                style={styles.selectionCheckbox}
+                onPress={() => toggleUserSelection(user.id)}
+              >
+                <Text style={styles.selectionCheckboxText}>
+                  {selectedUsers.has(user.id) ? '☑️' : '☐'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            
             <View style={styles.userHeader}>
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>
@@ -741,6 +967,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
   },
+  headerActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -890,5 +1121,116 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: colors.white,
+  },
+
+  // Bulk Operations Styles
+  bulkModeButton: {
+    backgroundColor: colors.gray[200],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: colors.gray[400],
+  },
+  bulkModeButtonActive: {
+    backgroundColor: colors.primary[600],
+    borderColor: colors.primary[700],
+  },
+  bulkModeButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[700],
+  },
+  exportButton: {
+    backgroundColor: colors.info[600],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: colors.info[700],
+  },
+  exportButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.white,
+  },
+  bulkControls: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  selectAllButton: {
+    backgroundColor: colors.warning[600],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  selectAllButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.white,
+  },
+  clearSelectionButton: {
+    backgroundColor: colors.gray[500],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  clearSelectionButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.white,
+  },
+  bulkActions: {
+    backgroundColor: colors.primary[50],
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+  },
+  bulkActionsTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary[800],
+    marginBottom: spacing.sm,
+  },
+  bulkActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  bulkActionButton: {
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.primary[700],
+  },
+  bulkDeleteButton: {
+    backgroundColor: colors.error,
+    borderColor: colors.error,
+  },
+  bulkActionButtonText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.white,
+  },
+
+  // Selection Styles
+  selectedUserCard: {
+    borderColor: colors.primary[600],
+    borderWidth: 2,
+    backgroundColor: colors.primary[50],
+  },
+  selectionCheckbox: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    zIndex: 1,
+    padding: spacing.xs,
+  },
+  selectionCheckboxText: {
+    fontSize: 20,
   },
 });

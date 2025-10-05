@@ -20,6 +20,7 @@ interface PortalStats {
   totalCases: number;
   activeCases: number;
   totalUsers: number;
+  totalRunners: number;
   activeAdmins: number;
   systemHealth: 'healthy' | 'warning' | 'critical';
   lastBackup: string;
@@ -90,6 +91,7 @@ export default function PortalHub() {
           totalCases: 0,
           activeCases: 0,
           totalUsers: 0,
+          totalRunners: 0,
           activeAdmins: 6,
           systemHealth: 'healthy',
           lastBackup: new Date().toISOString(),
@@ -205,19 +207,21 @@ export default function PortalHub() {
         <Text style={styles.sectionTitle}>Portal Overview</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats?.totalCases || 0}</Text>
-            <Text style={styles.statTitle}>Total Cases</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats?.activeCases || 0}</Text>
-            <Text style={styles.statTitle}>Active Cases</Text>
-          </View>
-          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats?.totalUsers || 0}</Text>
             <Text style={styles.statTitle}>Total Users</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats?.systemHealth || 'unknown'}</Text>
+            <Text style={styles.statValue}>{stats?.totalRunners || 0}</Text>
+            <Text style={styles.statTitle}>Total Runners</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{stats?.activeAdmins || 0}</Text>
+            <Text style={styles.statTitle}>Active Admins</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: getSystemHealthColor(stats?.systemHealth) }]}>
+              {stats?.systemHealth === 'healthy' ? '💚' : stats?.systemHealth === 'warning' ? '⚠️' : '🔴'}
+            </Text>
             <Text style={styles.statTitle}>System Health</Text>
           </View>
         </View>
@@ -249,8 +253,23 @@ export default function PortalHub() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/settings')}>
-          <Text style={styles.moduleTitle}>Portal Settings</Text>
+          <Text style={styles.moduleTitle}>⚙️ Portal Settings</Text>
           <Text style={styles.moduleDescription}>Configure portal settings and preferences</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/monitoring')}>
+          <Text style={styles.moduleTitle}>🔍 System Monitoring</Text>
+          <Text style={styles.moduleDescription}>Real-time system health and admin activity tracking</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/sla-config')}>
+          <Text style={styles.moduleTitle}>⏰ SLA Configuration</Text>
+          <Text style={styles.moduleDescription}>Configure service level agreements and case timeframes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/triage-queue')}>
+          <Text style={styles.moduleTitle}>🚨 Triage Queue</Text>
+          <Text style={styles.moduleDescription}>Prioritize and manage cases based on urgency and SLA</Text>
         </TouchableOpacity>
       </View>
       </ScrollView>
@@ -266,6 +285,19 @@ const getRoleColor = (role: string) => {
       return colors.warning[600];
     case 'moderator':
       return colors.info[600];
+    default:
+      return colors.gray[600];
+  }
+};
+
+const getSystemHealthColor = (health: string) => {
+  switch (health) {
+    case 'healthy':
+      return colors.success[600];
+    case 'warning':
+      return colors.warning[600];
+    case 'critical':
+      return colors.error;
     default:
       return colors.gray[600];
   }
