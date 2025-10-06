@@ -31,7 +31,7 @@ export interface User {
 
 export class AuthService {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/login', credentials);
+    const data = await ApiClient.post('/api/auth/login', credentials);
 
     console.log('Login response data:', data);
     console.log('User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
@@ -69,7 +69,7 @@ export class AuthService {
   }
 
   static async loginWithGoogle(googleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/auth/oauth/register', { 
       provider: 'google',
       token: googleToken 
     });
@@ -102,7 +102,7 @@ export class AuthService {
   }
 
   static async loginWithApple(appleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/auth/oauth/register', { 
       provider: 'apple',
       token: appleToken 
     });
@@ -135,7 +135,7 @@ export class AuthService {
   }
 
   static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/auth/oauth/register', { 
       provider: 'microsoft',
       token: microsoftToken 
     });

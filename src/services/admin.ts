@@ -163,7 +163,7 @@ export class AdminService {
     try {
       this.validateAdminAccess();
       // Use the existing /api/v1/auth/profile endpoint
-      const data = await ApiClient.get('/api/v1/auth/profile');
+      const data = await ApiClient.get('/api/auth/profile');
 
       // Validate response data structure
       if (!data || !data.id || !data.email || !data.role) {
@@ -236,7 +236,7 @@ export class AdminService {
   static async updateAdminProfile(updates: Partial<AdminProfile>): Promise<AdminProfile> {
     try {
       // Use the existing /api/v1/auth/profile endpoint
-      const data = await ApiClient.patch('/api/v1/auth/profile', updates);
+      const data = await ApiClient.patch('/api/auth/profile', updates);
       return data;
     } catch (error) {
       console.error('Failed to update admin profile:', error);
@@ -247,7 +247,7 @@ export class AdminService {
   static async changeAdminPassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
       // Use the existing /api/v1/auth/change-password endpoint
-      await ApiClient.post('/api/v1/auth/change-password', {
+      await ApiClient.post('/api/auth/change-password', {
         currentPassword,
         newPassword,
       });
