@@ -909,58 +909,58 @@ export default function ProfileScreen() {
           </View>
 
           {isEditingRunnerProfile && (
-            <View style={styles.editForm}>
+            <View style={styles.runnerEditForm}>
               <TextInput
-                style={[styles.input, runnerValidationErrors.firstName && styles.inputError]}
+                style={[styles.runnerInput, runnerValidationErrors.firstName && styles.runnerInputError]}
                 value={runnerFormData.firstName}
                 onChangeText={(text) => handleRunnerInputChange('firstName', text)}
                 placeholder="First Name"
                 autoCapitalize="words"
               />
               {runnerValidationErrors.firstName && (
-                <Text style={styles.errorText}>{runnerValidationErrors.firstName[0]}</Text>
+                <Text style={styles.runnerErrorText}>{runnerValidationErrors.firstName[0]}</Text>
               )}
 
               <TextInput
-                style={[styles.input, runnerValidationErrors.lastName && styles.inputError]}
+                style={[styles.runnerInput, runnerValidationErrors.lastName && styles.runnerInputError]}
                 value={runnerFormData.lastName}
                 onChangeText={(text) => handleRunnerInputChange('lastName', text)}
                 placeholder="Last Name"
                 autoCapitalize="words"
               />
               {runnerValidationErrors.lastName && (
-                <Text style={styles.errorText}>{runnerValidationErrors.lastName[0]}</Text>
+                <Text style={styles.runnerErrorText}>{runnerValidationErrors.lastName[0]}</Text>
               )}
 
               <TextInput
-                style={[styles.input, runnerValidationErrors.dateOfBirth && styles.inputError]}
+                style={[styles.runnerInput, runnerValidationErrors.dateOfBirth && styles.runnerInputError]}
                 value={runnerFormData.dateOfBirth}
                 onChangeText={(text) => handleRunnerInputChange('dateOfBirth', text)}
                 placeholder="Date of Birth (YYYY-MM-DD)"
                 keyboardType="numeric"
               />
               {runnerValidationErrors.dateOfBirth && (
-                <Text style={styles.errorText}>{runnerValidationErrors.dateOfBirth[0]}</Text>
+                <Text style={styles.runnerErrorText}>{runnerValidationErrors.dateOfBirth[0]}</Text>
               )}
 
               <TextInput
-                style={[styles.input, runnerValidationErrors.height && styles.inputError]}
+                style={[styles.runnerInput, runnerValidationErrors.height && styles.runnerInputError]}
                 value={runnerFormData.height}
                 onChangeText={(text) => handleRunnerInputChange('height', text)}
                 placeholder="Height (e.g., 5'8&quot; or 175cm)"
               />
               {runnerValidationErrors.height && (
-                <Text style={styles.errorText}>{runnerValidationErrors.height[0]}</Text>
+                <Text style={styles.runnerErrorText}>{runnerValidationErrors.height[0]}</Text>
               )}
 
               <TextInput
-                style={[styles.input, runnerValidationErrors.weight && styles.inputError]}
+                style={[styles.runnerInput, runnerValidationErrors.weight && styles.runnerInputError]}
                 value={runnerFormData.weight}
                 onChangeText={(text) => handleRunnerInputChange('weight', text)}
                 placeholder="Weight (e.g., 150 lbs or 68 kg)"
               />
               {runnerValidationErrors.weight && (
-                <Text style={styles.errorText}>{runnerValidationErrors.weight[0]}</Text>
+                <Text style={styles.runnerErrorText}>{runnerValidationErrors.weight[0]}</Text>
               )}
 
               <View style={styles.medicalConditionsContainer}>
@@ -977,7 +977,7 @@ export default function ProfileScreen() {
                   </View>
                 ))}
                 <TextInput
-                  style={styles.input}
+                  style={styles.runnerInput}
                   placeholder="Add medical condition"
                   onSubmitEditing={(e) => {
                     addMedicalCondition(e.nativeEvent.text);
@@ -987,7 +987,7 @@ export default function ProfileScreen() {
               </View>
 
               <TextInput
-                style={[styles.textArea, runnerValidationErrors.additionalNotes && styles.inputError]}
+                style={[styles.textArea, runnerValidationErrors.additionalNotes && styles.runnerInputError]}
                 value={runnerFormData.additionalNotes}
                 onChangeText={(text) => handleRunnerInputChange('additionalNotes', text)}
                 placeholder="Additional Notes"
@@ -995,22 +995,22 @@ export default function ProfileScreen() {
                 numberOfLines={3}
               />
 
-              <View style={styles.formActions}>
+              <View style={styles.runnerFormActions}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={styles.runnerCancelButton}
                   onPress={() => setIsEditingRunnerProfile(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.runnerCancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.saveButton}
+                  style={styles.runnerSaveButton}
                   onPress={handleSaveRunnerProfile}
                   disabled={isSaving}
                 >
                   {isSaving ? (
                     <ActivityIndicator color={colors.white} />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
+                    <Text style={styles.runnerSaveButtonText}>Save</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1033,14 +1033,14 @@ export default function ProfileScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>📸 Runner Photos ({runnerPhotos.length}/10)</Text>
         <TouchableOpacity
-          style={styles.uploadButton}
+          style={styles.photoUploadButton}
           onPress={handlePhotoUpload}
           disabled={isUploading || runnerPhotos.length >= 10}
         >
           {isUploading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.uploadButtonText}>Upload Photos</Text>
+            <Text style={styles.photoUploadButtonText}>Upload Photos</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -1913,10 +1913,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.gray[900],
   },
-  editForm: {
+  runnerEditForm: {
     marginTop: spacing.md,
   },
-  input: {
+  runnerInput: {
     borderWidth: 1,
     borderColor: colors.gray[300],
     borderRadius: radii.md,
@@ -1927,10 +1927,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     marginBottom: spacing.sm,
   },
-  inputError: {
+  runnerInputError: {
     borderColor: colors.error,
   },
-  errorText: {
+  runnerErrorText: {
     color: colors.error,
     fontSize: typography.sizes.sm,
     marginBottom: spacing.sm,
@@ -1985,12 +1985,12 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
-  formActions: {
+  runnerFormActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.lg,
   },
-  cancelButton: {
+  runnerCancelButton: {
     flex: 1,
     paddingVertical: spacing.md,
     backgroundColor: colors.gray[200],
@@ -1998,12 +1998,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: spacing.sm,
   },
-  cancelButtonText: {
+  runnerCancelButtonText: {
     color: colors.gray[700],
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
   },
-  saveButton: {
+  runnerSaveButton: {
     flex: 1,
     paddingVertical: spacing.md,
     backgroundColor: colors.primary[600],
@@ -2011,7 +2011,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: spacing.sm,
   },
-  saveButtonText: {
+  runnerSaveButtonText: {
     color: colors.white,
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
@@ -2043,14 +2043,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Photo Management Styles
-  uploadButton: {
+  photoUploadButton: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     backgroundColor: colors.primary[600],
     borderRadius: radii.md,
     alignItems: 'center',
   },
-  uploadButtonText: {
+  photoUploadButtonText: {
     color: colors.white,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
