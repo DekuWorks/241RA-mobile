@@ -852,10 +852,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.gray[900],
   },
-  exportButton: {
+  exportButtonOld: {
     padding: spacing.sm,
   },
-  exportButtonText: {
+  exportButtonTextOld: {
     fontSize: typography.sizes.lg,
   },
   filtersContainer: {

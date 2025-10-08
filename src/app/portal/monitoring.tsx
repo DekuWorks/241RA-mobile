@@ -290,28 +290,28 @@ export default function SystemMonitoringScreen() {
           <MetricCard
             title="Response Time"
             value={`${metrics?.responseTime || 0}ms`}
-            color={metrics?.responseTime < 200 ? colors.success[600] : colors.warning[600]}
+            color={(metrics?.responseTime ?? 0) < 200 ? colors.success[600] : colors.warning[600]}
             icon="⚡"
             trend="stable"
           />
           <MetricCard
             title="Error Rate"
             value={`${metrics?.errorRate || 0}%`}
-            color={metrics?.errorRate < 1 ? colors.success[600] : colors.warning[600]}
+            color={(metrics?.errorRate ?? 0) < 1 ? colors.success[600] : colors.warning[600]}
             icon="📊"
             trend="down"
           />
           <MetricCard
             title="Memory Usage"
             value={`${metrics?.memoryUsage || 0}%`}
-            color={metrics?.memoryUsage < 80 ? colors.success[600] : colors.warning[600]}
+            color={(metrics?.memoryUsage ?? 0) < 80 ? colors.success[600] : colors.warning[600]}
             icon="💾"
             trend="up"
           />
           <MetricCard
             title="CPU Usage"
             value={`${metrics?.cpuUsage || 0}%`}
-            color={metrics?.cpuUsage < 80 ? colors.success[600] : colors.warning[600]}
+            color={(metrics?.cpuUsage ?? 0) < 80 ? colors.success[600] : colors.warning[600]}
             icon="🖥️"
             trend="stable"
           />

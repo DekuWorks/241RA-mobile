@@ -469,27 +469,39 @@ export default function ProfileScreen() {
 
     // Validate first name
     const firstNameValidation = ValidationUtils.validateName(runnerFormData.firstName, 'First name');
-    if (!firstNameValidation.isValid) errors.firstName = firstNameValidation.errors;
+    if (!firstNameValidation.isValid) {
+      errors.firstName = firstNameValidation.errors;
+    }
 
     // Validate last name
     const lastNameValidation = ValidationUtils.validateName(runnerFormData.lastName, 'Last name');
-    if (!lastNameValidation.isValid) errors.lastName = lastNameValidation.errors;
+    if (!lastNameValidation.isValid) {
+      errors.lastName = lastNameValidation.errors;
+    }
 
     // Validate date of birth
     const dobValidation = RunnerValidationUtils.validateDateOfBirth(runnerFormData.dateOfBirth);
-    if (!dobValidation.isValid) errors.dateOfBirth = dobValidation.errors;
+    if (dobValidation.length > 0) {
+      errors.dateOfBirth = dobValidation.map(e => e.message);
+    }
 
     // Validate height
     const heightValidation = RunnerValidationUtils.validateHeight(runnerFormData.height);
-    if (!heightValidation.isValid) errors.height = heightValidation.errors;
+    if (heightValidation.length > 0) {
+      errors.height = heightValidation.map(e => e.message);
+    }
 
     // Validate weight
     const weightValidation = RunnerValidationUtils.validateWeight(runnerFormData.weight);
-    if (!weightValidation.isValid) errors.weight = weightValidation.errors;
+    if (weightValidation.length > 0) {
+      errors.weight = weightValidation.map(e => e.message);
+    }
 
     // Validate eye color
     const eyeColorValidation = RunnerValidationUtils.validateEyeColor(runnerFormData.eyeColor);
-    if (!eyeColorValidation.isValid) errors.eyeColor = eyeColorValidation.errors;
+    if (eyeColorValidation.length > 0) {
+      errors.eyeColor = eyeColorValidation.map(e => e.message);
+    }
 
     setRunnerValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -935,7 +947,7 @@ export default function ProfileScreen() {
                 style={[styles.input, runnerValidationErrors.height && styles.inputError]}
                 value={runnerFormData.height}
                 onChangeText={(text) => handleRunnerInputChange('height', text)}
-                placeholder="Height (e.g., 5'8\" or 175cm)"
+                placeholder="Height (e.g., 5'8&quot; or 175cm)"
               />
               {runnerValidationErrors.height && (
                 <Text style={styles.errorText}>{runnerValidationErrors.height[0]}</Text>
@@ -1889,7 +1901,7 @@ const styles = StyleSheet.create({
   runnerProfileContent: {
     // Add styles for runner profile content
   },
-  profileInfo: {
+  runnerProfileInfo: {
     marginBottom: spacing.md,
   },
   profileText: {

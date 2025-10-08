@@ -266,7 +266,7 @@ export default function RunnerProfileScreen() {
         </View>
         
         <RunnerProfileForm
-          onSubmit={handleCreateProfile}
+          onSubmit={handleCreateProfile as (data: CreateRunnerProfileData | UpdateRunnerProfileData) => Promise<void>}
           onCancel={() => router.back()}
           isLoading={isLoading}
         />

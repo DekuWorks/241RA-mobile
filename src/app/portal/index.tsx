@@ -112,7 +112,7 @@ export default function PortalHub() {
         setStats(portalStats);
       } catch (statsError) {
         console.error('[PORTAL] Failed to load portal stats:', statsError);
-        console.error('[PORTAL] Stats error details:', statsError.message);
+        console.error('[PORTAL] Stats error details:', (statsError as Error).message);
         // Don't show error for stats loading - just use basic stats
         console.log('[PORTAL] Using basic stats due to API error');
         setStats({
