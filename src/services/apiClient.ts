@@ -37,6 +37,12 @@ export class ApiClient {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        console.log('[API] Request:', {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+          hasToken: !!token,
+          baseURL: config.baseURL
+        });
         return config;
       },
       error => Promise.reject(error)
@@ -44,7 +50,14 @@ export class ApiClient {
 
     // Response interceptor to handle token refresh and errors
     instance.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        console.log('[API] Response:', {
+          status: response.status,
+          url: response.config.url,
+          method: response.config.method?.toUpperCase()
+        });
+        return response;
+      },
       async error => {
         const originalRequest = error.config;
 
@@ -78,6 +91,13 @@ export class ApiClient {
           }
         }
 
+        console.log('[API] Error:', {
+          status: error.response?.status,
+          url: error.config?.url,
+          method: error.config?.method?.toUpperCase(),
+          message: error.message,
+          data: error.response?.data
+        });
         return Promise.reject(this.handleError(error));
       }
     );

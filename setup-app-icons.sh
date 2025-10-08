@@ -7,10 +7,10 @@ echo "🎯 241 Runners Awareness - App Icon Setup"
 echo "========================================"
 
 # Check if the main logo exists
-if [ ! -f "assets/241runners-logo.png" ]; then
-    echo "❌ Please save your 241 Runners Awareness logo as 'assets/241runners-logo.png'"
+if [ ! -f "assets/241-logo.jpg" ]; then
+    echo "❌ Please save your 241 Runners Awareness logo as 'assets/241-logo.jpg'"
     echo "   Requirements:"
-    echo "   - Format: PNG"
+    echo "   - Format: JPG or PNG"
     echo "   - Size: 1024x1024 pixels minimum"
     echo "   - Background: Transparent or white"
     echo ""
@@ -18,28 +18,28 @@ if [ ! -f "assets/241runners-logo.png" ]; then
     exit 1
 fi
 
-echo "✅ Found 241runners-logo.png"
+echo "✅ Found 241-logo.jpg"
 echo ""
 
 # Create backup of original
-cp assets/241runners-logo.png assets/241runners-logo-backup.png
+cp assets/241-logo.jpg assets/241-logo-backup.jpg
 
 echo "📱 Setting up app icons..."
 
 # Copy the main logo to be the primary icon
-cp assets/241runners-logo.png assets/icon.png
+cp assets/241-logo.jpg assets/icon.png
 echo "✅ Created icon.png"
 
 # Copy for adaptive icon (Android)
-cp assets/241runners-logo.png assets/adaptive-icon.png
+cp assets/241-logo.jpg assets/adaptive-icon.png
 echo "✅ Created adaptive-icon.png"
 
 # Copy for splash screen
-cp assets/241runners-logo.png assets/splash-icon.png
+cp assets/241-logo.jpg assets/splash-icon.png
 echo "✅ Created splash-icon.png"
 
 # Copy for favicon (web)
-cp assets/241runners-logo.png assets/favicon.png
+cp assets/241-logo.jpg assets/favicon.png
 echo "✅ Created favicon.png"
 
 echo ""

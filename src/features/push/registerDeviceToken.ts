@@ -55,7 +55,7 @@ export async function registerDeviceToken(): Promise<void> {
       appVersion: '1.0.0', // You can get this from app config
     };
 
-    await http.post('/api/devices', registerData);
+    await http.post('/api/v1/devices', registerData);
 
     logEvent('device_token_registered', {
       platform: Platform.OS,

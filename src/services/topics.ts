@@ -36,14 +36,25 @@ export class TopicService {
    */
   static async subscribeToTopic(topic: string): Promise<void> {
     try {
-      await http.post('/topics/subscribe', { topic });
-
+      // Try the API endpoint first
+      await http.post('/api/v1/topics/subscribe', { topic });
       logEvent('topic_subscribed', { topic });
-      console.log('Subscribed to topic:', topic);
-    } catch (error) {
-      console.error('Failed to subscribe to topic:', topic, error);
-      logEvent('topic_subscribe_failed', { topic, error: String(error) });
-      throw error;
+      console.log('✅ Subscribed to topic via API:', topic);
+    } catch (apiError) {
+      console.warn('⚠️ API topic subscription failed, trying SignalR fallback:', apiError);
+      
+      // If API fails, try SignalR group join as fallback
+      try {
+        const { signalRService } = await import('./signalR');
+        await signalRService.joinGroup(`topic_${topic}`);
+        logEvent('topic_subscribed_signalr', { topic });
+        console.log('✅ Subscribed to topic via SignalR group:', topic);
+      } catch (signalRError) {
+        console.warn('⚠️ SignalR topic subscription also failed:', signalRError);
+        // Don't throw error - just log it and continue
+        console.log('📝 Topic subscription not available, continuing without real-time updates for:', topic);
+        logEvent('topic_subscribe_not_available', { topic, apiError: String(apiError), signalRError: String(signalRError) });
+      }
     }
   }
 
@@ -52,7 +63,7 @@ export class TopicService {
    */
   static async unsubscribeFromTopic(topic: string): Promise<void> {
     try {
-      await http.post('/topics/unsubscribe', { topic });
+      await http.post('/api/v1/topics/unsubscribe', { topic });
 
       logEvent('topic_unsubscribed', { topic });
       console.log('Unsubscribed from topic:', topic);
@@ -68,7 +79,7 @@ export class TopicService {
    */
   static async getUserSubscriptions(): Promise<TopicSubscription[]> {
     try {
-      const response = await http.get('/topics/subscriptions');
+      const response = await http.get('/api/v1/topics/subscriptions');
       return response.data;
     } catch (error) {
       console.error('Failed to get user subscriptions:', error);

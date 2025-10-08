@@ -31,10 +31,37 @@ export interface User {
 
 export class AuthService {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/login', credentials);
+    console.log('[AUTH] Attempting login with credentials:', { 
+      email: credentials.email, 
+      hasPassword: !!credentials.password,
+      hasTwoFactor: !!credentials.twoFactorCode 
+    });
+    
+    // Ensure email is normalized (lowercase, trimmed) like the static site
+    const normalizedCredentials = {
+      ...credentials,
+      email: credentials.email.toLowerCase().trim()
+    };
+    
+    console.log('[AUTH] Normalized credentials:', normalizedCredentials);
+    
+    // Test API connectivity first
+    try {
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://241runners-api-v2.azurewebsites.net';
+      console.log('[AUTH] Using API URL:', apiUrl);
+      
+      const healthResponse = await fetch(`${apiUrl}/api/health`);
+      console.log('[AUTH] API health check:', healthResponse.status);
+    } catch (healthError) {
+      console.warn('[AUTH] API health check failed:', healthError);
+    }
+    
+    const data = await ApiClient.post('/api/v1/auth/login', normalizedCredentials);
 
-    console.log('Login response data:', data);
-    console.log('User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
+    console.log('[AUTH] Login response data:', data);
+    console.log('[AUTH] User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
+    console.log('[AUTH] User role:', data.user?.role);
+    console.log('[AUTH] Has access token:', !!data.accessToken);
 
     if (data.accessToken) {
       await SecureTokenService.setAccessToken(String(data.accessToken));
@@ -69,7 +96,7 @@ export class AuthService {
   }
 
   static async loginWithGoogle(googleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
       provider: 'google',
       token: googleToken 
     });
@@ -102,7 +129,7 @@ export class AuthService {
   }
 
   static async loginWithApple(appleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
       provider: 'apple',
       token: appleToken 
     });
@@ -135,7 +162,7 @@ export class AuthService {
   }
 
   static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
       provider: 'microsoft',
       token: microsoftToken 
     });
@@ -278,8 +305,33 @@ export class AuthService {
    */
   private static async initializeRealtimeServices(user?: User): Promise<void> {
     try {
-      // Start SignalR connection
-      await signalRService.startConnection();
+      console.log('[AUTH] Initializing real-time services for user:', user?.role || 'unknown');
+      
+      // Wait a moment to ensure authentication is complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Start SignalR connection with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          await signalRService.startConnection();
+          console.log('[AUTH] SignalR connection successful');
+          break;
+        } catch (signalRError: any) {
+          retryCount++;
+          console.warn(`[AUTH] SignalR connection attempt ${retryCount} failed:`, signalRError.message);
+          
+          if (retryCount < maxRetries) {
+            console.log(`[AUTH] Retrying SignalR connection in 2 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            console.error('[AUTH] All SignalR connection attempts failed');
+            throw signalRError;
+          }
+        }
+      }
 
       // Subscribe to default topics based on user role
       if (user?.role) {
@@ -288,9 +340,20 @@ export class AuthService {
         await TopicService.subscribeToDefaultTopics();
       }
 
-      console.log('Real-time services initialized successfully');
-    } catch (error) {
-      console.warn('Failed to initialize real-time services:', error);
+      console.log('[AUTH] Real-time services initialized successfully');
+    } catch (error: any) {
+      console.warn('[AUTH] Failed to initialize real-time services:', error);
+      
+      // Handle specific SignalR errors
+      if (error?.message?.includes('403')) {
+        console.error('[AUTH] SignalR 403 - User may not have permission for real-time features');
+        console.log('[AUTH] This is normal for some user roles - continuing without real-time features');
+      } else if (error?.message?.includes('401')) {
+        console.error('[AUTH] SignalR 401 - Authentication token issue');
+        console.log('[AUTH] Real-time features will be unavailable');
+      } else {
+        console.error('[AUTH] SignalR connection failed:', error.message);
+      }
     }
   }
 }

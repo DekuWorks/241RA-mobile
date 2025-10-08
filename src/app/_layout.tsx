@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { NotificationService } from '../services/notifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
+import { WebSocketErrorHandler } from '../components/WebSocketErrorHandler';
 import {
   attachForegroundMessaging,
   setupBackgroundMessageHandler,
@@ -89,8 +90,10 @@ export default function Root() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={qc}>
-        <OfflineIndicator />
-        <Stack screenOptions={{ headerShown: false }} />
+        <WebSocketErrorHandler>
+          <OfflineIndicator />
+          <Stack screenOptions={{ headerShown: false }} />
+        </WebSocketErrorHandler>
       </QueryClientProvider>
     </ErrorBoundary>
   );

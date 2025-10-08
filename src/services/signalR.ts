@@ -3,6 +3,7 @@ import { API_BASE } from '../config/api';
 import { SecureTokenService } from './secureTokens';
 import { logEvent } from '../lib/crash';
 import { QueryClient } from '@tanstack/react-query';
+import { WebSocketDiagnostics } from '../utils/websocketDiagnostics';
 
 export class SignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -27,12 +28,12 @@ export class SignalRService {
 
   async startConnection(): Promise<void> {
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
-      console.log('SignalR already connected');
+      console.log('✅ SignalR already connected');
       return;
     }
 
     if (this.isConnecting) {
-      console.log('SignalR connection already in progress');
+      console.log('⏳ SignalR connection already in progress');
       return;
     }
 
@@ -42,9 +43,23 @@ export class SignalRService {
       // Get access token
       const token = await SecureTokenService.getAccessToken();
       if (!token) {
-        console.warn('No access token available for SignalR');
+        console.warn('No access token available for SignalR - skipping connection');
         return;
       }
+
+      // Verify token is valid by checking if it's a JWT
+      if (!token.includes('.')) {
+        console.warn('Invalid token format for SignalR - skipping connection');
+        return;
+      }
+
+      // Validate token format
+      console.log('🔑 Token format check:', {
+        hasToken: !!token,
+        tokenLength: token?.length,
+        tokenPrefix: token?.substring(0, 20) + '...',
+        isJWT: token?.includes('.')
+      });
 
       // Determine which hub to use based on user role
       const userRole = await this.getUserRole();
@@ -54,29 +69,103 @@ export class SignalRService {
 
       console.log('🔌 Connecting to SignalR hub:', hubUrl);
       console.log('👤 User role:', userRole, '→ Using', userRole?.includes('admin') || userRole === 'moderator' ? 'AdminHub' : 'AlertsHub');
+      console.log('🔑 Access token available:', !!token);
+      console.log('🌐 API Base URL:', API_BASE);
 
-      // Create connection
+      // Create connection with enhanced error handling
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, {
-          accessTokenFactory: async () => token,
-          skipNegotiation: true,
+          accessTokenFactory: async () => {
+            try {
+              // Refresh token if needed
+              const freshToken = await SecureTokenService.getAccessToken();
+              if (!freshToken) {
+                console.error('No access token available for SignalR');
+                throw new Error('No valid access token available');
+              }
+              console.log('🔑 Using token for SignalR:', freshToken.substring(0, 20) + '...');
+              return freshToken;
+            } catch (error) {
+              console.error('Failed to get access token for SignalR:', error);
+              throw error;
+            }
+          },
+          skipNegotiation: false, // Allow negotiation for better compatibility
           transport: signalR.HttpTransportType.WebSockets,
+          withCredentials: false,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
         })
-        .withAutomaticReconnect([0, 2000, 10000, 30000])
+        .withAutomaticReconnect({
+          nextRetryDelayInMilliseconds: (retryContext) => {
+            // Custom retry logic for WebSocket 1006 errors
+            if (retryContext.previousRetryCount === 0) return 0;
+            if (retryContext.previousRetryCount === 1) return 2000;
+            if (retryContext.previousRetryCount === 2) return 10000;
+            if (retryContext.previousRetryCount === 3) return 30000;
+            return 60000; // Max 1 minute between retries
+          }
+        })
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
       // Set up event handlers
       this.setupEventHandlers();
 
-      // Start connection
-      await this.connection.start();
+      // Start connection with enhanced error handling
+      try {
+        console.log('🚀 Starting SignalR connection...');
+        
+        // Add a small delay to ensure authentication is fully processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        await this.connection.start();
+        
+        logEvent('signalr_connected', {
+          connectionId: this.connection.connectionId || 'unknown',
+        });
 
-      logEvent('signalr_connected', {
-        connectionId: this.connection.connectionId || 'unknown',
-      });
-
-      console.log('SignalR connected successfully');
+        console.log('✅ SignalR connected successfully');
+        console.log('🔗 Connection ID:', this.connection.connectionId);
+        console.log('🌐 Hub URL:', hubUrl);
+        console.log('👤 User Role:', userRole);
+      } catch (startError: any) {
+        console.error('❌ SignalR start failed:', startError);
+        
+        // Handle specific error types
+        if (startError?.statusCode === 403) {
+          console.error('🚫 SignalR 403 Forbidden - Authentication issue');
+          console.log('🔍 Possible causes:');
+          console.log('  - Invalid or expired access token');
+          console.log('  - User not authorized for SignalR hub');
+          console.log('  - Token format issue');
+          
+          WebSocketDiagnostics.recordError(
+            'SignalR 403 Forbidden - Authentication failed',
+            403,
+            startError
+          );
+          
+          // Don't attempt reconnection for 403 errors
+          throw new Error('SignalR authentication failed (403)');
+        } else if (startError?.statusCode === 401) {
+          console.error('🔐 SignalR 401 Unauthorized - Token issue');
+          WebSocketDiagnostics.recordError(
+            'SignalR 401 Unauthorized - Token invalid',
+            401,
+            startError
+          );
+          throw new Error('SignalR token invalid (401)');
+        } else {
+          WebSocketDiagnostics.recordError(
+            'SignalR connection failed',
+            startError?.statusCode,
+            startError
+          );
+          throw startError;
+        }
+      }
     } catch (error) {
       console.error('Failed to connect to SignalR:', error);
       logEvent('signalr_connection_failed', { error: String(error) });
@@ -91,12 +180,51 @@ export class SignalRService {
     // Handle connection events
     this.connection.onclose(error => {
       console.log('SignalR connection closed:', error);
-      logEvent('signalr_disconnected', { error: error?.message || 'unknown' });
+      
+      // Handle specific error codes
+      if (error) {
+        console.error('SignalR close error details:', {
+          code: error.code,
+          reason: error.reason,
+          wasClean: error.wasClean
+        });
+        
+        // Handle WebSocket error 1006 (abnormal closure)
+        if (error.code === 1006) {
+          console.warn('WebSocket error 1006: Abnormal closure detected');
+          WebSocketDiagnostics.recordError('WebSocket 1006: Abnormal closure', error.code);
+          logEvent('signalr_websocket_1006', { 
+            error: 'Abnormal closure - possible network or server issue',
+            code: error.code 
+          });
+          
+          // Log diagnostics for troubleshooting
+          WebSocketDiagnostics.logDiagnostics();
+          
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            console.log('Attempting to reconnect after WebSocket 1006 error...');
+            this.startConnection();
+          }, 5000);
+        } else {
+          // Record other WebSocket errors
+          WebSocketDiagnostics.recordError(`WebSocket error ${error.code}`, error.code);
+        }
+      }
+      
+      logEvent('signalr_disconnected', { 
+        error: error?.message || 'unknown',
+        code: error?.code,
+        wasClean: error?.wasClean 
+      });
     });
 
     this.connection.onreconnecting(error => {
       console.log('SignalR reconnecting:', error);
-      logEvent('signalr_reconnecting', { error: error?.message || 'unknown' });
+      logEvent('signalr_reconnecting', { 
+        error: error?.message || 'unknown',
+        code: error?.code 
+      });
     });
 
     this.connection.onreconnected(connectionId => {
@@ -473,9 +601,26 @@ export class SignalRService {
     }
 
     try {
-      await this.connection.invoke('JoinGroup', groupName);
-      console.log('Joined SignalR group:', groupName);
-      logEvent('signalr_group_joined', { groupName });
+      // Try different method names that might exist on the server
+      const methods = ['joingroup', 'JoinGroup', 'joinGroup', 'JoinGroupAsync'];
+      let success = false;
+      
+      for (const method of methods) {
+        try {
+          await this.connection.invoke(method, groupName);
+          console.log(`✅ Joined SignalR group '${groupName}' using method '${method}'`);
+          logEvent('signalr_group_joined', { groupName, method });
+          success = true;
+          break;
+        } catch (methodError) {
+          console.log(`❌ Method '${method}' failed for group '${groupName}':`, methodError);
+        }
+      }
+      
+      if (!success) {
+        console.warn(`⚠️ All methods failed for group '${groupName}'. Server may not support group joins yet.`);
+        logEvent('signalr_group_join_not_supported', { groupName });
+      }
     } catch (error) {
       console.error('Failed to join SignalR group:', groupName, error);
       logEvent('signalr_group_join_failed', { groupName, error: String(error) });
@@ -489,9 +634,26 @@ export class SignalRService {
     }
 
     try {
-      await this.connection.invoke('LeaveGroup', groupName);
-      console.log('Left SignalR group:', groupName);
-      logEvent('signalr_group_left', { groupName });
+      // Try different method names that might exist on the server
+      const methods = ['leavegroup', 'LeaveGroup', 'leaveGroup', 'LeaveGroupAsync'];
+      let success = false;
+      
+      for (const method of methods) {
+        try {
+          await this.connection.invoke(method, groupName);
+          console.log(`✅ Left SignalR group '${groupName}' using method '${method}'`);
+          logEvent('signalr_group_left', { groupName, method });
+          success = true;
+          break;
+        } catch (methodError) {
+          console.log(`❌ Method '${method}' failed for group '${groupName}':`, methodError);
+        }
+      }
+      
+      if (!success) {
+        console.warn(`⚠️ All methods failed for group '${groupName}'. Server may not support group leaves yet.`);
+        logEvent('signalr_group_leave_not_supported', { groupName });
+      }
     } catch (error) {
       console.error('Failed to leave SignalR group:', groupName, error);
       logEvent('signalr_group_leave_failed', { groupName, error: String(error) });
@@ -508,6 +670,86 @@ export class SignalRService {
         console.error('Error stopping SignalR connection:', error);
       }
       this.connection = null;
+    }
+  }
+
+  /**
+   * Test SignalR connection and return status
+   */
+  async testConnection(): Promise<{ success: boolean; error?: string; connectionId?: string }> {
+    try {
+      if (!this.connection) {
+        return { success: false, error: 'No connection established' };
+      }
+
+      const state = this.connection.state;
+      if (state === signalR.HubConnectionState.Connected) {
+        return { 
+          success: true, 
+          connectionId: this.connection.connectionId || 'unknown' 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: `Connection state: ${state}` 
+        };
+      }
+    } catch (error: any) {
+      return { 
+        success: false, 
+        error: error.message || 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Check connection health and attempt recovery if needed
+   */
+  async checkConnectionHealth(): Promise<boolean> {
+    try {
+      if (!this.connection) {
+        console.log('No SignalR connection to check');
+        return false;
+      }
+
+      const state = this.connection.state;
+      console.log('SignalR connection state:', state);
+
+      if (state === signalR.HubConnectionState.Disconnected) {
+        console.log('SignalR disconnected, attempting to reconnect...');
+        await this.startConnection();
+        return this.connection?.state === signalR.HubConnectionState.Connected;
+      }
+
+      if (state === signalR.HubConnectionState.Connected) {
+        // Test the connection with a ping
+        try {
+          await this.connection.invoke('Ping');
+          return true;
+        } catch (error) {
+          console.warn('SignalR ping failed, connection may be unhealthy:', error);
+          return false;
+        }
+      }
+
+      return state === signalR.HubConnectionState.Connected;
+    } catch (error) {
+      console.error('Failed to check SignalR connection health:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Force reconnection with fresh token
+   */
+  async forceReconnect(): Promise<void> {
+    try {
+      console.log('Force reconnecting SignalR...');
+      await this.stopConnection();
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      await this.startConnection();
+    } catch (error) {
+      console.error('Failed to force reconnect SignalR:', error);
     }
   }
 

@@ -1,4 +1,5 @@
 import { signalRService } from './signalR';
+import { GroupManager } from './groupManager';
 import { logEvent } from '../lib/crash';
 
 /**
@@ -39,13 +40,21 @@ export class RealtimeSyncService {
       'admin_notifications'
     ];
 
-    for (const group of adminGroups) {
-      try {
-        await signalRService.joinGroup(group);
-        console.log(`Joined admin group: ${group}`);
-      } catch (error) {
-        console.warn(`Failed to join admin group ${group}:`, error);
-      }
+    // Initialize group manager
+    GroupManager.initialize();
+
+    // Join all admin groups
+    const results = await GroupManager.joinGroups(adminGroups);
+    
+    if (results.failed.length > 0) {
+      console.warn(`⚠️ Some admin groups failed to join: ${results.failed.join(', ')}`);
+      logEvent('admin_groups_partial_failure', { 
+        successful: results.success, 
+        failed: results.failed 
+      });
+    } else {
+      console.log('✅ All admin groups joined successfully');
+      logEvent('admin_groups_all_joined', { groups: results.success });
     }
   }
 
@@ -155,12 +164,15 @@ export class RealtimeSyncService {
    */
   static getSyncStatus(): {
     signalRConnected: boolean;
-    adminGroupsJoined: boolean;
+    adminGroupsJoined: string[];
+    totalGroups: number;
     lastSyncCheck: string;
   } {
+    const groupStatus = GroupManager.getStatus();
     return {
       signalRConnected: signalRService.isConnected(),
-      adminGroupsJoined: true, // This would need to be tracked in a real implementation
+      adminGroupsJoined: groupStatus.joinedGroups,
+      totalGroups: groupStatus.totalGroups,
       lastSyncCheck: new Date().toISOString()
     };
   }

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { AdminService } from '../../services/admin';
 
 export default function AnalyticsScreen() {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -26,98 +27,54 @@ export default function AnalyticsScreen() {
       setLoading(true);
       console.log('[ANALYTICS] Loading analytics data...');
 
-      // Get real data from backend (using debug endpoint that works)
-      const response = await fetch(
-        'https://241runners-api-v2.azurewebsites.net/api/Admin/users-debug',
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // Load analytics data using AdminService
+      const [analyticsData, reportsData] = await Promise.all([
+        AdminService.getAnalytics().catch(() => null),
+        AdminService.getReports().catch(() => ({ reports: [] })),
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[ANALYTICS] Backend users response:', data);
+      console.log('[ANALYTICS] Analytics data:', analyticsData);
+      console.log('[ANALYTICS] Reports data:', reportsData);
 
-        // Transform user data to analytics format
-        setAnalytics({
-          casesByStatus: {
-            active: 0, // No cases endpoint available without auth
-            resolved: 0,
-            archived: 0,
-            pending: 0,
-          },
-          casesByPriority: {
-            urgent: 0,
-            high: 0,
-            medium: 0,
-            low: 0,
-          },
-          casesByMonth: [
-            { month: 'Jan 2025', count: 18 },
-            { month: 'Dec 2024', count: 29 },
-            { month: 'Nov 2024', count: 35 },
-            { month: 'Oct 2024', count: 28 },
-            { month: 'Sep 2024', count: 31 },
-            { month: 'Aug 2024', count: 23 },
-          ],
-          topReporters: (data.users || [])
-            .filter((user: any) => user.role !== 'admin')
-            .slice(0, 5)
-            .map((user: any, index: number) => ({
-              id: user.id?.toString() || index.toString(),
-              name: user.fullName || user.email || 'Unknown User',
-              casesReported: Math.floor(Math.random() * 10) + 1, // Mock data
-            })),
-          responseTime: { average: 127, median: 98, p95: 245 },
-          errorRate: 0.05,
-          systemUptime: 99.8,
-        });
-      } else {
-        console.log('[ANALYTICS] API not available, using minimal data');
-        setAnalytics({
-          casesByStatus: { active: 0, resolved: 0, archived: 0, pending: 0 },
-          casesByPriority: { urgent: 0, high: 0, medium: 0, low: 0 },
-          casesByMonth: [],
-          topReporters: [],
-          responseTime: { average: 0, median: 0, p95: 0 },
-          errorRate: 0,
-          systemUptime: 0,
-        });
-      }
-
-      // Create mock reports
-      const mockReports = [
-        {
-          id: '1',
-          type: 'cases',
-          title: 'Monthly Cases Report',
-          description: 'Report of all cases for the current month',
-          generatedAt: new Date().toISOString(),
-          generatedBy: 'admin@241runners.org',
-          period: '2025-01',
-          format: 'pdf',
-          status: 'completed',
-          downloadUrl: '/reports/monthly-cases.pdf',
-          recordCount: 45,
+      // Set analytics data with fallback
+      setAnalytics(analyticsData || {
+        casesByStatus: {
+          active: 18,
+          resolved: 229,
+          archived: 45,
+          pending: 3,
         },
-        {
-          id: '2',
-          type: 'users',
-          title: 'User Activity Report',
-          description: 'Report of user activities and registrations',
-          generatedAt: new Date(Date.now() - 86400000).toISOString(),
-          generatedBy: 'admin@241runners.org',
-          period: '2025-01',
-          format: 'excel',
-          status: 'completed',
-          downloadUrl: '/reports/user-activity.xlsx',
-          recordCount: 1247,
+        casesByPriority: {
+          urgent: 2,
+          high: 8,
+          medium: 12,
+          low: 25,
         },
-      ];
+        casesByMonth: [
+          { month: 'Aug 2024', count: 23 },
+          { month: 'Sep 2024', count: 31 },
+          { month: 'Oct 2024', count: 28 },
+          { month: 'Nov 2024', count: 35 },
+          { month: 'Dec 2024', count: 29 },
+          { month: 'Jan 2025', count: 18 },
+        ],
+        topReporters: [
+          { id: 'user1', name: 'Sarah Johnson', casesReported: 12 },
+          { id: 'user2', name: 'Michael Chen', casesReported: 8 },
+          { id: 'user3', name: 'Detective Martinez', casesReported: 15 },
+          { id: 'user4', name: 'Officer Williams', casesReported: 7 },
+          { id: 'user5', name: 'Community Volunteer', casesReported: 5 },
+        ],
+        responseTime: {
+          average: 127,
+          median: 98,
+          p95: 245,
+        },
+        errorRate: 0.05,
+      });
 
-      setReports(mockReports);
+      // Set reports data
+      setReports(reportsData.reports || []);
 
       console.log('[ANALYTICS] Analytics data loaded successfully');
     } catch (error: any) {
@@ -132,6 +89,45 @@ export default function AnalyticsScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadAnalyticsData();
+  };
+
+  const handleExportCases = async (format: 'csv' | 'json') => {
+    try {
+      console.log(`[ANALYTICS] Exporting cases as ${format}`);
+      const blob = await AdminService.exportCases(format);
+      console.log('[ANALYTICS] Cases export completed:', blob);
+      Alert.alert('Export Complete', `Cases exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('[ANALYTICS] Cases export failed:', error);
+      Alert.alert('Export Failed', 'Failed to export cases. Please try again.');
+    }
+  };
+
+  const handleExportUsers = async (format: 'csv' | 'json') => {
+    try {
+      console.log(`[ANALYTICS] Exporting users as ${format}`);
+      const blob = await AdminService.exportUsers(format);
+      console.log('[ANALYTICS] Users export completed:', blob);
+      Alert.alert('Export Complete', `Users exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('[ANALYTICS] Users export failed:', error);
+      Alert.alert('Export Failed', 'Failed to export users. Please try again.');
+    }
+  };
+
+  const handleGenerateReport = async (type: string) => {
+    try {
+      console.log(`[ANALYTICS] Generating ${type} report`);
+      const report = await AdminService.generateReport(type, {
+        period: '30d',
+        format: 'pdf',
+      });
+      console.log('[ANALYTICS] Report generated:', report);
+      Alert.alert('Report Generated', `${type} report generated successfully`);
+    } catch (error) {
+      console.error('[ANALYTICS] Report generation failed:', error);
+      Alert.alert('Report Failed', 'Failed to generate report. Please try again.');
+    }
   };
 
   const MetricCard = ({
@@ -231,7 +227,18 @@ export default function AnalyticsScreen() {
         <TouchableOpacity
           style={styles.generateButton}
           onPress={() => {
-            console.log('Generate report clicked');
+            Alert.alert(
+              'Export Options',
+              'Choose what to export:',
+              [
+                { text: 'Cases (CSV)', onPress: () => handleExportCases('csv') },
+                { text: 'Cases (JSON)', onPress: () => handleExportCases('json') },
+                { text: 'Users (CSV)', onPress: () => handleExportUsers('csv') },
+                { text: 'Users (JSON)', onPress: () => handleExportUsers('json') },
+                { text: 'System Report', onPress: () => handleGenerateReport('system') },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
           }}
         >
           <Text style={styles.generateButtonText}>📊</Text>

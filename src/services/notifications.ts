@@ -69,7 +69,7 @@ export class NotificationService {
       if (!token) return;
 
       // Send token to your API
-      await ApiClient.post('/api/Devices/register', {
+      await ApiClient.post('/api/v1/Devices/register', {
         platform: Platform.OS,
         fcmToken: token,
         appVersion: '1.0.0',
@@ -84,7 +84,7 @@ export class NotificationService {
   static async unregisterDevice(): Promise<void> {
     try {
       // TODO: Implement device unregistration endpoint in backend
-      // await ApiClient.delete('/api/Devices/unregister');
+      // await ApiClient.delete('/api/v1/Devices/unregister');
       console.log('Device unregistration not yet implemented');
     } catch (error) {
       console.error('Error unregistering device:', error);

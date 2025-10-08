@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { RealtimeSyncService } from '../../services/realtimeSync';
+import { AdminService } from '../../services/admin';
 
 interface SystemMetrics {
   systemHealth: 'healthy' | 'warning' | 'critical';
@@ -138,6 +139,23 @@ export default function SystemMonitoringScreen() {
     await loadMonitoringData();
   };
 
+  const handleGenerateSystemReport = async () => {
+    try {
+      console.log('[MONITORING] Generating system report');
+      const report = await AdminService.generateReport('system', {
+        period: '7d',
+        format: 'pdf',
+        includeMetrics: true,
+        includeActivities: true,
+      });
+      console.log('[MONITORING] System report generated:', report);
+      Alert.alert('Report Generated', 'System report generated successfully');
+    } catch (error) {
+      console.error('[MONITORING] System report generation failed:', error);
+      Alert.alert('Report Failed', 'Failed to generate system report. Please try again.');
+    }
+  };
+
   const MetricCard = ({
     title,
     value,
@@ -223,9 +241,14 @@ export default function SystemMonitoringScreen() {
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>System Monitoring</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={loadMonitoringData}>
-          <Text style={styles.refreshButtonText}>🔄</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.reportButton} onPress={handleGenerateSystemReport}>
+            <Text style={styles.reportButtonText}>📊</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.refreshButton} onPress={loadMonitoringData}>
+            <Text style={styles.refreshButtonText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* System Health Status */}
@@ -418,6 +441,17 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.gray[900],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  reportButton: {
+    padding: spacing.sm,
+  },
+  reportButtonText: {
+    fontSize: typography.sizes.lg,
   },
   refreshButton: {
     padding: spacing.sm,

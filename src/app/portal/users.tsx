@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService, AdminUser } from '../../services/admin';
+import { router } from 'expo-router';
 
 export default function PortalUsersScreen() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -80,6 +81,18 @@ export default function PortalUsersScreen() {
     setRefreshing(true);
     await loadUsers();
     setRefreshing(false);
+  };
+
+  const handleExportUsers = async (format: 'csv' | 'json') => {
+    try {
+      console.log(`[USERS] Exporting users as ${format}`);
+      const blob = await AdminService.exportUsers(format);
+      console.log('[USERS] Users export completed:', blob);
+      Alert.alert('Export Complete', `Users exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('[USERS] Users export failed:', error);
+      Alert.alert('Export Failed', 'Failed to export users. Please try again.');
+    }
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -307,11 +320,11 @@ export default function PortalUsersScreen() {
   const exportUsers = () => {
     // Simple CSV export functionality
     const csvData = users.map(user => ({
-      name: `${user.firstName} ${user.lastName}`,
-      email: user.email,
-      role: user.role,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      email: user.email || '',
+      role: user.role || '',
       status: user.isActive ? 'Active' : 'Inactive',
-      created: new Date(user.createdAt).toLocaleDateString(),
+      created: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown',
       lastLogin: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'
     }));
 
@@ -374,6 +387,30 @@ export default function PortalUsersScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>User Management</Text>
+        <TouchableOpacity
+          style={styles.exportButton}
+          onPress={() => {
+            Alert.alert(
+              'Export Users',
+              'Choose export format:',
+              [
+                { text: 'CSV', onPress: () => handleExportUsers('csv') },
+                { text: 'JSON', onPress: () => handleExportUsers('json') },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.exportButtonText}>📊</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Header Actions */}
       <View style={styles.headerActions}>
         <View style={styles.headerActionsRow}>
@@ -545,13 +582,13 @@ export default function PortalUsersScreen() {
             <View style={styles.userHeader}>
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>
-                  {user.firstName} {user.lastName}
+                  {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User'}
                 </Text>
                 <Text style={styles.userEmail}>{user.email}</Text>
               </View>
               <View style={styles.userBadges}>
-                <View style={[styles.badge, { backgroundColor: getRoleColor(user.role) }]}>
-                  <Text style={styles.badgeText}>{user.role.toUpperCase()}</Text>
+                <View style={[styles.badge, { backgroundColor: getRoleColor(user.role || 'user') }]}>
+                  <Text style={styles.badgeText}>{(user.role || 'user').toUpperCase()}</Text>
                 </View>
                 <View
                   style={[
@@ -566,7 +603,7 @@ export default function PortalUsersScreen() {
 
             <View style={styles.userMeta}>
               <Text style={styles.userMetaText}>
-                Created: {new Date(user.createdAt).toLocaleDateString()}
+                Created: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
               </Text>
               {user.lastLoginAt && (
                 <Text style={styles.userMetaText}>
@@ -792,6 +829,34 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.sizes.lg,
     color: colors.gray[600],
+  },
+  header: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  backButtonText: {
+    fontSize: typography.sizes.md,
+    color: colors.primary[600],
+    fontWeight: typography.weights.medium,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.gray[900],
+  },
+  exportButton: {
+    padding: spacing.sm,
+  },
+  exportButtonText: {
+    fontSize: typography.sizes.lg,
   },
   filtersContainer: {
     backgroundColor: colors.white,

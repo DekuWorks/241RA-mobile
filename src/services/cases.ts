@@ -83,31 +83,31 @@ export class CasesService {
       params.append('radius', filters.location.radius.toString());
     }
 
-    const data = await ApiClient.get(`/api/cases?${params.toString()}`);
+    const data = await ApiClient.get(`/api/v1/cases?${params.toString()}`);
     return data;
   }
 
   static async getCase(id: string): Promise<Case> {
-    const data = await ApiClient.get(`/api/cases/${id}`);
+    const data = await ApiClient.get(`/api/v1/cases/${id}`);
     return data;
   }
 
   static async createCase(caseData: Partial<Case>): Promise<Case> {
-    const data = await ApiClient.post('/api/cases', caseData);
+    const data = await ApiClient.post('/api/v1/cases', caseData);
     return data;
   }
 
   static async updateCase(id: string, updates: Partial<Case>): Promise<Case> {
-    const data = await ApiClient.put(`/api/cases/${id}`, updates);
+    const data = await ApiClient.put(`/api/v1/cases/${id}`, updates);
     return data;
   }
 
   static async deleteCase(id: string): Promise<void> {
-    await ApiClient.delete(`/api/cases/${id}`);
+    await ApiClient.delete(`/api/v1/cases/${id}`);
   }
 
   static async reportSighting(sightingData: CreateSightingData): Promise<void> {
-    await ApiClient.post('/api/sightings', sightingData);
+    await ApiClient.post('/api/v1/sightings', sightingData);
   }
 
   static async getNearbyCases(
@@ -115,14 +115,14 @@ export class CasesService {
     longitude: number,
     radius: number = 10
   ): Promise<Case[]> {
-    const data = await ApiClient.get(`/api/cases/nearby`, {
+    const data = await ApiClient.get(`/api/v1/cases/nearby`, {
       params: { latitude, longitude, radius },
     });
     return data;
   }
 
   static async getCaseSightings(caseId: string): Promise<any[]> {
-    const data = await ApiClient.get(`/api/cases/${caseId}/sightings`);
+    const data = await ApiClient.get(`/api/v1/cases/${caseId}/sightings`);
     return data;
   }
 
@@ -134,7 +134,7 @@ export class CasesService {
       name: 'image.jpg',
     } as any);
 
-    const data = await ApiClient.post('/api/ImageUpload/upload', formData, {
+    const data = await ApiClient.post('/api/v1/ImageUpload/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

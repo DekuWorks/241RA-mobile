@@ -30,38 +30,85 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
+      console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
+      
       const credentials: LoginCredentials = {
-        email,
+        email: email.toLowerCase().trim(), // Normalize email like static site
         password,
         ...(requiresTwoFactor && twoFactorCode && { twoFactorCode }),
       };
 
+      console.log('[LOGIN] Sending credentials to AuthService...');
       const response = await AuthService.login(credentials);
+      console.log('[LOGIN] AuthService response:', response);
 
       if (response.requiresTwoFactor && !requiresTwoFactor) {
         setRequiresTwoFactor(true);
       } else {
         // Login successful, check user role and redirect accordingly
+        console.log('[LOGIN] User role from response:', response.user?.role);
+        console.log('[LOGIN] Full user object:', response.user);
+        
         if (response.user) {
+          const userRole = response.user.role?.toLowerCase();
+          console.log('[LOGIN] Normalized user role:', userRole);
+          
           if (
-            response.user.role === 'admin' || 
-            response.user.role === 'moderator' || 
-            response.user.role === 'super_admin'
+            userRole === 'admin' || 
+            userRole === 'moderator' || 
+            userRole === 'super_admin'
           ) {
+            console.log('[LOGIN] Redirecting to admin portal');
             router.replace('/portal');
           } else {
+            console.log('[LOGIN] Redirecting to user profile');
             router.replace('/profile');
           }
         } else {
+          console.log('[LOGIN] No user data, redirecting to profile');
           // Fallback to profile if no user data
           router.replace('/profile');
         }
       }
     } catch (error: any) {
-      Alert.alert('Login Failed', error.response?.data?.message || 'Invalid email or password');
+      console.error('[LOGIN] Login error:', error);
+      console.error('[LOGIN] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      
+      let errorMessage = 'Invalid email or password';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Account is disabled or requires verification';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Invalid credentials or account not found';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message?.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTestLogin = async () => {
+    setEmail('test@example.com');
+    setPassword('TestPassword123!');
+    console.log('[LOGIN] Test credentials set');
   };
 
   const handleAppleLogin = async () => {

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService, AdminCase } from '../../services/admin';
+import { router } from 'expo-router';
 
 export default function PortalCasesScreen() {
   const [cases, setCases] = useState<AdminCase[]>([]);
@@ -48,6 +49,18 @@ export default function PortalCasesScreen() {
     setRefreshing(true);
     await loadCases();
     setRefreshing(false);
+  };
+
+  const handleExportCases = async (format: 'csv' | 'json') => {
+    try {
+      console.log(`[CASES] Exporting cases as ${format}`);
+      const blob = await AdminService.exportCases(format);
+      console.log('[CASES] Cases export completed:', blob);
+      Alert.alert('Export Complete', `Cases exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('[CASES] Cases export failed:', error);
+      Alert.alert('Export Failed', 'Failed to export cases. Please try again.');
+    }
   };
 
   const handleStatusChange = async (caseId: string, newStatus: string) => {
@@ -134,6 +147,30 @@ export default function PortalCasesScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Cases Management</Text>
+        <TouchableOpacity
+          style={styles.exportButton}
+          onPress={() => {
+            Alert.alert(
+              'Export Cases',
+              'Choose export format:',
+              [
+                { text: 'CSV', onPress: () => handleExportCases('csv') },
+                { text: 'JSON', onPress: () => handleExportCases('json') },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.exportButtonText}>📊</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Search and Filters */}
       <View style={styles.filtersContainer}>
         <TextInput
@@ -292,6 +329,34 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.sizes.lg,
     color: colors.gray[600],
+  },
+  header: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  backButtonText: {
+    fontSize: typography.sizes.md,
+    color: colors.primary[600],
+    fontWeight: typography.weights.medium,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.gray[900],
+  },
+  exportButton: {
+    padding: spacing.sm,
+  },
+  exportButtonText: {
+    fontSize: typography.sizes.lg,
   },
   filtersContainer: {
     backgroundColor: colors.white,

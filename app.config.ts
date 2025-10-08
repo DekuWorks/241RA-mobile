@@ -18,7 +18,6 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'org.runners241.app',
     supportsTablet: true,
-    // googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || undefined,
     infoPlist: {
       NSCameraUsageDescription: '241 Runners uses your camera to capture photos for sighting reports and case updates. Photos are securely stored and only used for the intended reporting purpose.',
       NSLocationWhenInUseUsageDescription:
@@ -28,17 +27,12 @@ const config: ExpoConfig = {
       NSPrivacyPolicyURL: 'https://241runnersawareness.org/privacy-policy',
       NSPrivacyPolicyUsageDescription: 'View our comprehensive privacy policy to understand how we collect, use, store, and protect your personal information and data.',
       UIBackgroundModes: ['remote-notification'],
-      FirebaseAppDelegateProxyEnabled: true,
       NSUserTrackingUsageDescription: 'This app does not track users across other apps or websites.',
     },
     associatedDomains: ['applinks:241runnersawareness.org'],
-    config: {
-      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    },
   },
   android: {
     package: 'org.runners241.app',
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './android/app/google-services.json',
     adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#000000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
   },

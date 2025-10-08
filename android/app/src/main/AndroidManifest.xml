@@ -28,7 +28,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="241runners"/>
+        <data android:scheme="org.runners241.app"/>
         <data android:scheme="exp+241runners"/>
       </intent-filter>
     </activity>

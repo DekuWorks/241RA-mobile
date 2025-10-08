@@ -1,431 +1,682 @@
-# Backend Implementation Guide (.NET on Azure)
+# 241 Runners Backend Implementation Guide
 
 ## Overview
-This guide outlines the backend implementation required to support the 241RA mobile app's push notifications and real-time updates system.
+This guide provides the complete implementation details for the runner profile system backend API endpoints that need to be added to the main 241RunnersAwareness repository.
 
-## 1. Database Schema
+## Current Status
+- **Backend API**: https://241runners-api-v2.azurewebsites.net
+- **Mobile App**: Ready for integration
+- **Required**: Backend API endpoints implementation
 
-### Device Registry Table
+## Database Schema Implementation
+
+### 1. RunnerProfiles Table
 ```sql
-CREATE TABLE Devices (
+CREATE TABLE RunnerProfiles (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     UserId UNIQUEIDENTIFIER NOT NULL,
-    Platform NVARCHAR(10) NOT NULL, -- 'ios' or 'android'
-    FcmToken NVARCHAR(500) NOT NULL,
-    AppVersion NVARCHAR(20),
-    LastSeenAt DATETIME2 DEFAULT GETUTCDATE(),
-    TopicsJson NVARCHAR(MAX), -- JSON array of subscribed topics
+    FirstName NVARCHAR(50) NOT NULL,
+    LastName NVARCHAR(50) NOT NULL,
+    DateOfBirth DATE NOT NULL,
+    Height NVARCHAR(20) NOT NULL,
+    Weight NVARCHAR(20) NOT NULL,
+    EyeColor NVARCHAR(20) NOT NULL,
+    MedicalConditions NVARCHAR(MAX), -- JSON array
+    AdditionalNotes NVARCHAR(1000),
+    LastPhotoUpdate DATETIME2,
+    ReminderCount INT DEFAULT 0,
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
     IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    
     FOREIGN KEY (UserId) REFERENCES Users(Id),
-    INDEX IX_Devices_UserId (UserId),
-    INDEX IX_Devices_Platform (Platform),
-    INDEX IX_Devices_IsActive (IsActive)
+    INDEX IX_RunnerProfiles_UserId (UserId),
+    INDEX IX_RunnerProfiles_IsActive (IsActive)
 );
 ```
 
-### Topic Subscriptions Table (Optional - can use JSON in Devices table)
+### 2. RunnerPhotos Table
 ```sql
-CREATE TABLE TopicSubscriptions (
+CREATE TABLE RunnerPhotos (
     Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL,
-    Topic NVARCHAR(100) NOT NULL, -- 'org_all', 'role_admin', 'case_{id}'
-    IsSubscribed BIT DEFAULT 1,
-    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
-    
-    FOREIGN KEY (UserId) REFERENCES Users(Id),
-    UNIQUE INDEX IX_TopicSubscriptions_UserId_Topic (UserId, Topic)
+    RunnerProfileId UNIQUEIDENTIFIER NOT NULL,
+    FileName NVARCHAR(255) NOT NULL,
+    FileUrl NVARCHAR(500) NOT NULL,
+    FileSize BIGINT NOT NULL,
+    MimeType NVARCHAR(100) NOT NULL,
+    UploadedAt DATETIME2 DEFAULT GETUTCDATE(),
+    IsPrimary BIT DEFAULT 0,
+    FOREIGN KEY (RunnerProfileId) REFERENCES RunnerProfiles(Id) ON DELETE CASCADE,
+    INDEX IX_RunnerPhotos_RunnerProfileId (RunnerProfileId),
+    INDEX IX_RunnerPhotos_IsPrimary (IsPrimary)
 );
 ```
 
-## 2. API Endpoints
+### 3. PhotoUpdateReminders Table
+```sql
+CREATE TABLE PhotoUpdateReminders (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    RunnerProfileId UNIQUEIDENTIFIER NOT NULL,
+    ReminderDate DATETIME2 NOT NULL,
+    ReminderType NVARCHAR(20) NOT NULL, -- 'email', 'push', 'both'
+    SentAt DATETIME2,
+    Status NVARCHAR(20) DEFAULT 'pending', -- 'pending', 'sent', 'failed'
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    FOREIGN KEY (RunnerProfileId) REFERENCES RunnerProfiles(Id) ON DELETE CASCADE,
+    INDEX IX_PhotoUpdateReminders_RunnerProfileId (RunnerProfileId),
+    INDEX IX_PhotoUpdateReminders_Status (Status),
+    INDEX IX_PhotoUpdateReminders_ReminderDate (ReminderDate)
+);
+```
 
-### Device Registration
+## API Controllers Implementation
+
+### 1. RunnerProfileController.cs
 ```csharp
 [ApiController]
-[Route("api/[controller]")]
-public class DevicesController : ControllerBase
-{
-    [HttpPost("register")]
-    public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceRequest request)
-    {
-        var userId = GetCurrentUserId(); // From JWT token
-        
-        var device = new Device
-        {
-            UserId = userId,
-            Platform = request.Platform,
-            FcmToken = request.FcmToken,
-            AppVersion = request.AppVersion,
-            LastSeenAt = DateTime.UtcNow,
-            IsActive = true
-        };
-        
-        // Upsert by UserId + Platform
-        await _deviceService.UpsertDeviceAsync(device);
-        
-        return Ok(new { success = true });
-    }
-    
-    [HttpDelete("unregister")]
-    public async Task<IActionResult> UnregisterDevice()
-    {
-        var userId = GetCurrentUserId();
-        await _deviceService.DeactivateUserDevicesAsync(userId);
-        return Ok(new { success = true });
-    }
-}
-
-public class RegisterDeviceRequest
-{
-    public string Platform { get; set; } // "ios" or "android"
-    public string FcmToken { get; set; }
-    public string AppVersion { get; set; }
-}
-```
-
-### Topic Subscriptions
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-public class TopicsController : ControllerBase
-{
-    [HttpPost("subscribe")]
-    public async Task<IActionResult> SubscribeToTopic([FromBody] TopicSubscriptionRequest request)
-    {
-        var userId = GetCurrentUserId();
-        await _topicService.SubscribeToTopicAsync(userId, request.Topic);
-        return Ok(new { success = true });
-    }
-    
-    [HttpPost("unsubscribe")]
-    public async Task<IActionResult> UnsubscribeFromTopic([FromBody] TopicSubscriptionRequest request)
-    {
-        var userId = GetCurrentUserId();
-        await _topicService.UnsubscribeFromTopicAsync(userId, request.Topic);
-        return Ok(new { success = true });
-    }
-    
-    [HttpGet("subscriptions")]
-    public async Task<IActionResult> GetUserSubscriptions()
-    {
-        var userId = GetCurrentUserId();
-        var subscriptions = await _topicService.GetUserSubscriptionsAsync(userId);
-        return Ok(subscriptions);
-    }
-}
-
-public class TopicSubscriptionRequest
-{
-    public string Topic { get; set; }
-}
-```
-
-## 3. Firebase Admin SDK Integration
-
-### Configuration
-```csharp
-// Program.cs or Startup.cs
-services.AddSingleton<FirebaseMessaging>(provider =>
-{
-    var firebaseConfig = provider.GetRequiredService<IConfiguration>();
-    var serviceAccountJson = firebaseConfig["Firebase:ServiceAccountJson"];
-    
-    var app = FirebaseApp.Create(new AppOptions
-    {
-        Credential = GoogleCredential.FromJson(serviceAccountJson)
-    });
-    
-    return FirebaseMessaging.GetMessaging(app);
-});
-```
-
-### Notification Service
-```csharp
-public interface INotificationService
-{
-    Task NotifyTopicAsync(string topic, NotificationData data);
-    Task NotifyTokensAsync(string[] tokens, NotificationData data);
-    Task NotifyUserAsync(Guid userId, NotificationData data);
-}
-
-public class NotificationService : INotificationService
-{
-    private readonly FirebaseMessaging _firebaseMessaging;
-    private readonly IDeviceService _deviceService;
-    
-    public async Task NotifyTopicAsync(string topic, NotificationData data)
-    {
-        var message = new Message
-        {
-            Topic = topic,
-            Notification = new Notification
-            {
-                Title = data.Title,
-                Body = data.Body
-            },
-            Data = data.Data?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            Android = new AndroidConfig
-            {
-                Priority = Priority.High,
-                Notification = new AndroidNotification
-                {
-                    Icon = "ic_notification",
-                    Color = "#000000"
-                }
-            },
-            Apns = new ApnsConfig
-            {
-                Aps = new Aps
-                {
-                    Alert = new ApsAlert
-                    {
-                        Title = data.Title,
-                        Body = data.Body
-                    },
-                    Badge = 1,
-                    Sound = "default"
-                }
-            }
-        };
-        
-        var response = await _firebaseMessaging.SendAsync(message);
-        // Log response for audit
-    }
-    
-    public async Task NotifyUserAsync(Guid userId, NotificationData data)
-    {
-        var devices = await _deviceService.GetActiveUserDevicesAsync(userId);
-        var tokens = devices.Select(d => d.FcmToken).ToArray();
-        
-        if (tokens.Any())
-        {
-            await NotifyTokensAsync(tokens, data);
-        }
-    }
-}
-
-public class NotificationData
-{
-    public string Title { get; set; }
-    public string Body { get; set; }
-    public Dictionary<string, string> Data { get; set; }
-}
-```
-
-## 4. SignalR Hub Implementation
-
-### AlertsHub
-```csharp
+[Route("api/v1/runner-profile")]
 [Authorize]
-public class AlertsHub : Hub
+public class RunnerProfileController : ControllerBase
 {
-    private readonly IUserService _userService;
-    private readonly ITopicService _topicService;
-    
-    public override async Task OnConnectedAsync()
+    private readonly IRunnerProfileService _runnerProfileService;
+    private readonly IPhotoService _photoService;
+    private readonly ILogger<RunnerProfileController> _logger;
+
+    public RunnerProfileController(
+        IRunnerProfileService runnerProfileService,
+        IPhotoService photoService,
+        ILogger<RunnerProfileController> logger)
     {
-        var userId = GetUserId();
-        var user = await _userService.GetUserAsync(userId);
-        
-        // Join user-specific group
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
-        
-        // Join role-based groups
-        if (user.Role == "admin")
+        _runnerProfileService = runnerProfileService;
+        _photoService = photoService;
+        _logger = logger;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<RunnerProfileDto>> GetRunnerProfile()
+    {
+        try
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, "role:admin");
+            var userId = GetCurrentUserId();
+            var profile = await _runnerProfileService.GetByUserIdAsync(userId);
+            
+            if (profile == null)
+                return NotFound(new { message = "Runner profile not found" });
+
+            return Ok(profile);
         }
-        
-        // Join topic-based groups
-        var topics = await _topicService.GetUserSubscriptionsAsync(userId);
-        foreach (var topic in topics.Where(t => t.IsSubscribed))
+        catch (Exception ex)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"topic:{topic.Topic}");
+            _logger.LogError(ex, "Error getting runner profile");
+            return StatusCode(500, new { message = "Internal server error" });
         }
-        
-        await base.OnConnectedAsync();
     }
-    
-    public override async Task OnDisconnectedAsync(Exception exception)
-    {
-        await base.OnDisconnectedAsync(exception);
-    }
-    
-    // Hub methods for client to call
-    public async Task JoinGroup(string groupName)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-    }
-    
-    public async Task LeaveGroup(string groupName)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-    }
-    
-    private Guid GetUserId()
-    {
-        var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return Guid.Parse(userIdClaim);
-    }
-}
-```
 
-### SignalR Service for Broadcasting
-```csharp
-public interface ISignalRService
-{
-    Task BroadcastCaseUpdatedAsync(Guid caseId, object caseData);
-    Task BroadcastNewCaseAsync(Guid caseId, object caseData);
-    Task BroadcastAdminNoticeAsync(string message, object data);
-}
-
-public class SignalRService : ISignalRService
-{
-    private readonly IHubContext<AlertsHub> _hubContext;
-    private readonly INotificationService _notificationService;
-    
-    public async Task BroadcastCaseUpdatedAsync(Guid caseId, object caseData)
+    [HttpGet("exists")]
+    public async Task<ActionResult<object>> CheckRunnerProfileExists()
     {
-        // Send via SignalR to connected clients
-        await _hubContext.Clients.Group($"topic:case_{caseId}")
-            .SendAsync("caseUpdated", new { id = caseId, data = caseData });
-        
-        // Send push notification to topic subscribers
-        await _notificationService.NotifyTopicAsync($"case_{caseId}", new NotificationData
+        try
         {
-            Title = "Case Updated",
-            Body = "A case you're following has been updated",
-            Data = new Dictionary<string, string>
-            {
-                ["type"] = "case_updated",
-                ["caseId"] = caseId.ToString()
-            }
-        });
-    }
-    
-    public async Task BroadcastNewCaseAsync(Guid caseId, object caseData)
-    {
-        // Send via SignalR to all connected clients
-        await _hubContext.Clients.All.SendAsync("newCase", new { id = caseId, data = caseData });
-        
-        // Send push notification to all users
-        await _notificationService.NotifyTopicAsync("org_all", new NotificationData
+            var userId = GetCurrentUserId();
+            var exists = await _runnerProfileService.ExistsByUserIdAsync(userId);
+            return Ok(new { exists });
+        }
+        catch (Exception ex)
         {
-            Title = "New Case Reported",
-            Body = "A new case has been reported in your area",
-            Data = new Dictionary<string, string>
-            {
-                ["type"] = "new_case",
-                ["caseId"] = caseId.ToString()
-            }
-        });
+            _logger.LogError(ex, "Error checking runner profile existence");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
     }
-    
-    public async Task BroadcastAdminNoticeAsync(string message, object data)
+
+    [HttpPost]
+    public async Task<ActionResult<RunnerProfileDto>> CreateRunnerProfile([FromBody] CreateRunnerProfileDto dto)
     {
-        // Send via SignalR to admin users
-        await _hubContext.Clients.Group("role:admin")
-            .SendAsync("adminNotice", new { message, data });
-        
-        // Send push notification to admin users
-        await _notificationService.NotifyTopicAsync("role_admin", new NotificationData
+        try
         {
-            Title = "Admin Notice",
-            Body = message,
-            Data = new Dictionary<string, string>
-            {
-                ["type"] = "admin_notice"
-            }
-        });
+            var userId = GetCurrentUserId();
+            var profile = await _runnerProfileService.CreateAsync(userId, dto);
+            return CreatedAtAction(nameof(GetRunnerProfile), profile);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating runner profile");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPut]
+    public async Task<ActionResult<RunnerProfileDto>> UpdateRunnerProfile([FromBody] UpdateRunnerProfileDto dto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var profile = await _runnerProfileService.UpdateAsync(userId, dto);
+            return Ok(profile);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating runner profile");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpDelete]
+    public async Task<ActionResult> DeleteRunnerProfile()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            await _runnerProfileService.DeleteAsync(userId);
+            return Ok(new { message = "Runner profile deleted successfully" });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting runner profile");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    private string GetCurrentUserId()
+    {
+        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? throw new UnauthorizedAccessException("User ID not found");
     }
 }
 ```
 
-## 5. Azure Configuration
-
-### App Settings
-```json
-{
-  "Firebase": {
-    "ServiceAccountJson": "{\"type\":\"service_account\",\"project_id\":\"...\"}"
-  },
-  "SignalR": {
-    "ConnectionString": "Endpoint=https://your-signalr.service.signalr.net;AccessKey=...;Version=1.0;"
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=tcp:your-server.database.windows.net,1433;Initial Catalog=241Runners;..."
-  }
-}
-```
-
-### Azure Key Vault (Recommended)
-Store sensitive configuration in Azure Key Vault:
-- Firebase service account JSON
-- Database connection strings
-- SignalR connection strings
-
-## 6. Integration Points
-
-### Case Updates
+### 2. PhotoController.cs
 ```csharp
-// In your case service
-public async Task UpdateCaseAsync(Guid caseId, UpdateCaseRequest request)
+[ApiController]
+[Route("api/v1/runner-profile/photos")]
+[Authorize]
+public class PhotoController : ControllerBase
 {
-    // Update case in database
-    var updatedCase = await _caseRepository.UpdateAsync(caseId, request);
-    
-    // Broadcast update via SignalR and push notification
-    await _signalRService.BroadcastCaseUpdatedAsync(caseId, updatedCase);
-    
-    return updatedCase;
+    private readonly IPhotoService _photoService;
+    private readonly ILogger<PhotoController> _logger;
+
+    public PhotoController(IPhotoService photoService, ILogger<PhotoController> logger)
+    {
+        _photoService = photoService;
+        _logger = logger;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<RunnerPhotoDto>> UploadPhoto(IFormFile photo)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var result = await _photoService.UploadPhotoAsync(userId, photo);
+            return Ok(result);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading photo");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<RunnerPhotoDto>>> GetPhotos()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var photos = await _photoService.GetPhotosByUserIdAsync(userId);
+            return Ok(photos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting photos");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpDelete("{photoId}")]
+    public async Task<ActionResult> DeletePhoto(Guid photoId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            await _photoService.DeletePhotoAsync(userId, photoId);
+            return Ok(new { message = "Photo deleted successfully" });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting photo");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPut("{photoId}/primary")]
+    public async Task<ActionResult> SetPrimaryPhoto(Guid photoId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            await _photoService.SetPrimaryPhotoAsync(userId, photoId);
+            return Ok(new { message = "Primary photo updated successfully" });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting primary photo");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    private string GetCurrentUserId()
+    {
+        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? throw new UnauthorizedAccessException("User ID not found");
+    }
 }
 ```
 
-### New Case Creation
+## DTOs (Data Transfer Objects)
+
+### 1. RunnerProfileDto.cs
 ```csharp
-public async Task<Case> CreateCaseAsync(CreateCaseRequest request)
+public class RunnerProfileDto
 {
-    var newCase = await _caseRepository.CreateAsync(request);
-    
-    // Broadcast new case
-    await _signalRService.BroadcastNewCaseAsync(newCase.Id, newCase);
-    
-    return newCase;
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public DateTime DateOfBirth { get; set; }
+    public int Age { get; set; }
+    public string Height { get; set; }
+    public string Weight { get; set; }
+    public string EyeColor { get; set; }
+    public List<string> MedicalConditions { get; set; }
+    public string AdditionalNotes { get; set; }
+    public List<RunnerPhotoDto> Photos { get; set; }
+    public DateTime? LastPhotoUpdate { get; set; }
+    public int ReminderCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public bool IsActive { get; set; }
 }
 ```
 
-## 7. Testing
+### 2. CreateRunnerProfileDto.cs
+```csharp
+public class CreateRunnerProfileDto
+{
+    [Required]
+    [StringLength(50)]
+    public string FirstName { get; set; }
 
-### Unit Tests
-- Test notification service methods
-- Test SignalR hub methods
-- Test topic subscription logic
+    [Required]
+    [StringLength(50)]
+    public string LastName { get; set; }
 
-### Integration Tests
-- Test device registration flow
-- Test push notification delivery
-- Test SignalR connection and messaging
+    [Required]
+    public DateTime DateOfBirth { get; set; }
 
-### Manual Testing
-- Register device via API
-- Send test notifications via Firebase Console
-- Test SignalR connection from mobile app
-- Verify topic subscriptions work correctly
+    [Required]
+    [StringLength(20)]
+    public string Height { get; set; }
 
-## 8. Monitoring & Logging
+    [Required]
+    [StringLength(20)]
+    public string Weight { get; set; }
 
-### Application Insights
-- Track notification delivery success/failure rates
-- Monitor SignalR connection counts
-- Log device registration events
+    [Required]
+    [StringLength(20)]
+    public string EyeColor { get; set; }
 
-### Firebase Analytics
-- Monitor push notification delivery
-- Track notification open rates
-- Monitor token refresh events
+    public List<string> MedicalConditions { get; set; } = new();
 
-This implementation provides a complete backend system to support your mobile app's push notifications and real-time updates functionality.
+    [StringLength(1000)]
+    public string AdditionalNotes { get; set; }
+}
+```
+
+### 3. UpdateRunnerProfileDto.cs
+```csharp
+public class UpdateRunnerProfileDto
+{
+    [StringLength(50)]
+    public string FirstName { get; set; }
+
+    [StringLength(50)]
+    public string LastName { get; set; }
+
+    public DateTime? DateOfBirth { get; set; }
+
+    [StringLength(20)]
+    public string Height { get; set; }
+
+    [StringLength(20)]
+    public string Weight { get; set; }
+
+    [StringLength(20)]
+    public string EyeColor { get; set; }
+
+    public List<string> MedicalConditions { get; set; }
+
+    [StringLength(1000)]
+    public string AdditionalNotes { get; set; }
+}
+```
+
+### 4. RunnerPhotoDto.cs
+```csharp
+public class RunnerPhotoDto
+{
+    public Guid Id { get; set; }
+    public Guid RunnerProfileId { get; set; }
+    public string FileName { get; set; }
+    public string FileUrl { get; set; }
+    public long FileSize { get; set; }
+    public string MimeType { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public bool IsPrimary { get; set; }
+}
+```
+
+## Service Layer Implementation
+
+### 1. IRunnerProfileService.cs
+```csharp
+public interface IRunnerProfileService
+{
+    Task<RunnerProfileDto> GetByUserIdAsync(string userId);
+    Task<bool> ExistsByUserIdAsync(string userId);
+    Task<RunnerProfileDto> CreateAsync(string userId, CreateRunnerProfileDto dto);
+    Task<RunnerProfileDto> UpdateAsync(string userId, UpdateRunnerProfileDto dto);
+    Task DeleteAsync(string userId);
+    Task<int> CalculateAge(DateTime dateOfBirth);
+    Task<bool> NeedsPhotoUpdate(string userId);
+    Task<int> GetDaysSinceLastPhotoUpdate(string userId);
+}
+```
+
+### 2. IPhotoService.cs
+```csharp
+public interface IPhotoService
+{
+    Task<RunnerPhotoDto> UploadPhotoAsync(string userId, IFormFile photo);
+    Task<IEnumerable<RunnerPhotoDto>> GetPhotosByUserIdAsync(string userId);
+    Task DeletePhotoAsync(string userId, Guid photoId);
+    Task SetPrimaryPhotoAsync(string userId, Guid photoId);
+    Task<bool> ValidatePhotoAsync(IFormFile photo);
+    Task<string> GenerateUniqueFileName(string originalFileName);
+}
+```
+
+## Background Services
+
+### 1. PhotoUpdateReminderService.cs
+```csharp
+public class PhotoUpdateReminderService : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<PhotoUpdateReminderService> _logger;
+
+    public PhotoUpdateReminderService(
+        IServiceProvider serviceProvider,
+        ILogger<PhotoUpdateReminderService> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var reminderService = scope.ServiceProvider.GetRequiredService<IPhotoReminderService>();
+                
+                await reminderService.ProcessRemindersAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing photo update reminders");
+            }
+
+            // Run daily
+            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
+        }
+    }
+}
+```
+
+## File Storage Configuration
+
+### 1. Azure Blob Storage Setup
+```csharp
+public class BlobStorageService
+{
+    private readonly BlobServiceClient _blobServiceClient;
+    private readonly string _containerName;
+
+    public BlobStorageService(IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("AzureStorage");
+        _blobServiceClient = new BlobServiceClient(connectionString);
+        _containerName = "runner-photos";
+    }
+
+    public async Task<string> UploadPhotoAsync(IFormFile photo, string fileName)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+        var blobClient = containerClient.GetBlobClient(fileName);
+
+        using var stream = photo.OpenReadStream();
+        await blobClient.UploadAsync(stream, overwrite: true);
+
+        return blobClient.Uri.ToString();
+    }
+
+    public async Task DeletePhotoAsync(string fileName)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+        var blobClient = containerClient.GetBlobClient(fileName);
+        await blobClient.DeleteIfExistsAsync();
+    }
+}
+```
+
+## Validation Rules
+
+### 1. Photo Validation
+- File size: Maximum 10MB
+- File types: JPEG, PNG, GIF, WebP
+- Image dimensions: Maximum 4000x4000 pixels
+- Maximum photos per profile: 10
+
+### 2. Profile Validation
+- First/Last name: 2-50 characters, letters only
+- Date of birth: Not in future, not more than 120 years ago
+- Height: Valid format (e.g., "5'8\"", "175cm")
+- Weight: Valid format (e.g., "150 lbs", "68 kg")
+- Eye color: Must be from predefined list
+- Medical conditions: Each condition 1-100 characters
+- Additional notes: Maximum 1000 characters
+
+## Error Handling
+
+### 1. Custom Exceptions
+```csharp
+public class ValidationException : Exception
+{
+    public Dictionary<string, string[]> Errors { get; }
+
+    public ValidationException(Dictionary<string, string[]> errors) 
+        : base("Validation failed")
+    {
+        Errors = errors;
+    }
+}
+
+public class NotFoundException : Exception
+{
+    public NotFoundException(string message) : base(message) { }
+}
+```
+
+### 2. Global Exception Handler
+```csharp
+public class GlobalExceptionMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
+
+    public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unhandled exception occurred");
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+        
+        var response = exception switch
+        {
+            ValidationException ex => new { message = ex.Message, errors = ex.Errors },
+            NotFoundException ex => new { message = ex.Message },
+            _ => new { message = "An error occurred while processing your request" }
+        };
+
+        context.Response.StatusCode = exception switch
+        {
+            ValidationException => 400,
+            NotFoundException => 404,
+            _ => 500
+        };
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+    }
+}
+```
+
+## Testing Strategy
+
+### 1. Unit Tests
+- Service layer tests
+- Validation tests
+- Repository tests
+
+### 2. Integration Tests
+- API endpoint tests
+- Database integration tests
+- File upload tests
+
+### 3. Performance Tests
+- Load testing
+- File upload performance
+- Database query optimization
+
+## Deployment Checklist
+
+### 1. Database Migration
+- [ ] Create RunnerProfiles table
+- [ ] Create RunnerPhotos table
+- [ ] Create PhotoUpdateReminders table
+- [ ] Add indexes for performance
+- [ ] Run migration scripts
+
+### 2. Azure Configuration
+- [ ] Configure Blob Storage
+- [ ] Set up container for photos
+- [ ] Configure CORS for file access
+- [ ] Set up CDN if needed
+
+### 3. API Configuration
+- [ ] Add new controllers
+- [ ] Configure dependency injection
+- [ ] Add background services
+- [ ] Configure logging
+
+### 4. Security
+- [ ] Validate file uploads
+- [ ] Implement rate limiting
+- [ ] Add authentication checks
+- [ ] Configure CORS properly
+
+## Monitoring and Logging
+
+### 1. Application Insights
+- Track API performance
+- Monitor error rates
+- Track file upload metrics
+
+### 2. Custom Metrics
+- Photo upload success rate
+- Profile creation completion rate
+- Reminder delivery success rate
+
+## Next Steps
+
+1. **Implement Database Schema**
+   - Create tables with proper indexes
+   - Add foreign key constraints
+   - Set up data migration scripts
+
+2. **Implement API Controllers**
+   - Add authentication middleware
+   - Implement validation
+   - Add error handling
+
+3. **Implement Services**
+   - File upload service
+   - Photo management service
+   - Reminder service
+
+4. **Add Background Jobs**
+   - Photo update reminders
+   - Email notifications
+   - Push notifications
+
+5. **Testing and Deployment**
+   - Unit tests
+   - Integration tests
+   - Performance testing
+   - Production deployment
+
+This implementation guide provides everything needed to implement the runner profile system backend API endpoints that will integrate seamlessly with the mobile application.
