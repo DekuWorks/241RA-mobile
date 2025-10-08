@@ -858,7 +858,7 @@ export default function ProfileScreen() {
   const renderRunnerProfileSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>🏃‍♂️ Enhanced Runner Profile</Text>
+        <Text style={styles.sectionTitle}>🏃‍♂️ Runner Profile</Text>
         {runnerProfile ? (
           <TouchableOpacity 
             style={styles.editButton}
@@ -871,9 +871,9 @@ export default function ProfileScreen() {
         ) : (
           <TouchableOpacity 
             style={styles.createButton}
-            onPress={() => setIsEditingRunnerProfile(true)}
+            onPress={() => router.push('/portal/runner-profile')}
           >
-            <Text style={styles.createButtonText}>Create Profile</Text>
+            <Text style={styles.createButtonText}>Create Runner Profile</Text>
           </TouchableOpacity>
         )}
       </View>

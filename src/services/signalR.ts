@@ -9,6 +9,8 @@ export class SignalRService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting = false;
   private queryClient: QueryClient | null = null;
+  private isEnabled = true; // Can be disabled if WebSocket fails repeatedly
+  private failureCount = 0;
 
   setQueryClient(queryClient: QueryClient): void {
     this.queryClient = queryClient;
@@ -27,6 +29,12 @@ export class SignalRService {
   }
 
   async startConnection(): Promise<void> {
+    // Skip if disabled due to repeated failures
+    if (!this.isEnabled) {
+      console.log('⏭️ SignalR disabled - skipping connection');
+      return;
+    }
+
     if (this.connection?.state === signalR.HubConnectionState.Connected) {
       console.log('✅ SignalR already connected');
       return;
@@ -72,7 +80,7 @@ export class SignalRService {
       console.log('🔑 Access token available:', !!token);
       console.log('🌐 API Base URL:', API_BASE);
 
-      // Create connection with enhanced error handling
+      // Create connection with enhanced error handling and fallback transports
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, {
           accessTokenFactory: async () => {
@@ -91,8 +99,9 @@ export class SignalRService {
             }
           },
           skipNegotiation: false, // Allow negotiation for better compatibility
-          transport: signalR.HttpTransportType.WebSockets,
+          transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
           withCredentials: false,
+          timeout: 30000, // 30 second timeout
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -102,12 +111,13 @@ export class SignalRService {
             // Custom retry logic for WebSocket 1006 errors
             if (retryContext.previousRetryCount === 0) return 0;
             if (retryContext.previousRetryCount === 1) return 2000;
-            if (retryContext.previousRetryCount === 2) return 10000;
-            if (retryContext.previousRetryCount === 3) return 30000;
-            return 60000; // Max 1 minute between retries
+            if (retryContext.previousRetryCount === 2) return 5000;
+            if (retryContext.previousRetryCount === 3) return 10000;
+            if (retryContext.previousRetryCount === 4) return 30000;
+            return null; // Stop retrying after 5 attempts
           }
         })
-        .configureLogging(signalR.LogLevel.Information)
+        .configureLogging(signalR.LogLevel.Warning) // Reduce logging noise
         .build();
 
       // Set up event handlers
@@ -120,7 +130,13 @@ export class SignalRService {
         // Add a small delay to ensure authentication is fully processed
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        await this.connection.start();
+        // Try to start with timeout
+        await Promise.race([
+          this.connection.start(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout')), 10000)
+          )
+        ]);
         
         logEvent('signalr_connected', {
           connectionId: this.connection.connectionId || 'unknown',
@@ -131,26 +147,27 @@ export class SignalRService {
         console.log('🌐 Hub URL:', hubUrl);
         console.log('👤 User Role:', userRole);
       } catch (startError: any) {
-        console.error('❌ SignalR start failed:', startError);
+        console.warn('⚠️ SignalR connection failed (app will work without real-time features):', startError);
         
-        // Handle specific error types
+        this.failureCount++;
+        
+        // Disable SignalR after 3 consecutive failures
+        if (this.failureCount >= 3) {
+          console.warn('🚫 SignalR disabled after 3 failures - app will work without real-time features');
+          this.isEnabled = false;
+        }
+        
+        // Handle specific error types (non-blocking)
         if (startError?.statusCode === 403) {
-          console.error('🚫 SignalR 403 Forbidden - Authentication issue');
-          console.log('🔍 Possible causes:');
-          console.log('  - Invalid or expired access token');
-          console.log('  - User not authorized for SignalR hub');
-          console.log('  - Token format issue');
+          console.warn('⚠️ SignalR authentication issue - continuing without real-time features');
           
           WebSocketDiagnostics.recordError(
             'SignalR 403 Forbidden - Authentication failed',
             403,
             startError
           );
-          
-          // Don't attempt reconnection for 403 errors
-          throw new Error('SignalR authentication failed (403)');
         } else if (startError?.statusCode === 401) {
-          console.error('🔐 SignalR 401 Unauthorized - Token issue');
+          console.warn('🔐 SignalR 401 Unauthorized - Token issue');
           WebSocketDiagnostics.recordError(
             'SignalR 401 Unauthorized - Token invalid',
             401,

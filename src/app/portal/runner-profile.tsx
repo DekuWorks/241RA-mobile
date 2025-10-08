@@ -12,8 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
-import { RunnerProfileService } from '../../services/runnerProfile';
-import { RunnerProfile, CreateRunnerProfileData, UpdateRunnerProfileData } from '../../types/runnerProfile';
+import { EnhancedRunnerProfileService } from '../../services/enhancedRunnerProfile';
+import { 
+  EnhancedRunnerProfile, 
+  CreateEnhancedRunnerProfileData, 
+  UpdateEnhancedRunnerProfileData,
+  EnhancedRunnerPhoto 
+} from '../../types/enhancedRunnerProfile';
 import RunnerProfileForm from '../../components/RunnerProfileForm';
 import PhotoUpload from '../../components/PhotoUpload';
 
@@ -28,15 +33,15 @@ export default function RunnerProfileScreen() {
     isLoading: isProfileLoading,
     error: profileError,
   } = useQuery({
-    queryKey: ['runnerProfile'],
-    queryFn: RunnerProfileService.getRunnerProfile,
+    queryKey: ['enhancedRunnerProfile'],
+    queryFn: EnhancedRunnerProfileService.getRunnerProfile,
   });
 
   const {
     data: hasProfile,
   } = useQuery({
     queryKey: ['hasRunnerProfile'],
-    queryFn: RunnerProfileService.hasRunnerProfile,
+    queryFn: EnhancedRunnerProfileService.hasRunnerProfile,
   });
 
   useEffect(() => {
@@ -45,14 +50,16 @@ export default function RunnerProfileScreen() {
     }
   }, [hasProfile]);
 
-  const handleCreateProfile = async (data: CreateRunnerProfileData) => {
+  const handleCreateProfile = async (data: CreateEnhancedRunnerProfileData) => {
     setIsLoading(true);
     try {
-      await RunnerProfileService.createRunnerProfile(data);
-      await queryClient.invalidateQueries({ queryKey: ['runnerProfile'] });
+      await EnhancedRunnerProfileService.createRunnerProfile(data);
+      await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
       setIsCreating(false);
       Alert.alert('Success', 'Runner profile created successfully!');
+      router.back();
     } catch (error: any) {
       console.error('Failed to create runner profile:', error);
       Alert.alert('Error', error.message || 'Failed to create runner profile');
@@ -61,11 +68,11 @@ export default function RunnerProfileScreen() {
     }
   };
 
-  const handleUpdateProfile = async (data: UpdateRunnerProfileData) => {
+  const handleUpdateProfile = async (data: UpdateEnhancedRunnerProfileData) => {
     setIsLoading(true);
     try {
-      await RunnerProfileService.updateRunnerProfile(data);
-      await queryClient.invalidateQueries({ queryKey: ['runnerProfile'] });
+      await EnhancedRunnerProfileService.updateRunnerProfile(data);
+      await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
       setIsEditing(false);
       Alert.alert('Success', 'Runner profile updated successfully!');
     } catch (error: any) {
@@ -88,11 +95,13 @@ export default function RunnerProfileScreen() {
           onPress: async () => {
             setIsLoading(true);
             try {
-              await RunnerProfileService.deleteRunnerProfile();
-              await queryClient.invalidateQueries({ queryKey: ['runnerProfile'] });
+              await EnhancedRunnerProfileService.deleteRunnerProfile();
+              await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
               await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
+              await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
               setIsCreating(true);
               Alert.alert('Success', 'Runner profile deleted successfully!');
+              router.back();
             } catch (error: any) {
               console.error('Failed to delete runner profile:', error);
               Alert.alert('Error', error.message || 'Failed to delete runner profile');
