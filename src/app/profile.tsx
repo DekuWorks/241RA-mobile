@@ -346,10 +346,6 @@ export default function ProfileScreen() {
   };
 
 
-  const handleTestNotification = async () => {
-    await NotificationService.testNotification();
-    Alert.alert('Test Sent', 'A test notification has been sent');
-  };
 
   const handleImagePicker = async () => {
     try {
@@ -1291,9 +1287,6 @@ export default function ProfileScreen() {
           thumbColor={colors.white}
         />
       </View>
-      <TouchableOpacity style={styles.testButton} onPress={handleTestNotification}>
-        <Text style={styles.testButtonText}>Send Test Notification</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -1950,18 +1943,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.gray[600],
     lineHeight: 18,
-  },
-  testButton: {
-    backgroundColor: colors.gray[800],
-    borderRadius: radii.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  testButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.primary,
-    fontWeight: typography.weights.medium,
   },
   menuItem: {
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import { logEvent } from '../lib/crash';
 import { QueryClient } from '@tanstack/react-query';
 import { WebSocketDiagnostics } from '../utils/websocketDiagnostics';
 import { PlatformServiceFactory } from '../platform/shared/platformFactory';
+import { UserDataService } from './userData';
 
 export class SignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -29,7 +30,6 @@ export class SignalRService {
   private async getUserRole(): Promise<string | null> {
     try {
       // Try to get user role from secure storage or user data
-      const { UserDataService } = await import('./userData');
       const userData = await UserDataService.getUserData();
       return userData?.role || null;
     } catch (error) {

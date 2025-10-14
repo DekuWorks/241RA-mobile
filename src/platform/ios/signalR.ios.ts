@@ -10,6 +10,7 @@ import { SecureTokenService } from '../../services/secureTokens';
 import { logEvent } from '../../lib/crash';
 import { QueryClient } from '@tanstack/react-query';
 import { WebSocketDiagnostics } from '../../utils/websocketDiagnostics';
+import { UserDataService } from '../../services/userData';
 
 export class IOSSignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -24,7 +25,6 @@ export class IOSSignalRService {
 
   private async getUserRole(): Promise<string | null> {
     try {
-      const { UserDataService } = await import('../../services/userData');
       const userData = await UserDataService.getUserData();
       return userData?.role || null;
     } catch (error) {

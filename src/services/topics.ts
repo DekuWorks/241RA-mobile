@@ -1,5 +1,6 @@
 import { http } from '../lib/http';
 import { logEvent } from '../lib/crash';
+import { signalRService } from './signalR';
 
 export interface TopicSubscription {
   topic: string;
@@ -45,7 +46,6 @@ export class TopicService {
       
       // If API fails, try SignalR group join as fallback
       try {
-        const { signalRService } = await import('./signalR');
         await signalRService.joinGroup(`topic_${topic}`);
         logEvent('topic_subscribed_signalr', { topic });
         console.log('✅ Subscribed to topic via SignalR group:', topic);
