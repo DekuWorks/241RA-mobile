@@ -5,7 +5,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { NotificationService } from '../services/notifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
-import { WebSocketErrorHandler } from '../components/WebSocketErrorHandler';
 import {
   attachForegroundMessaging,
   setupBackgroundMessageHandler,
@@ -13,6 +12,8 @@ import {
 } from '../features/push/registerDeviceToken';
 import { signalRService } from '../services/signalR';
 import { GoogleAuthService } from '../services/googleAuth';
+import { TrackingTransparencyService } from '../services/trackingTransparency';
+import { PlatformServiceFactory } from '../platform/shared/platformFactory';
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,20 @@ export default function Root() {
           console.warn('Google Sign-In initialization failed:', googleError);
         }
 
+        // Request App Tracking Transparency permission
+        try {
+          await TrackingTransparencyService.requestWithExplanation();
+        } catch (trackingError) {
+          console.warn('Tracking transparency request failed:', trackingError);
+        }
+
+        // Initialize platform-specific services
+        try {
+          await PlatformServiceFactory.initializePlatformServices();
+        } catch (platformError) {
+          console.warn('Platform-specific services initialization failed:', platformError);
+        }
+
         // Set up SignalR with React Query client
         signalRService.setQueryClient(qc);
 
@@ -90,10 +105,8 @@ export default function Root() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={qc}>
-        <WebSocketErrorHandler>
-          <OfflineIndicator />
-          <Stack screenOptions={{ headerShown: false }} />
-        </WebSocketErrorHandler>
+        <OfflineIndicator />
+        <Stack screenOptions={{ headerShown: false }} />
       </QueryClientProvider>
     </ErrorBoundary>
   );

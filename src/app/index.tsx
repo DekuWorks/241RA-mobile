@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   spinner: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   title: {
     fontSize: typography.sizes['2xl'],
@@ -75,7 +75,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: typography.sizes.base,
-    color: colors.gray[400],
+    color: colors.text,
+    opacity: 0.9,
     textAlign: 'center',
   },
 });

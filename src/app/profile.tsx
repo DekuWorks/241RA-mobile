@@ -49,6 +49,8 @@ export default function ProfileScreen() {
     activeCases: 0,
     resolvedCases: 0,
   });
+  const [showCreateRunnerForm, setShowCreateRunnerForm] = useState(false);
+  const [showRunnerPhotos, setShowRunnerPhotos] = useState(false);
 
   // Enhanced runner profile state
   const [runnerProfile, setRunnerProfile] = useState<EnhancedRunnerProfile | null>(null);
@@ -84,7 +86,7 @@ export default function ProfileScreen() {
     dateOfBirth: '',
     height: '',
     weight: '',
-    eyeColor: 'Brown',
+    eyeColor: 'Brown', // Default eye color
     medicalConditions: [],
     additionalNotes: '',
   });
@@ -103,6 +105,8 @@ export default function ProfileScreen() {
     retry: (failureCount, error: any) => {
       // Don't retry on 401 errors (authentication issues)
       if (error?.response?.status === 401) {
+        console.log('[PROFILE] Authentication failed, redirecting to login');
+        router.replace('/login');
         return false;
       }
       return failureCount < 3;
@@ -138,12 +142,12 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (user) {
       console.log('[PROFILE] User data loaded:', {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        twoFactorEnabled: user.twoFactorEnabled
+        id: user?.id || '',
+        email: user?.email || '',
+        role: user?.role || 'user',
+        twoFactorEnabled: user?.twoFactorEnabled || false
       });
-      setTwoFactorEnabled(user.twoFactorEnabled);
+      setTwoFactorEnabled(user?.twoFactorEnabled || false);
     }
   }, [user]);
 
@@ -176,6 +180,55 @@ export default function ProfileScreen() {
       console.error('[PROFILE] Error loading user data:', error);
     }
   }, [error]);
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone and will remove all your data, including:\n\n• Your profile information\n• Your runner profiles\n• All case reports and sightings\n• Your notification preferences\n\nThis action is permanent and cannot be reversed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Starting account deletion process...');
+              
+              // Call the backend to delete the account
+              await AuthService.deleteAccount();
+              console.log('Account deletion completed');
+              
+              // Clear all local data
+              await AuthService.logout();
+              
+              // Unregister device for notifications
+              try {
+                await NotificationService.unregisterDevice();
+                console.log('Device unregistered');
+              } catch (notificationError) {
+                console.warn('Failed to unregister device:', notificationError);
+              }
+              
+              // Navigate to login and clear the navigation stack
+              router.dismissAll();
+              router.replace('/login');
+              
+              Alert.alert(
+                'Account Deleted',
+                'Your account has been permanently deleted. Thank you for using 241Runners.'
+              );
+            } catch (error) {
+              console.error('Account deletion failed:', error);
+              Alert.alert(
+                'Error',
+                'Failed to delete account. Please try again or contact support.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -291,6 +344,7 @@ export default function ProfileScreen() {
     setTwoFactorEnabled(true);
     Alert.alert('Success', 'Two-factor authentication has been enabled successfully');
   };
+
 
   const handleTestNotification = async () => {
     await NotificationService.testNotification();
@@ -592,12 +646,20 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleDeletePhoto = async (photo: EnhancedRunnerPhoto) => {
+  const handleAddPhotos = async () => {
+    // Use the existing handlePhotoUpload function
+    await handlePhotoUpload();
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    const photo = runnerPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+    
     const confirmed = await PhotoManager.confirmPhotoDeletion(photo.fileName);
     if (!confirmed) return;
 
     try {
-      await EnhancedRunnerProfileService.deletePhoto(photo.id);
+      await EnhancedRunnerProfileService.deletePhoto(photoId);
       Alert.alert('Success', 'Photo deleted successfully!');
       await queryClient.invalidateQueries({ queryKey: ['runnerPhotos'] });
     } catch (error: any) {
@@ -606,12 +668,15 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSetPrimaryPhoto = async (photo: EnhancedRunnerPhoto) => {
+  const handleSetPrimaryPhoto = async (photoId: string) => {
+    const photo = runnerPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+    
     const confirmed = await PhotoManager.confirmSetPrimaryPhoto(photo.fileName);
     if (!confirmed) return;
 
     try {
-      await EnhancedRunnerProfileService.setPrimaryPhoto(photo.id);
+      await EnhancedRunnerProfileService.setPrimaryPhoto(photoId);
       Alert.alert('Success', 'Primary photo set successfully!');
       await queryClient.invalidateQueries({ queryKey: ['runnerPhotos'] });
     } catch (error: any) {
@@ -659,7 +724,7 @@ export default function ProfileScreen() {
           </Text>
         )}
       </View>
-      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+      <Text style={styles.profileName}>{user?.name || user?.email || 'User'}</Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
       <View style={styles.memberSinceContainer}>
         <Text style={styles.memberSinceLabel}>MEMBER SINCE</Text>
@@ -870,16 +935,79 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity 
-            style={styles.createButton}
-            onPress={() => router.push('/portal/runner-profile')}
+            style={styles.createRunnerButton}
+            onPress={() => setShowCreateRunnerForm(true)}
           >
-            <Text style={styles.createButtonText}>Create Runner Profile</Text>
+            <Text style={styles.createRunnerButtonText}>Create Runner Profile</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {runnerProfile ? (
         <View style={styles.runnerProfileContent}>
+          {/* Profile Photos Section */}
+          <View style={styles.photosSubSection}>
+            <View style={styles.photosHeader}>
+              <Text style={styles.photosTitle}>📸 Photos ({runnerPhotos.length}/10)</Text>
+              <TouchableOpacity
+                style={styles.photoUploadButton}
+                onPress={handleAddPhotos}
+                disabled={isUploading || runnerPhotos.length >= 10}
+              >
+                <Text style={styles.photoUploadButtonText}>+ Add Photos</Text>
+              </TouchableOpacity>
+            </View>
+
+            {runnerPhotos.length > 0 ? (
+              <View style={styles.photosGrid}>
+                {runnerPhotos.map((photo) => (
+                  <View key={photo.id} style={styles.photoItem}>
+                    <Image source={{ uri: photo.fileUrl }} style={styles.photoThumbnail} />
+                    <View style={styles.photoOverlay}>
+                      <TouchableOpacity
+                        style={styles.photoActionButton}
+                        onPress={() => handleDeletePhoto(photo.id)}
+                      >
+                        <Text style={styles.photoActionText}>🗑️</Text>
+                      </TouchableOpacity>
+                      {!photo.isPrimary && (
+                        <TouchableOpacity
+                          style={styles.photoActionButton}
+                          onPress={() => handleSetPrimaryPhoto(photo.id)}
+                        >
+                          <Text style={styles.photoActionText}>⭐</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {photo.isPrimary && (
+                      <View style={styles.primaryBadge}>
+                        <Text style={styles.primaryBadgeText}>Primary</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.noPhotosContainer}>
+                <Text style={styles.noPhotosText}>No photos uploaded yet</Text>
+                <Text style={styles.noPhotosDescription}>
+                  Add photos to help with identification in case of emergency
+                </Text>
+              </View>
+            )}
+
+            {isUploading && (
+              <View style={styles.uploadProgressContainer}>
+                <Text style={styles.uploadProgressText}>Uploading photos...</Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+                </View>
+                <Text style={styles.uploadProgressPercent}>{uploadProgress}%</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Profile Information Section */}
           <View style={styles.profileInfo}>
             <Text style={styles.profileText}>
               <Text style={styles.label}>Name:</Text> {runnerProfile.firstName} {runnerProfile.lastName}
@@ -1028,77 +1156,6 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const renderRunnerPhotosSection = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>📸 Runner Photos ({runnerPhotos.length}/10)</Text>
-        <TouchableOpacity
-          style={styles.photoUploadButton}
-          onPress={handlePhotoUpload}
-          disabled={isUploading || runnerPhotos.length >= 10}
-        >
-          {isUploading ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.photoUploadButtonText}>Upload Photos</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {isUploading && uploadProgress > 0 && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
-          </View>
-          <Text style={styles.progressText}>{Math.round(uploadProgress)}%</Text>
-        </View>
-      )}
-
-      {runnerPhotos.length === 0 ? (
-        <View style={styles.noPhotosContainer}>
-          <Text style={styles.noPhotosText}>No photos uploaded yet.</Text>
-          <Text style={styles.noPhotosDescription}>
-            Upload photos to help identify the runner.
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.photosGrid}>
-          {runnerPhotos.map((photo) => (
-            <TouchableOpacity
-              key={photo.id}
-              style={styles.photoItem}
-              onPress={() => {
-                // Handle photo preview
-              }}
-            >
-              <Image source={{ uri: photo.fileUrl }} style={styles.photoImage} />
-              {photo.isPrimary && (
-                <View style={styles.primaryBadge}>
-                  <Text style={styles.primaryBadgeText}>Primary</Text>
-                </View>
-              )}
-              <View style={styles.photoActions}>
-                {!photo.isPrimary && (
-                  <TouchableOpacity
-                    style={styles.photoActionButton}
-                    onPress={() => handleSetPrimaryPhoto(photo)}
-                  >
-                    <Text style={styles.photoActionText}>Set Primary</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.photoActionButton, styles.deleteButton]}
-                  onPress={() => handleDeletePhoto(photo)}
-                >
-                  <Text style={styles.photoActionText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
 
   const renderNotificationSettingsSection = () => (
     <View style={styles.section}>
@@ -1136,7 +1193,7 @@ export default function ProfileScreen() {
               }))}
             />
           </View>
-          <View style={styles.formActions}>
+          <View style={styles.editActions}>
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setIsEditingNotifications(false)}
@@ -1204,6 +1261,14 @@ export default function ProfileScreen() {
           thumbColor={colors.white}
         />
       </View>
+      
+      {/* Account Deletion */}
+      <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+        <Text style={styles.deleteAccountText}>Delete Account</Text>
+        <Text style={styles.deleteAccountDescription}>
+          Permanently delete your account and all associated data
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -1232,7 +1297,7 @@ export default function ProfileScreen() {
 
   const renderAdminSection = () => {
     // Only show admin section if user has admin role
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    if (!user || (user?.role !== 'admin' && user?.role !== 'moderator')) {
       return null;
     }
 
@@ -1325,6 +1390,21 @@ export default function ProfileScreen() {
         <Text style={styles.menuItemText}>Support</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
+      
+      {/* Account Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+      </View>
+      
+      <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
+        <Text style={styles.menuItemText}>Logout</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={handleDeleteAccount} style={[styles.menuItem, styles.dangerMenuItem]}>
+        <Text style={[styles.menuItemText, styles.dangerText]}>Delete Account</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -1354,9 +1434,6 @@ export default function ProfileScreen() {
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -1366,7 +1443,6 @@ export default function ProfileScreen() {
           {renderPersonalInfoSection()}
           {renderAccountStatsSection()}
           {renderRunnerProfileSection()}
-          {renderRunnerPhotosSection()}
           {renderNotificationSettingsSection()}
           {renderCaseStatusSection()}
           {renderAdminSection()}
@@ -1381,6 +1457,7 @@ export default function ProfileScreen() {
         onClose={() => setShowTwoFactorSetup(false)}
         onSuccess={handleTwoFactorSetupSuccess}
       />
+
     </SafeAreaView>
   );
 }
@@ -1904,6 +1981,121 @@ const styles = StyleSheet.create({
   runnerProfileInfo: {
     marginBottom: spacing.md,
   },
+  photosSubSection: {
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  photosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  photosTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[900],
+  },
+  photoUploadButton: {
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  photoUploadButtonText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  photoItem: {
+    width: '48%',
+    aspectRatio: 1,
+    marginBottom: spacing.md,
+    position: 'relative',
+  },
+  photoThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radii.md,
+  },
+  photoOverlay: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  photoActionButton: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: spacing.xs,
+    borderRadius: radii.sm,
+  },
+  photoActionText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+  },
+  primaryBadge: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+  },
+  primaryBadgeText: {
+    color: colors.white,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+  },
+  noPhotosContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  noPhotosText: {
+    fontSize: typography.sizes.base,
+    color: colors.gray[600],
+    marginBottom: spacing.sm,
+  },
+  noPhotosDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[500],
+    textAlign: 'center',
+  },
+  uploadProgressContainer: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.gray[50],
+    borderRadius: radii.md,
+  },
+  uploadProgressText: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[700],
+    marginBottom: spacing.sm,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: colors.gray[200],
+    borderRadius: radii.sm,
+    marginBottom: spacing.sm,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary[600],
+    borderRadius: radii.sm,
+  },
+  uploadProgressPercent: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[600],
+    textAlign: 'center',
+  },
   profileText: {
     fontSize: typography.sizes.base,
     color: colors.gray[700],
@@ -2023,6 +2215,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   createButtonText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  createRunnerButtonText: {
     color: colors.white,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
@@ -2167,5 +2364,147 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.gray[700],
     marginBottom: spacing.sm,
+  },
+  // Modal Styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: colors.gray[900],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  modalTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.gray[900],
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: typography.sizes.xl,
+    color: colors.gray[600],
+    fontWeight: typography.weights.bold,
+  },
+  modalBody: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  modalDescription: {
+    fontSize: typography.sizes.base,
+    color: colors.gray[600],
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  formGroup: {
+    marginBottom: spacing.md,
+  },
+  formLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[700],
+    marginBottom: spacing.xs,
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typography.sizes.base,
+    color: colors.gray[900],
+    backgroundColor: colors.white,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.gray[100],
+    borderRadius: radii.md,
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  modalCancelButtonText: {
+    color: colors.gray[700],
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+  },
+  modalSaveButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.primary[600],
+    borderRadius: radii.md,
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+  },
+  modalSaveButtonText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+  },
+  // Account Deletion Styles
+  deleteAccountButton: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.error,
+    borderRadius: radii.md,
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
+  },
+  deleteAccountDescription: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+  dangerMenuItem: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error[500],
+  },
+  dangerText: {
+    color: colors.error[600],
+    fontWeight: typography.weights.medium,
   },
 });

@@ -1,9 +1,11 @@
 import * as signalR from '@microsoft/signalr';
+import { Platform } from 'react-native';
 import { API_BASE } from '../config/api';
 import { SecureTokenService } from './secureTokens';
 import { logEvent } from '../lib/crash';
 import { QueryClient } from '@tanstack/react-query';
 import { WebSocketDiagnostics } from '../utils/websocketDiagnostics';
+import { PlatformServiceFactory } from '../platform/shared/platformFactory';
 
 export class SignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -11,9 +13,17 @@ export class SignalRService {
   private queryClient: QueryClient | null = null;
   private isEnabled = true; // Can be disabled if WebSocket fails repeatedly
   private failureCount = 0;
+  private platformService: any;
+
+  constructor() {
+    // Initialize platform-specific service
+    this.platformService = PlatformServiceFactory.getSignalRService();
+  }
 
   setQueryClient(queryClient: QueryClient): void {
     this.queryClient = queryClient;
+    // Also set for platform-specific service
+    this.platformService.setQueryClient(queryClient);
   }
 
   private async getUserRole(): Promise<string | null> {
@@ -29,6 +39,11 @@ export class SignalRService {
   }
 
   async startConnection(): Promise<void> {
+    // Delegate to platform-specific service
+    return this.platformService.startConnection();
+  }
+
+  async startConnectionLegacy(): Promise<void> {
     // Skip if disabled due to repeated failures
     if (!this.isEnabled) {
       console.log('⏭️ SignalR disabled - skipping connection');
@@ -105,16 +120,40 @@ export class SignalRService {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
+          // Android-specific WebSocket options
+          ...(Platform.OS === 'android' && {
+            // Force WebSocket for Android with fallback
+            transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+            // Add keep-alive for Android
+            keepAliveIntervalInMilliseconds: 15000,
+            // Increase timeout for Android
+            timeout: 45000,
+            // Android-specific headers
+            headers: {
+              'User-Agent': '241Runners-Mobile-Android',
+              'Connection': 'keep-alive',
+              'Cache-Control': 'no-cache',
+            },
+          }),
         })
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
-            // Custom retry logic for WebSocket 1006 errors
-            if (retryContext.previousRetryCount === 0) return 0;
-            if (retryContext.previousRetryCount === 1) return 2000;
-            if (retryContext.previousRetryCount === 2) return 5000;
-            if (retryContext.previousRetryCount === 3) return 10000;
-            if (retryContext.previousRetryCount === 4) return 30000;
-            return null; // Stop retrying after 5 attempts
+            // Enhanced retry logic for Android WebSocket issues
+            const isAndroid = Platform.OS === 'android';
+            const baseDelays = isAndroid 
+              ? [0, 1000, 3000, 8000, 15000, 30000] // More aggressive for Android
+              : [0, 2000, 5000, 10000, 30000];
+            
+            if (retryContext.previousRetryCount < baseDelays.length) {
+              return baseDelays[retryContext.previousRetryCount];
+            }
+            
+            // Continue retrying for Android with exponential backoff
+            if (isAndroid && retryContext.previousRetryCount < 10) {
+              return Math.min(60000, 30000 * Math.pow(2, retryContext.previousRetryCount - baseDelays.length));
+            }
+            
+            return null; // Stop retrying
           }
         })
         .configureLogging(signalR.LogLevel.Warning) // Reduce logging noise
@@ -212,20 +251,54 @@ export class SignalRService {
           WebSocketDiagnostics.recordError('WebSocket 1006: Abnormal closure', error.code);
           logEvent('signalr_websocket_1006', { 
             error: 'Abnormal closure - possible network or server issue',
-            code: error.code 
+            code: error.code,
+            platform: Platform.OS
           });
           
           // Log diagnostics for troubleshooting
           WebSocketDiagnostics.logDiagnostics();
           
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            console.log('Attempting to reconnect after WebSocket 1006 error...');
-            this.startConnection();
-          }, 5000);
+          // Android-specific reconnection strategy
+          if (Platform.OS === 'android') {
+            // More aggressive reconnection for Android
+            setTimeout(() => {
+              console.log('Android: Attempting immediate reconnect after WebSocket 1006...');
+              this.startConnection();
+            }, 2000);
+            
+            // Additional fallback reconnection
+            setTimeout(() => {
+              if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
+                console.log('Android: Fallback reconnection attempt...');
+                this.startConnection();
+              }
+            }, 10000);
+            
+            // Third attempt for Android if still not connected
+            setTimeout(() => {
+              if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
+                console.log('Android: Third reconnection attempt...');
+                this.forceReconnect();
+              }
+            }, 20000);
+          } else {
+            // Standard reconnection for iOS
+            setTimeout(() => {
+              console.log('Attempting to reconnect after WebSocket 1006 error...');
+              this.startConnection();
+            }, 5000);
+          }
         } else {
           // Record other WebSocket errors
           WebSocketDiagnostics.recordError(`WebSocket error ${error.code}`, error.code);
+          
+          // Handle other common Android WebSocket errors
+          if (Platform.OS === 'android' && (error.code === 1000 || error.code === 1001)) {
+            setTimeout(() => {
+              console.log('Android: Reconnecting after connection loss...');
+              this.startConnection();
+            }, 3000);
+          }
         }
       }
       
@@ -678,6 +751,11 @@ export class SignalRService {
   }
 
   async stopConnection(): Promise<void> {
+    // Delegate to platform-specific service
+    return this.platformService.stopConnection();
+  }
+
+  async stopConnectionLegacy(): Promise<void> {
     if (this.connection) {
       try {
         await this.connection.stop();
@@ -694,6 +772,11 @@ export class SignalRService {
    * Test SignalR connection and return status
    */
   async testConnection(): Promise<{ success: boolean; error?: string; connectionId?: string }> {
+    // Delegate to platform-specific service
+    return this.platformService.testConnection();
+  }
+
+  async testConnectionLegacy(): Promise<{ success: boolean; error?: string; connectionId?: string }> {
     try {
       if (!this.connection) {
         return { success: false, error: 'No connection established' };
@@ -771,11 +854,15 @@ export class SignalRService {
   }
 
   isConnected(): boolean {
-    return this.connection?.state === signalR.HubConnectionState.Connected;
+    return this.platformService.isConnected();
   }
 
   getConnectionState(): signalR.HubConnectionState | null {
-    return this.connection?.state || null;
+    return this.platformService.getConnectionState();
+  }
+
+  async forceReconnect(): Promise<void> {
+    return this.platformService.forceReconnect();
   }
 }
 

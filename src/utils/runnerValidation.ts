@@ -1,10 +1,9 @@
 import { 
-  CreateRunnerProfileData, 
-  UpdateRunnerProfileData, 
-  EyeColor,
+  CreateEnhancedRunnerProfileData, 
+  UpdateEnhancedRunnerProfileData, 
   ValidationError,
   FormValidationResult 
-} from '../types/runnerProfile';
+} from '../types/enhancedRunnerProfile';
 
 export class RunnerValidationUtils {
   /**
@@ -216,17 +215,21 @@ export class RunnerValidationUtils {
   /**
    * Validate eye color
    */
-  static validateEyeColor(eyeColor: EyeColor): ValidationError[] {
+  static validateEyeColor(eyeColor: string): ValidationError[] {
     const errors: ValidationError[] = [];
     
-    if (!eyeColor) {
+    if (!eyeColor || eyeColor.trim().length === 0) {
       errors.push({ field: 'eyeColor', message: 'Eye color is required' });
       return errors;
     }
 
-    const validEyeColors: EyeColor[] = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'];
+    if (eyeColor.trim().length > 20) {
+      errors.push({ field: 'eyeColor', message: 'Eye color must be less than 20 characters' });
+    }
+
+    const validEyeColors: string[] = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'];
     
-    if (!validEyeColors.includes(eyeColor)) {
+    if (!validEyeColors.includes(eyeColor.trim())) {
       errors.push({ field: 'eyeColor', message: 'Please select a valid eye color' });
     }
 
@@ -283,32 +286,32 @@ export class RunnerValidationUtils {
   /**
    * Validate complete runner profile data
    */
-  static validateRunnerProfile(data: CreateRunnerProfileData | UpdateRunnerProfileData): FormValidationResult {
+  static validateRunnerProfile(data: CreateEnhancedRunnerProfileData | UpdateEnhancedRunnerProfileData): FormValidationResult {
     const errors: ValidationError[] = [];
 
     // Validate required fields for creation
-    if ('firstName' in data) {
+    if ('firstName' in data && data.firstName) {
       errors.push(...this.validateFirstName(data.firstName));
     }
-    if ('lastName' in data) {
+    if ('lastName' in data && data.lastName) {
       errors.push(...this.validateLastName(data.lastName));
     }
-    if ('dateOfBirth' in data) {
+    if ('dateOfBirth' in data && data.dateOfBirth) {
       errors.push(...this.validateDateOfBirth(data.dateOfBirth));
     }
-    if ('height' in data) {
+    if ('height' in data && data.height) {
       errors.push(...this.validateHeight(data.height));
     }
-    if ('weight' in data) {
+    if ('weight' in data && data.weight) {
       errors.push(...this.validateWeight(data.weight));
     }
-    if ('eyeColor' in data) {
+    if ('eyeColor' in data && data.eyeColor) {
       errors.push(...this.validateEyeColor(data.eyeColor));
     }
-    if ('medicalConditions' in data) {
+    if ('medicalConditions' in data && data.medicalConditions) {
       errors.push(...this.validateMedicalConditions(data.medicalConditions));
     }
-    if ('additionalNotes' in data) {
+    if ('additionalNotes' in data && data.additionalNotes) {
       errors.push(...this.validateAdditionalNotes(data.additionalNotes));
     }
 

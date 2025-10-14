@@ -42,7 +42,8 @@ const config: ExpoConfig = {
     'expo-notifications',
     'expo-location',
     'expo-camera',
-    // 'expo-apple-authentication', // Temporarily disabled for production build
+    'expo-apple-authentication', // Apple Sign-In for iOS
+    'expo-tracking-transparency', // App Tracking Transparency
     [
       'expo-image-picker',
       {

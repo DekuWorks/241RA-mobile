@@ -78,6 +78,19 @@ npm run clean         # Clear Expo cache
 - **TLS:** All API communication encrypted
 - **Observability:** Sentry integration for production error tracking
 
+## Documentation
+
+All project documentation has been organized in the [`docs/`](./docs/) folder:
+
+- **📱 App Store & Distribution** - Store submission guides and checklists
+- **🔧 Backend & API** - API documentation and integration guides  
+- **🚀 Deployment & Infrastructure** - Build, deployment, and CI/CD guides
+- **📊 Implementation & Development** - Development status and progress
+- **🔐 Privacy & Compliance** - Privacy policy and compliance documentation
+- **🏗️ Platform & Architecture** - Authentication and platform-specific guides
+
+See [docs/README.md](./docs/README.md) for a complete index of all documentation.
+
 ## Notes
 
 - Same users, roles, and database as the static site

@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
 import { AppleAuthService } from '../services/appleAuth';
+import { GoogleAuthService } from '../services/googleAuth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ export default function LoginScreen() {
       console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
       
       const credentials: LoginCredentials = {
-        email: email.toLowerCase().trim(), // Normalize email like static site
+        email: email.toLowerCase().trim(),
         password,
         ...(requiresTwoFactor && twoFactorCode && { twoFactorCode }),
       };
@@ -45,7 +46,6 @@ export default function LoginScreen() {
       if (response.requiresTwoFactor && !requiresTwoFactor) {
         setRequiresTwoFactor(true);
       } else {
-        // Login successful, check user role and redirect accordingly
         console.log('[LOGIN] User role from response:', response.user?.role);
         console.log('[LOGIN] Full user object:', response.user);
         
@@ -66,7 +66,6 @@ export default function LoginScreen() {
           }
         } else {
           console.log('[LOGIN] No user data, redirecting to profile');
-          // Fallback to profile if no user data
           router.replace('/profile');
         }
       }
@@ -117,7 +116,6 @@ export default function LoginScreen() {
       const result = await AppleAuthService.signIn();
 
       if (result.success) {
-        // Login successful, check user role and redirect accordingly
         if (result.user) {
           if (
             result.user.role === 'admin' || 
@@ -129,7 +127,6 @@ export default function LoginScreen() {
             router.replace('/profile');
           }
         } else {
-          // Fallback to profile if no user data
           router.replace('/profile');
         }
       } else {
@@ -137,6 +134,35 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       Alert.alert('Apple Login Failed', error.message || 'Failed to sign in with Apple');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await GoogleAuthService.signIn();
+
+      if (result.success) {
+        if (result.user) {
+          if (
+            result.user.role === 'admin' || 
+            result.user.role === 'moderator' || 
+            result.user.role === 'super_admin'
+          ) {
+            router.replace('/portal');
+          } else {
+            router.replace('/profile');
+          }
+        } else {
+          router.replace('/profile');
+        }
+      } else {
+        Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
+      }
+    } catch (error: any) {
+      Alert.alert('Google Login Failed', error.message || 'Failed to sign in with Google');
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +176,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>241Runners</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+          <Text style={styles.subtitle}>{"Sign in"}</Text>
         </View>
 
         <View style={styles.form}>
@@ -204,8 +230,8 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.linkButton}>
-            <Text style={styles.linkText}>Forgot Password?</Text>
+          <TouchableOpacity style={styles.linkButton} onPress={() => Alert.alert('Forgot Password', 'Password reset functionality coming soon!')}>
+            <Text style={styles.linkText}>{"Forgot Password?"}</Text>
           </TouchableOpacity>
           
           <View style={styles.signupSection}>
@@ -214,15 +240,27 @@ export default function LoginScreen() {
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={styles.adminLinkButton} onPress={() => router.push('/admin-login')}>
+            <Text style={styles.adminLinkText}>Admin Login</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Apple Login Button */}
-        <View style={styles.appleSection}>
+        <View style={styles.oauthSection}>
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <Text style={styles.dividerText}>{"OR"}</Text>
             <View style={styles.dividerLine} />
           </View>
+
+          <TouchableOpacity
+            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.googleIcon}>🔵</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.appleButton, isLoading && styles.buttonDisabled]}
@@ -231,21 +269,6 @@ export default function LoginScreen() {
           >
             <Text style={styles.appleIcon}>🍎</Text>
             <Text style={styles.appleButtonText}>Continue with Apple</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Admin Login Button */}
-        <View style={styles.adminSection}>
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.adminButton} onPress={() => router.push('/admin-login')}>
-            <Text style={styles.adminIcon}>🔐</Text>
-            <Text style={styles.adminButtonText}>Admin Portal Access</Text>
-            <Text style={styles.adminSubtext}>Sign in as Administrator</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -265,20 +288,29 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: typography.sizes['3xl'],
+    fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: typography.sizes.lg,
-    color: colors.gray[400],
+    fontSize: typography.sizes.base,
+    color: colors.text,
+    opacity: 0.9,
   },
   form: {
     width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   inputContainer: {
     marginBottom: spacing.lg,
@@ -299,12 +331,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   button: {
-    backgroundColor: colors.trafficLight.green,
+    backgroundColor: colors.primary,
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
     marginTop: spacing.lg,
-    shadowColor: colors.trafficLight.green,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -324,7 +356,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: typography.sizes.sm,
-    color: colors.trafficLight.green,
+    color: colors.primary,
   },
   signupSection: {
     alignItems: 'center',
@@ -337,12 +369,17 @@ const styles = StyleSheet.create({
   },
   signupLink: {
     fontSize: typography.sizes.sm,
-    color: colors.trafficLight.green,
+    color: colors.primary,
     fontWeight: typography.weights.semibold,
   },
-  adminSection: {
-    marginTop: spacing.xl,
-    width: '100%',
+  adminLinkButton: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  adminLinkText: {
+    fontSize: typography.sizes.sm,
+    color: '#DC2626',
+    fontWeight: typography.weights.semibold,
   },
   divider: {
     flexDirection: 'row',
@@ -352,16 +389,42 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.gray[700],
+    backgroundColor: '#FFFFFF',
+    opacity: 0.3,
   },
   dividerText: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[400],
+    color: '#FFFFFF',
     marginHorizontal: spacing.md,
   },
-  appleSection: {
-    marginTop: spacing.lg,
+  oauthSection: {
+    marginTop: spacing.xl,
     width: '100%',
+  },
+  googleButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.md,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: spacing.md,
+  },
+  googleIcon: {
+    fontSize: typography.sizes.lg,
+    marginRight: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[900],
   },
   appleButton: {
     backgroundColor: '#000000',
@@ -385,32 +448,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
     color: colors.white,
-  },
-  adminButton: {
-    backgroundColor: colors.gray[800],
-    borderWidth: 2,
-    borderColor: colors.trafficLight.yellow,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    alignItems: 'center',
-    shadowColor: colors.trafficLight.yellow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  adminIcon: {
-    fontSize: typography.sizes['2xl'],
-    marginBottom: spacing.sm,
-  },
-  adminButtonText: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.trafficLight.yellow,
-    marginBottom: spacing.xs,
-  },
-  adminSubtext: {
-    fontSize: typography.sizes.sm,
-    color: colors.gray[400],
   },
 });

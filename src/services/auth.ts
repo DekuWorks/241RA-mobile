@@ -216,6 +216,26 @@ export class AuthService {
     }
   }
 
+  static async deleteAccount(): Promise<void> {
+    try {
+      console.log('[AUTH] Deleting user account...');
+      
+      // Call the backend to delete the account
+      await ApiClient.delete('/api/v1/auth/account');
+      
+      console.log('[AUTH] Account deletion successful');
+    } catch (error: any) {
+      console.error('[AUTH] Account deletion failed:', error);
+      
+      // If the backend endpoint doesn't exist yet, throw a more helpful error
+      if (error?.response?.status === 404) {
+        throw new Error('Account deletion is not yet available. Please contact support to delete your account.');
+      }
+      
+      throw error;
+    }
+  }
+
   static async getCurrentUser(): Promise<User | null> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
@@ -356,4 +376,5 @@ export class AuthService {
       }
     }
   }
+
 }

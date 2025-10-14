@@ -43,3 +43,5 @@ yarn-error.*
 
 # Allow GoogleService-Info.plist for Firebase
 !/ios/GoogleService-Info.plist
+build-*.apk
+build-*.aab

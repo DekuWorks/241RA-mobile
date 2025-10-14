@@ -11,8 +11,8 @@ export interface EnhancedRunnerProfile {
   dateOfBirth: string; // ISO date string (YYYY-MM-DD)
   age: number; // Calculated from dateOfBirth
   height: string; // e.g., "5'8\"" or "175cm"
-  weight: string; // e.g., "150 lbs" or "68 kg"
-  eyeColor: EyeColor;
+  weight: string; // Max 20 characters - e.g., "150 lbs" or "68 kg"
+  eyeColor: string; // Max 20 characters - matches backend string field
   medicalConditions: string[];
   additionalNotes: string;
   photos: EnhancedRunnerPhoto[];
@@ -44,25 +44,25 @@ export type EyeColor =
   | 'Other';
 
 export interface CreateEnhancedRunnerProfileData {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string; // YYYY-MM-DD format
-  height: string;
-  weight: string;
-  eyeColor: EyeColor;
-  medicalConditions: string[];
-  additionalNotes: string;
+  firstName: string; // Max 50 characters
+  lastName: string; // Max 50 characters
+  dateOfBirth: string; // YYYY-MM-DD format - matches backend DateTime
+  height: string; // Max 20 characters
+  weight: string; // Max 20 characters
+  eyeColor: string; // Max 20 characters - matches backend string field
+  medicalConditions: string[]; // List<string> - matches backend JSON array
+  additionalNotes: string; // Max 1000 characters
 }
 
 export interface UpdateEnhancedRunnerProfileData {
-  firstName?: string;
-  lastName?: string;
-  dateOfBirth?: string;
-  height?: string;
-  weight?: string;
-  eyeColor?: EyeColor;
-  medicalConditions?: string[];
-  additionalNotes?: string;
+  firstName?: string; // Max 50 characters
+  lastName?: string; // Max 50 characters
+  dateOfBirth?: string; // YYYY-MM-DD format
+  height?: string; // Max 20 characters
+  weight?: string; // Max 20 characters
+  eyeColor?: string; // Max 20 characters - matches backend string field
+  medicalConditions?: string[]; // List<string> - matches backend JSON array
+  additionalNotes?: string; // Max 1000 characters
 }
 
 export interface PhotoUploadResponse {
@@ -249,7 +249,7 @@ export interface ProcessedPhoto {
 }
 
 // Constants
-export const EYE_COLORS: EyeColor[] = [
+export const EYE_COLORS: string[] = [
   'Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'
 ];
 
