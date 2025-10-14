@@ -106,7 +106,7 @@ export default function PortalHub() {
       // Step 2: Load real portal stats from API
       console.log('[PORTAL] Step 2: Loading portal stats from API...');
       try {
-        const AdminService = await import('../../services/admin');
+        const { AdminService } = await import('../../services/admin');
         const portalStats = await AdminService.AdminService.getPortalStats();
         console.log('[PORTAL] Portal stats loaded:', portalStats);
         setStats(portalStats);

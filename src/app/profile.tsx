@@ -715,7 +715,10 @@ export default function ProfileScreen() {
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
-      <View style={styles.profileAvatar}>
+      <TouchableOpacity 
+        style={styles.profileAvatar}
+        onPress={handleImagePicker}
+      >
         {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
@@ -723,7 +726,10 @@ export default function ProfileScreen() {
             {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </Text>
         )}
-      </View>
+        <View style={styles.avatarOverlay}>
+          <Text style={styles.avatarOverlayText}>📷</Text>
+        </View>
+      </TouchableOpacity>
       <Text style={styles.profileName}>{user?.name || user?.email || 'User'}</Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
       <View style={styles.memberSinceContainer}>
@@ -924,7 +930,7 @@ export default function ProfileScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>🏃‍♂️ Runner Profile</Text>
-        {runnerProfile ? (
+        {runnerProfile && (
           <TouchableOpacity 
             style={styles.editButton}
             onPress={() => setIsEditingRunnerProfile(!isEditingRunnerProfile)}
@@ -932,13 +938,6 @@ export default function ProfileScreen() {
             <Text style={styles.editButtonText}>
               {isEditingRunnerProfile ? 'Cancel' : 'Edit'}
             </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={styles.createRunnerButton}
-            onPress={() => setShowCreateRunnerForm(true)}
-          >
-            <Text style={styles.createRunnerButtonText}>Create Runner Profile</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1151,6 +1150,12 @@ export default function ProfileScreen() {
           <Text style={styles.noProfileDescription}>
             Create a runner profile to help with identification in case of emergency.
           </Text>
+          <TouchableOpacity 
+            style={styles.createRunnerButtonCentered}
+            onPress={() => setShowCreateRunnerForm(true)}
+          >
+            <Text style={styles.createRunnerButtonText}>Create Runner Profile</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -1215,9 +1220,6 @@ export default function ProfileScreen() {
           </Text>
           <Text style={styles.notificationText}>
             Push: {notificationSettings.pushNotifications ? 'Enabled' : 'Disabled'}
-          </Text>
-          <Text style={styles.notificationText}>
-            Frequency: {notificationSettings.reminderFrequency}
           </Text>
         </View>
       )}
@@ -1439,7 +1441,6 @@ export default function ProfileScreen() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {renderProfileHeader()}
-          {renderProfileImageSection()}
           {renderPersonalInfoSection()}
           {renderAccountStatsSection()}
           {renderRunnerProfileSection()}
@@ -1699,6 +1700,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radii.lg,
   },
+  createRunnerButtonCentered: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    alignSelf: 'center',
+    marginTop: spacing.lg,
+  },
   createRunnerButtonText: {
     color: colors.white,
     fontSize: typography.sizes.base,
@@ -1827,6 +1836,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderWidth: 4,
     borderColor: colors.primary[100],
+    position: 'relative',
   },
   avatarText: {
     fontSize: 24,
@@ -2506,5 +2516,22 @@ const styles = StyleSheet.create({
   dangerText: {
     color: colors.error[600],
     fontWeight: typography.weights.medium,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.primary[600],
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  avatarOverlayText: {
+    fontSize: 12,
+    color: colors.white,
   },
 });
