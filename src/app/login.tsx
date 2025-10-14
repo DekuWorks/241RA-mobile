@@ -50,20 +50,24 @@ export default function LoginScreen() {
         console.log('[LOGIN] Full user object:', response.user);
         
         if (response.user) {
-          const userRole = response.user.role?.toLowerCase();
-          console.log('[LOGIN] Normalized user role:', userRole);
+          console.log('[LOGIN] User data:', {
+            role: response.user.role,
+            allRoles: response.user.allRoles,
+            primaryUserRole: response.user.primaryUserRole,
+            isAdminUser: response.user.isAdminUser
+          });
           
-          if (
-            userRole === 'admin' || 
-            userRole === 'moderator' || 
-            userRole === 'super_admin'
-          ) {
-            console.log('[LOGIN] Redirecting to admin portal');
-            router.replace('/portal');
-          } else {
-            console.log('[LOGIN] Redirecting to user profile');
-            router.replace('/profile');
-          }
+          // Check if user has admin privileges using dual role system
+          const hasAdminRole = response.user.isAdminUser || 
+            response.user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role.toLowerCase())) ||
+            ['admin', 'moderator', 'super_admin'].includes(response.user.role?.toLowerCase());
+          
+          console.log('[LOGIN] Has admin role:', hasAdminRole);
+          
+          // For regular login, always go to profile first
+          // Users can access admin portal through the profile screen if they have admin privileges
+          console.log('[LOGIN] Redirecting to user profile');
+          router.replace('/profile');
         } else {
           console.log('[LOGIN] No user data, redirecting to profile');
           router.replace('/profile');
