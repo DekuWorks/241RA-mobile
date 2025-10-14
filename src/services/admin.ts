@@ -8,6 +8,7 @@ export interface AdminUser {
   firstName: string;
   lastName: string;
   role: 'admin' | 'moderator' | 'super_admin';
+  additionalRoles?: string[];
   isActive: boolean;
   createdAt: string;
   lastLoginAt?: string;
@@ -24,6 +25,7 @@ export interface AdminProfile {
   firstName: string;
   lastName: string;
   role: 'admin' | 'moderator' | 'super_admin';
+  additionalRoles?: string[];
   isActive: boolean;
   permissions: string[];
   createdAt: string;

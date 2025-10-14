@@ -109,18 +109,26 @@ export default function AdminLoginScreen() {
         console.log('Current user data:', user);
         console.log('User role check:', {
           role: user?.role,
+          allRoles: user?.allRoles,
+          primaryUserRole: user?.primaryUserRole,
+          isAdminUser: user?.isAdminUser,
           isAdmin: user?.role === 'admin',
           isModerator: user?.role === 'moderator',
           isSuperAdmin: user?.role === 'super_admin',
+          hasAdminRole: user?.isAdminUser || user?.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)),
           hasAccess:
             user &&
-            (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'),
+            (user.isAdminUser || 
+             user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
+             (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin')),
         });
 
-        if (
-          user &&
-          (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin')
-        ) {
+        const hasAdminAccess = user && 
+          (user.isAdminUser || 
+           user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
+           (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'));
+
+        if (hasAdminAccess) {
           console.log('Admin role verified, storing user data and navigating to portal...');
 
           try {
@@ -133,9 +141,13 @@ export default function AdminLoginScreen() {
             const testUserData = await UserDataService.getUserData();
             console.log('Retrieved user data test:', testUserData);
 
+            const displayRole = user.primaryUserRole || user.role || 'User';
+            const adminRoles = user.allRoles?.filter((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) || [];
+            const roleText = adminRoles.length > 0 ? `${displayRole} (Admin)` : displayRole;
+            
             Alert.alert(
               'Admin Access Granted',
-              `Welcome, ${user.name || user.email}! You have ${user.role} privileges.\n\nPortal access verified.`,
+              `Welcome, ${user.name || user.email}! You have ${roleText} privileges.\n\nPortal access verified.`,
               [
                 {
                   text: 'Enter Portal',

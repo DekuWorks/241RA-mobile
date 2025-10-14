@@ -728,6 +728,17 @@ export default function ProfileScreen() {
       </TouchableOpacity>
       <Text style={styles.profileName}>{user?.name || user?.email || 'User'}</Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
+      
+      {/* Role Display - Show primary user role without admin indicators */}
+      <View style={styles.roleContainer}>
+        <Text style={styles.roleLabel}>ROLE</Text>
+        <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user?.primaryUserRole || user?.role || 'user') }]}>
+          <Text style={styles.roleText}>
+            {user?.primaryUserRole || user?.role || 'User'}
+          </Text>
+        </View>
+      </View>
+      
       <View style={styles.memberSinceContainer}>
         <Text style={styles.memberSinceLabel}>MEMBER SINCE</Text>
         <Text style={styles.memberSinceValue}>Unknown</Text>
@@ -1291,8 +1302,8 @@ export default function ProfileScreen() {
   );
 
   const renderAdminSection = () => {
-    // Only show admin section if user has admin role
-    if (!user || (user?.role !== 'admin' && user?.role !== 'moderator')) {
+    // Show admin section if user has admin roles or is an admin user
+    if (!user || (!user.isAdminUser && !user.allRoles?.some(role => ['admin', 'moderator', 'super_admin'].includes(role)))) {
       return null;
     }
 
@@ -2514,5 +2525,27 @@ const styles = StyleSheet.create({
   avatarOverlayText: {
     fontSize: 12,
     color: colors.white,
+  },
+  roleContainer: {
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  roleLabel: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[500],
+    fontWeight: typography.weights.medium,
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  roleBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+  },
+  roleText: {
+    fontSize: typography.sizes.sm,
+    color: colors.white,
+    fontWeight: typography.weights.medium,
   },
 });

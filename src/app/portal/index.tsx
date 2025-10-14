@@ -88,8 +88,12 @@ export default function PortalHub() {
           return;
         }
 
-        // Verify user has admin privileges
-        if (!userData.role || !['admin', 'moderator', 'super_admin'].includes(userData.role)) {
+        // Verify user has admin privileges (check dual roles)
+        const hasAdminRole = userData.isAdminUser || 
+          userData.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
+          ['admin', 'moderator', 'super_admin'].includes(userData.role);
+        
+        if (!hasAdminRole) {
           console.log('[PORTAL] User does not have admin privileges, redirecting to login...');
           router.replace('/admin-login');
           return;

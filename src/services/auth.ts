@@ -25,6 +25,9 @@ export interface User {
   email: string;
   name?: string;
   role: string;
+  allRoles: string[];
+  primaryUserRole: string;
+  isAdminUser: boolean;
   isEmailVerified: boolean;
   twoFactorEnabled: boolean;
 }
@@ -61,6 +64,9 @@ export class AuthService {
     console.log('[AUTH] Login response data:', data);
     console.log('[AUTH] User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
     console.log('[AUTH] User role:', data.user?.role);
+    console.log('[AUTH] User allRoles:', data.user?.allRoles);
+    console.log('[AUTH] User primaryUserRole:', data.user?.primaryUserRole);
+    console.log('[AUTH] User isAdminUser:', data.user?.isAdminUser);
     console.log('[AUTH] Has access token:', !!data.accessToken);
 
     if (data.accessToken) {
@@ -239,7 +245,17 @@ export class AuthService {
   static async getCurrentUser(): Promise<User | null> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
-      return data;
+      
+      // Ensure dual role fields are properly set with defaults if not present
+      const userData: User = {
+        ...data,
+        allRoles: data.allRoles || [data.role || 'user'],
+        primaryUserRole: data.primaryUserRole || data.role || 'user',
+        isAdminUser: data.isAdminUser || false,
+      };
+      
+      console.log('[AUTH] Current user data:', userData);
+      return userData;
     } catch (error: any) {
       console.error('Failed to get current user:', error);
       
@@ -353,8 +369,13 @@ export class AuthService {
         }
       }
 
-      // Subscribe to default topics based on user role
-      if (user?.role) {
+      // Subscribe to default topics based on user roles
+      if (user?.allRoles && user.allRoles.length > 0) {
+        // Subscribe to topics for all user roles
+        for (const role of user.allRoles) {
+          await TopicService.subscribeToDefaultTopics(role);
+        }
+      } else if (user?.role) {
         await TopicService.subscribeToDefaultTopics(user.role);
       } else {
         await TopicService.subscribeToDefaultTopics();
