@@ -10,6 +10,7 @@ API (shared with web): https://241runners-api-v2.azurewebsites.net/swagger/index
 - **Platforms:** iOS (App Store), Android (Google Play)
 - **Backend:** Azure App Service (.NET 8 Web API) — same DB & users as the static site
 - **Auth:** Email/Password, Google OAuth, 2FA (TOTP + backup codes)
+- **Dual Role System:** Supports users with multiple roles (e.g., Runner + Admin)
 
 ## Environment Configuration
 
@@ -77,6 +78,20 @@ npm run clean         # Clear Expo cache
 - **Error Handling:** Production errors redacted, sensitive data filtered
 - **TLS:** All API communication encrypted
 - **Observability:** Sentry integration for production error tracking
+
+## Cross-Platform Integration
+
+The mobile app is fully integrated with the main repository backend and supports the dual role system:
+
+- **[🔗 Cross-Platform Integration Summary](docs/CROSS_PLATFORM_INTEGRATION_SUMMARY.md)** - Complete dual role system implementation
+- **[🔧 Integration with Main Repo](docs/INTEGRATION_WITH_MAIN_REPO.md)** - Backend integration details
+- **Test Credentials**: `lthomas3350@gmail.com` / `Lisa2025!` (works for both user and admin flows)
+
+### Dual Role System Features
+- **Multiple Roles**: Users can have both regular and admin roles
+- **Seamless Access**: Same credentials work across web and mobile platforms
+- **Clean UX**: Role information displayed appropriately for each context
+- **Admin Portal**: Dual-role users can access admin functionality
 
 ## Documentation
 
