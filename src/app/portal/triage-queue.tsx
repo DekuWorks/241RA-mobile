@@ -46,7 +46,7 @@ export default function TriageQueueScreen() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
-  
+
   const [stats, setStats] = useState<TriageStats>({
     totalCases: 0,
     newCases: 0,
@@ -79,7 +79,8 @@ export default function TriageQueueScreen() {
         {
           id: '1',
           title: 'Missing Person - Sarah Johnson',
-          description: '24-year-old female last seen at Central Park on Tuesday evening. Family is concerned.',
+          description:
+            '24-year-old female last seen at Central Park on Tuesday evening. Family is concerned.',
           priority: 'urgent',
           status: 'new',
           category: 'missing_person',
@@ -95,7 +96,8 @@ export default function TriageQueueScreen() {
         {
           id: '2',
           title: 'Suspicious Activity Report',
-          description: 'Unusual behavior reported near downtown area. Person matching description from previous case.',
+          description:
+            'Unusual behavior reported near downtown area. Person matching description from previous case.',
           priority: 'high',
           status: 'in_progress',
           category: 'sighting',
@@ -128,7 +130,8 @@ export default function TriageQueueScreen() {
         {
           id: '4',
           title: 'Emergency Missing Person',
-          description: 'Child reported missing from school playground. Immediate attention required.',
+          description:
+            'Child reported missing from school playground. Immediate attention required.',
           priority: 'urgent',
           status: 'new',
           category: 'emergency',
@@ -144,7 +147,8 @@ export default function TriageQueueScreen() {
         {
           id: '5',
           title: 'Follow-up Required',
-          description: 'Previous case requires follow-up investigation. Evidence has been collected.',
+          description:
+            'Previous case requires follow-up investigation. Evidence has been collected.',
           priority: 'medium',
           status: 'pending',
           category: 'missing_person',
@@ -207,9 +211,9 @@ export default function TriageQueueScreen() {
     filtered.sort((a, b) => {
       const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-      
+
       if (priorityDiff !== 0) return priorityDiff;
-      
+
       // If same priority, sort by time remaining (overdue first)
       return a.timeRemaining - b.timeRemaining;
     });
@@ -244,21 +248,31 @@ export default function TriageQueueScreen() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return colors.error;
-      case 'high': return colors.warning[600];
-      case 'medium': return colors.info[600];
-      case 'low': return colors.success[600];
-      default: return colors.gray[500];
+      case 'urgent':
+        return colors.error;
+      case 'high':
+        return colors.warning[600];
+      case 'medium':
+        return colors.info[600];
+      case 'low':
+        return colors.success[600];
+      default:
+        return colors.gray[500];
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new': return colors.info[600];
-      case 'in_progress': return colors.warning[600];
-      case 'pending': return colors.gray[600];
-      case 'resolved': return colors.success[600];
-      default: return colors.gray[500];
+      case 'new':
+        return colors.info[600];
+      case 'in_progress':
+        return colors.warning[600];
+      case 'pending':
+        return colors.gray[600];
+      case 'resolved':
+        return colors.success[600];
+      default:
+        return colors.gray[500];
     }
   };
 
@@ -378,37 +392,112 @@ export default function TriageQueueScreen() {
       {/* Filters */}
       <View style={styles.filtersSection}>
         <Text style={styles.sectionTitle}>Filters</Text>
-        
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <View style={styles.filtersRow}>
             <Text style={styles.filterLabel}>Priority:</Text>
-            <FilterButton title="All" value="" onPress={setSelectedPriority} isSelected={selectedPriority === ''} />
-            <FilterButton title="Urgent" value="urgent" onPress={setSelectedPriority} isSelected={selectedPriority === 'urgent'} />
-            <FilterButton title="High" value="high" onPress={setSelectedPriority} isSelected={selectedPriority === 'high'} />
-            <FilterButton title="Medium" value="medium" onPress={setSelectedPriority} isSelected={selectedPriority === 'medium'} />
-            <FilterButton title="Low" value="low" onPress={setSelectedPriority} isSelected={selectedPriority === 'low'} />
+            <FilterButton
+              title="All"
+              value=""
+              onPress={setSelectedPriority}
+              isSelected={selectedPriority === ''}
+            />
+            <FilterButton
+              title="Urgent"
+              value="urgent"
+              onPress={setSelectedPriority}
+              isSelected={selectedPriority === 'urgent'}
+            />
+            <FilterButton
+              title="High"
+              value="high"
+              onPress={setSelectedPriority}
+              isSelected={selectedPriority === 'high'}
+            />
+            <FilterButton
+              title="Medium"
+              value="medium"
+              onPress={setSelectedPriority}
+              isSelected={selectedPriority === 'medium'}
+            />
+            <FilterButton
+              title="Low"
+              value="low"
+              onPress={setSelectedPriority}
+              isSelected={selectedPriority === 'low'}
+            />
           </View>
         </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <View style={styles.filtersRow}>
             <Text style={styles.filterLabel}>Status:</Text>
-            <FilterButton title="All" value="" onPress={setSelectedStatus} isSelected={selectedStatus === ''} />
-            <FilterButton title="New" value="new" onPress={setSelectedStatus} isSelected={selectedStatus === 'new'} />
-            <FilterButton title="In Progress" value="in_progress" onPress={setSelectedStatus} isSelected={selectedStatus === 'in_progress'} />
-            <FilterButton title="Pending" value="pending" onPress={setSelectedStatus} isSelected={selectedStatus === 'pending'} />
-            <FilterButton title="Resolved" value="resolved" onPress={setSelectedStatus} isSelected={selectedStatus === 'resolved'} />
+            <FilterButton
+              title="All"
+              value=""
+              onPress={setSelectedStatus}
+              isSelected={selectedStatus === ''}
+            />
+            <FilterButton
+              title="New"
+              value="new"
+              onPress={setSelectedStatus}
+              isSelected={selectedStatus === 'new'}
+            />
+            <FilterButton
+              title="In Progress"
+              value="in_progress"
+              onPress={setSelectedStatus}
+              isSelected={selectedStatus === 'in_progress'}
+            />
+            <FilterButton
+              title="Pending"
+              value="pending"
+              onPress={setSelectedStatus}
+              isSelected={selectedStatus === 'pending'}
+            />
+            <FilterButton
+              title="Resolved"
+              value="resolved"
+              onPress={setSelectedStatus}
+              isSelected={selectedStatus === 'resolved'}
+            />
           </View>
         </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <View style={styles.filtersRow}>
             <Text style={styles.filterLabel}>Category:</Text>
-            <FilterButton title="All" value="" onPress={setSelectedCategory} isSelected={selectedCategory === ''} />
-            <FilterButton title="Missing Person" value="missing_person" onPress={setSelectedCategory} isSelected={selectedCategory === 'missing_person'} />
-            <FilterButton title="Sighting" value="sighting" onPress={setSelectedCategory} isSelected={selectedCategory === 'sighting'} />
-            <FilterButton title="Emergency" value="emergency" onPress={setSelectedCategory} isSelected={selectedCategory === 'emergency'} />
-            <FilterButton title="Information" value="information" onPress={setSelectedCategory} isSelected={selectedCategory === 'information'} />
+            <FilterButton
+              title="All"
+              value=""
+              onPress={setSelectedCategory}
+              isSelected={selectedCategory === ''}
+            />
+            <FilterButton
+              title="Missing Person"
+              value="missing_person"
+              onPress={setSelectedCategory}
+              isSelected={selectedCategory === 'missing_person'}
+            />
+            <FilterButton
+              title="Sighting"
+              value="sighting"
+              onPress={setSelectedCategory}
+              isSelected={selectedCategory === 'sighting'}
+            />
+            <FilterButton
+              title="Emergency"
+              value="emergency"
+              onPress={setSelectedCategory}
+              isSelected={selectedCategory === 'emergency'}
+            />
+            <FilterButton
+              title="Information"
+              value="information"
+              onPress={setSelectedCategory}
+              isSelected={selectedCategory === 'information'}
+            />
           </View>
         </ScrollView>
 
@@ -416,7 +505,9 @@ export default function TriageQueueScreen() {
           style={[styles.overdueToggle, showOverdueOnly && styles.overdueToggleActive]}
           onPress={() => setShowOverdueOnly(!showOverdueOnly)}
         >
-          <Text style={[styles.overdueToggleText, showOverdueOnly && styles.overdueToggleTextActive]}>
+          <Text
+            style={[styles.overdueToggleText, showOverdueOnly && styles.overdueToggleTextActive]}
+          >
             {showOverdueOnly ? '🔴 Showing Overdue Only' : '⏰ Show Overdue Only'}
           </Text>
         </TouchableOpacity>
@@ -424,17 +515,12 @@ export default function TriageQueueScreen() {
 
       {/* Cases List */}
       <View style={styles.casesSection}>
-        <Text style={styles.sectionTitle}>
-          Cases ({filteredCases.length})
-        </Text>
-        
+        <Text style={styles.sectionTitle}>Cases ({filteredCases.length})</Text>
+
         {filteredCases.map(caseItem => (
           <TouchableOpacity
             key={caseItem.id}
-            style={[
-              styles.caseCard,
-              caseItem.timeRemaining < 0 && styles.overdueCaseCard
-            ]}
+            style={[styles.caseCard, caseItem.timeRemaining < 0 && styles.overdueCaseCard]}
             onPress={() => {
               setSelectedCase(caseItem);
               setShowCaseModal(true);
@@ -444,15 +530,27 @@ export default function TriageQueueScreen() {
               <View style={styles.caseTitleRow}>
                 <Text style={styles.caseTitle}>{caseItem.title}</Text>
                 <View style={styles.caseBadges}>
-                  <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(caseItem.priority) }]}>
+                  <View
+                    style={[
+                      styles.priorityBadge,
+                      { backgroundColor: getPriorityColor(caseItem.priority) },
+                    ]}
+                  >
                     <Text style={styles.priorityBadgeText}>{caseItem.priority.toUpperCase()}</Text>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(caseItem.status) }]}>
-                    <Text style={styles.statusBadgeText}>{caseItem.status.replace('_', ' ').toUpperCase()}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(caseItem.status) },
+                    ]}
+                  >
+                    <Text style={styles.statusBadgeText}>
+                      {caseItem.status.replace('_', ' ').toUpperCase()}
+                    </Text>
                   </View>
                 </View>
               </View>
-              
+
               <Text style={styles.caseDescription} numberOfLines={2}>
                 {caseItem.description}
               </Text>
@@ -463,7 +561,7 @@ export default function TriageQueueScreen() {
                 <Text style={styles.caseMetaLabel}>📍 {caseItem.location}</Text>
                 <Text style={styles.caseMetaLabel}>👤 {caseItem.reporter}</Text>
               </View>
-              
+
               <View style={styles.caseMetaRow}>
                 <Text style={styles.caseMetaLabel}>
                   ⏰ {formatTimeRemaining(caseItem.timeRemaining)}
@@ -481,14 +579,14 @@ export default function TriageQueueScreen() {
               >
                 <Text style={styles.caseActionButtonText}>👮 Assign</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.caseActionButton}
                 onPress={() => handleCaseAction(caseItem.id, 'prioritize')}
               >
                 <Text style={styles.caseActionButtonText}>⚡ Prioritize</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.caseActionButton}
                 onPress={() => handleCaseAction(caseItem.id, 'resolve')}
@@ -513,20 +611,24 @@ export default function TriageQueueScreen() {
             {selectedCase && (
               <>
                 <Text style={styles.modalTitle}>{selectedCase.title}</Text>
-                
+
                 <Text style={styles.modalSectionTitle}>Description</Text>
                 <Text style={styles.modalText}>{selectedCase.description}</Text>
-                
+
                 <Text style={styles.modalSectionTitle}>Details</Text>
                 <Text style={styles.modalText}>📍 Location: {selectedCase.location}</Text>
                 <Text style={styles.modalText}>👤 Reporter: {selectedCase.reporter}</Text>
-                <Text style={styles.modalText}>🏷️ Category: {selectedCase.category.replace('_', ' ')}</Text>
-                <Text style={styles.modalText}>⏰ Time Remaining: {formatTimeRemaining(selectedCase.timeRemaining)}</Text>
-                
+                <Text style={styles.modalText}>
+                  🏷️ Category: {selectedCase.category.replace('_', ' ')}
+                </Text>
+                <Text style={styles.modalText}>
+                  ⏰ Time Remaining: {formatTimeRemaining(selectedCase.timeRemaining)}
+                </Text>
+
                 {selectedCase.assignedTo && (
                   <Text style={styles.modalText}>👮 Assigned To: {selectedCase.assignedTo}</Text>
                 )}
-                
+
                 {selectedCase.tags.length > 0 && (
                   <>
                     <Text style={styles.modalSectionTitle}>Tags</Text>
@@ -539,12 +641,14 @@ export default function TriageQueueScreen() {
                     </View>
                   </>
                 )}
-                
+
                 {selectedCase.notes.length > 0 && (
                   <>
                     <Text style={styles.modalSectionTitle}>Notes</Text>
                     {selectedCase.notes.map((note, index) => (
-                      <Text key={index} style={styles.modalText}>• {note}</Text>
+                      <Text key={index} style={styles.modalText}>
+                        • {note}
+                      </Text>
                     ))}
                   </>
                 )}

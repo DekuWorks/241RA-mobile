@@ -34,14 +34,7 @@ export interface EnhancedRunnerPhoto {
   isPrimary: boolean; // Main profile photo
 }
 
-export type EyeColor = 
-  | 'Brown'
-  | 'Blue' 
-  | 'Green'
-  | 'Hazel'
-  | 'Gray'
-  | 'Amber'
-  | 'Other';
+export type EyeColor = 'Brown' | 'Blue' | 'Green' | 'Hazel' | 'Gray' | 'Amber' | 'Other';
 
 export interface CreateEnhancedRunnerProfileData {
   firstName: string; // Max 50 characters
@@ -249,19 +242,19 @@ export interface ProcessedPhoto {
 }
 
 // Constants
-export const EYE_COLORS: string[] = [
-  'Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'
-];
+export const EYE_COLORS: string[] = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'];
 
 export const REMINDER_FREQUENCIES: NotificationSettings['reminderFrequency'][] = [
-  'daily', 'weekly', 'monthly'
+  'daily',
+  'weekly',
+  'monthly',
 ];
 
 export const DEFAULT_PHOTO_OPTIONS: PhotoUploadOptions = {
   maxPhotos: 10,
   maxFileSize: 10 * 1024 * 1024, // 10MB
   allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  quality: 0.8
+  quality: 0.8,
 };
 
 export const PHOTO_UPDATE_THRESHOLD_DAYS = 180; // 6 months

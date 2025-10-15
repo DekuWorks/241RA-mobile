@@ -9,7 +9,7 @@ export class ValidationUtils {
    */
   static validateEmail(email: string): ValidationResult {
     const errors: string[] = [];
-    
+
     if (!email || email.trim().length === 0) {
       errors.push('Email is required');
       return { isValid: false, errors };
@@ -26,7 +26,7 @@ export class ValidationUtils {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -35,7 +35,7 @@ export class ValidationUtils {
    */
   static validatePhoneNumber(phoneNumber: string): ValidationResult {
     const errors: string[] = [];
-    
+
     if (!phoneNumber || phoneNumber.trim().length === 0) {
       errors.push('Phone number is required');
       return { isValid: false, errors };
@@ -43,18 +43,18 @@ export class ValidationUtils {
 
     // Remove all non-digit characters for validation
     const digitsOnly = phoneNumber.replace(/\D/g, '');
-    
+
     if (digitsOnly.length < 10) {
       errors.push('Phone number must be at least 10 digits');
     }
-    
+
     if (digitsOnly.length > 15) {
       errors.push('Phone number is too long');
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -63,7 +63,7 @@ export class ValidationUtils {
    */
   static validateName(name: string, fieldName: string = 'Name'): ValidationResult {
     const errors: string[] = [];
-    
+
     if (!name || name.trim().length === 0) {
       errors.push(`${fieldName} is required`);
       return { isValid: false, errors };
@@ -85,7 +85,7 @@ export class ValidationUtils {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -126,7 +126,7 @@ export class ValidationUtils {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -170,7 +170,7 @@ export class ValidationUtils {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -179,13 +179,13 @@ export class ValidationUtils {
    */
   static formatPhoneNumber(phoneNumber: string): string {
     const digitsOnly = phoneNumber.replace(/\D/g, '');
-    
+
     if (digitsOnly.length === 10) {
       return `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(3, 6)}-${digitsOnly.slice(6)}`;
     } else if (digitsOnly.length === 11 && digitsOnly[0] === '1') {
       return `+1 (${digitsOnly.slice(1, 4)}) ${digitsOnly.slice(4, 7)}-${digitsOnly.slice(7)}`;
     }
-    
+
     return phoneNumber; // Return original if not standard format
   }
 

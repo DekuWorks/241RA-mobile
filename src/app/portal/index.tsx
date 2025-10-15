@@ -17,7 +17,13 @@ interface SimpleCardProps {
   icon?: string;
 }
 
-const SimpleCard: React.FC<SimpleCardProps> = ({ title, value, subtitle, color = colors.gray[600], icon }) => (
+const SimpleCard: React.FC<SimpleCardProps> = ({
+  title,
+  value,
+  subtitle,
+  color = colors.gray[600],
+  icon,
+}) => (
   <View style={[styles.simpleCard, { borderLeftColor: color }]}>
     <View style={styles.simpleCardHeader}>
       {icon && <Text style={styles.simpleCardIcon}>{icon}</Text>}
@@ -89,10 +95,13 @@ export default function PortalHub() {
         }
 
         // Verify user has admin privileges (check dual roles)
-        const hasAdminRole = userData.isAdminUser || 
-          userData.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
+        const hasAdminRole =
+          userData.isAdminUser ||
+          userData.allRoles?.some((role: string) =>
+            ['admin', 'moderator', 'super_admin'].includes(role)
+          ) ||
           ['admin', 'moderator', 'super_admin'].includes(userData.role);
-        
+
         if (!hasAdminRole) {
           console.log('[PORTAL] User does not have admin privileges, redirecting to login...');
           router.replace('/admin-login');
@@ -162,7 +171,7 @@ export default function PortalHub() {
             await AuthService.logout();
             await UserDataService.clearUserData();
             await NotificationService.unregisterDevice();
-            
+
             // Navigate to login and clear the navigation stack
             router.dismissAll();
             router.replace('/login');
@@ -261,59 +270,91 @@ export default function PortalHub() {
             />
             <SimpleCard
               title="System Health"
-              value={stats?.systemHealth === 'healthy' ? '100%' : stats?.systemHealth === 'warning' ? '75%' : '25%'}
+              value={
+                stats?.systemHealth === 'healthy'
+                  ? '100%'
+                  : stats?.systemHealth === 'warning'
+                    ? '75%'
+                    : '25%'
+              }
               subtitle="Uptime"
-              color={stats?.systemHealth === 'healthy' ? colors.success[600] : stats?.systemHealth === 'warning' ? colors.warning[600] : colors.error}
+              color={
+                stats?.systemHealth === 'healthy'
+                  ? colors.success[600]
+                  : stats?.systemHealth === 'warning'
+                    ? colors.warning[600]
+                    : colors.error
+              }
               icon="💚"
             />
           </View>
         </View>
 
-      {/* Simple Modules */}
-      <View style={styles.modulesSection}>
-        <Text style={styles.sectionTitle}>Portal Modules</Text>
+        {/* Simple Modules */}
+        <View style={styles.modulesSection}>
+          <Text style={styles.sectionTitle}>Portal Modules</Text>
 
-        <TouchableOpacity
-          style={styles.moduleCard}
-          onPress={() => router.push('/portal/dashboard')}
-        >
-          <Text style={styles.moduleTitle}>📊 Dashboard</Text>
-          <Text style={styles.moduleDescription}>Overview of all system activities</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/dashboard')}
+          >
+            <Text style={styles.moduleTitle}>📊 Dashboard</Text>
+            <Text style={styles.moduleDescription}>Overview of all system activities</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/users')}>
-          <Text style={styles.moduleTitle}>👥 User Management</Text>
-          <Text style={styles.moduleDescription}>Manage users, roles, and permissions</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/users')}>
+            <Text style={styles.moduleTitle}>👥 User Management</Text>
+            <Text style={styles.moduleDescription}>Manage users, roles, and permissions</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.moduleCard}
-          onPress={() => router.push('/portal/analytics')}
-        >
-          <Text style={styles.moduleTitle}>Analytics & Reports</Text>
-          <Text style={styles.moduleDescription}>View detailed analytics and generate reports</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/analytics')}
+          >
+            <Text style={styles.moduleTitle}>Analytics & Reports</Text>
+            <Text style={styles.moduleDescription}>
+              View detailed analytics and generate reports
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/settings')}>
-          <Text style={styles.moduleTitle}>⚙️ Portal Settings</Text>
-          <Text style={styles.moduleDescription}>Configure portal settings and preferences</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/settings')}
+          >
+            <Text style={styles.moduleTitle}>⚙️ Portal Settings</Text>
+            <Text style={styles.moduleDescription}>Configure portal settings and preferences</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/monitoring')}>
-          <Text style={styles.moduleTitle}>🔍 System Monitoring</Text>
-          <Text style={styles.moduleDescription}>Real-time system health and admin activity tracking</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/monitoring')}
+          >
+            <Text style={styles.moduleTitle}>🔍 System Monitoring</Text>
+            <Text style={styles.moduleDescription}>
+              Real-time system health and admin activity tracking
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/sla-config')}>
-          <Text style={styles.moduleTitle}>⏰ SLA Configuration</Text>
-          <Text style={styles.moduleDescription}>Configure service level agreements and case timeframes</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/sla-config')}
+          >
+            <Text style={styles.moduleTitle}>⏰ SLA Configuration</Text>
+            <Text style={styles.moduleDescription}>
+              Configure service level agreements and case timeframes
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moduleCard} onPress={() => router.push('/portal/triage-queue')}>
-          <Text style={styles.moduleTitle}>🚨 Triage Queue</Text>
-          <Text style={styles.moduleDescription}>Prioritize and manage cases based on urgency and SLA</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.moduleCard}
+            onPress={() => router.push('/portal/triage-queue')}
+          >
+            <Text style={styles.moduleTitle}>🚨 Triage Queue</Text>
+            <Text style={styles.moduleDescription}>
+              Prioritize and manage cases based on urgency and SLA
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -49,18 +49,19 @@ export default function DashboardScreen() {
         totalCases: dashboardStats?.totalCases || portalStats?.totalCases || 0,
         activeCases: dashboardStats?.activeCases || portalStats?.activeCases || 0,
         resolvedCases: dashboardStats?.resolvedCases || 0,
-        
+
         // Users data
         totalUsers: portalStats?.totalUsers || dashboardStats?.totalUsers || 0,
         activeUsers: portalStats?.totalUsers || dashboardStats?.totalUsers || 0,
         adminUsers: portalStats?.activeAdmins || systemMetrics?.adminUsers || 6,
         totalRunners: portalStats?.totalRunners || 5,
-        
+
         // System health
         systemHealth: portalStats?.systemHealth || systemMetrics?.systemHealth || 'healthy',
         uptime: systemMetrics?.uptime || 99.8,
-        lastBackup: portalStats?.lastBackup || systemMetrics?.lastBackup || new Date().toISOString(),
-        
+        lastBackup:
+          portalStats?.lastBackup || systemMetrics?.lastBackup || new Date().toISOString(),
+
         // Performance metrics
         databaseSize: systemMetrics?.databaseSize || '3.2 GB',
         apiResponseTime: systemMetrics?.apiResponseTime || 127,
@@ -75,7 +76,7 @@ export default function DashboardScreen() {
       console.log('[DASHBOARD] Dashboard data loaded successfully');
     } catch (error: any) {
       console.error('[DASHBOARD] Failed to load dashboard data:', error);
-      
+
       // Fallback to basic data if all APIs fail
       setActivities([]);
       setMetrics({
@@ -95,7 +96,7 @@ export default function DashboardScreen() {
         memoryUsage: 72,
         cpuUsage: 38,
       });
-      
+
       Alert.alert('Warning', 'Some dashboard data could not be loaded. Using cached data.');
     } finally {
       setLoading(false);
@@ -301,7 +302,9 @@ export default function DashboardScreen() {
           />
           <SimpleCard
             title="Last Backup"
-            value={metrics?.lastBackup ? new Date(metrics.lastBackup).toLocaleDateString() : 'Never'}
+            value={
+              metrics?.lastBackup ? new Date(metrics.lastBackup).toLocaleDateString() : 'Never'
+            }
             subtitle={metrics?.lastBackup ? new Date(metrics.lastBackup).toLocaleTimeString() : ''}
             color={colors.primary[600]}
             icon="💾"

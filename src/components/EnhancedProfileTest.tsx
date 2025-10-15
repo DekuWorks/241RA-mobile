@@ -19,7 +19,7 @@ export const EnhancedProfileTest: React.FC = () => {
   const runTests = async () => {
     setIsRunning(true);
     setTestResults([]);
-    
+
     try {
       // Test 1: Check if runner profile exists
       addTestResult('🧪 Testing runner profile existence check...');
@@ -56,7 +56,6 @@ export const EnhancedProfileTest: React.FC = () => {
       addTestResult(`✅ Photo update needed: ${needsUpdate ? 'Yes' : 'No'}`);
 
       addTestResult('🎉 All tests completed successfully!');
-      
     } catch (error: any) {
       addTestResult(`❌ Test failed: ${error.message}`);
       console.error('Test error:', error);
@@ -75,7 +74,7 @@ export const EnhancedProfileTest: React.FC = () => {
       <Text style={styles.description}>
         This component tests the enhanced runner profile system integration.
       </Text>
-      
+
       <TouchableOpacity
         style={[styles.testButton, isRunning && styles.testButtonDisabled]}
         onPress={runTests}

@@ -30,7 +30,7 @@ export class AndroidNotificationService {
       console.log('Android notification permission status:', authStatus);
       logEvent('android_notification_permission_requested', {
         status: authStatus,
-        enabled: enabled
+        enabled: enabled,
       });
 
       return enabled;
@@ -51,7 +51,7 @@ export class AndroidNotificationService {
       const token = await messaging().getToken();
       console.log('Android FCM token:', token ? `${token.substring(0, 20)}...` : 'null');
       logEvent('android_fcm_token_retrieved', {
-        tokenLength: token?.length || 0
+        tokenLength: token?.length || 0,
       });
       return token;
     } catch (error) {
@@ -72,7 +72,7 @@ export class AndroidNotificationService {
         console.log('Android: Foreground message received:', remoteMessage);
         logEvent('android_foreground_message_received', {
           messageId: remoteMessage.messageId,
-          from: remoteMessage.from
+          from: remoteMessage.from,
         });
 
         // Android-specific foreground notification handling
@@ -95,7 +95,7 @@ export class AndroidNotificationService {
         console.log('Android: Background message received:', remoteMessage);
         logEvent('android_background_message_received', {
           messageId: remoteMessage.messageId,
-          from: remoteMessage.from
+          from: remoteMessage.from,
         });
 
         // Android-specific background message handling
@@ -117,7 +117,7 @@ export class AndroidNotificationService {
       // Android-specific test notification
       console.log('Android: Sending test notification');
       logEvent('android_test_notification_sent');
-      
+
       // You can add Android-specific test notification logic here
     } catch (error) {
       console.error('Android: Failed to send test notification:', error);
@@ -152,7 +152,7 @@ export class AndroidNotificationService {
       if (initialNotification) {
         console.log('Android: Initial notification found:', initialNotification);
         logEvent('android_initial_notification_found', {
-          messageId: initialNotification.messageId
+          messageId: initialNotification.messageId,
         });
       }
       return initialNotification;

@@ -190,9 +190,13 @@ export default function SystemMonitoringScreen() {
     <View style={styles.activityItem}>
       <View style={styles.activityIcon}>
         <Text style={styles.activityIconText}>
-          {activity.action.includes('User') ? '👤' : 
-           activity.action.includes('System') ? '⚙️' : 
-           activity.action.includes('Database') ? '🗄️' : '📝'}
+          {activity.action.includes('User')
+            ? '👤'
+            : activity.action.includes('System')
+              ? '⚙️'
+              : activity.action.includes('Database')
+                ? '🗄️'
+                : '📝'}
         </Text>
       </View>
       <View style={styles.activityContent}>
@@ -209,14 +213,19 @@ export default function SystemMonitoringScreen() {
     <View style={styles.adminItem}>
       <View style={styles.adminAvatar}>
         <Text style={styles.adminAvatarText}>
-          {admin.name.split(' ').map(n => n[0]).join('')}
+          {admin.name
+            .split(' ')
+            .map(n => n[0])
+            .join('')}
         </Text>
       </View>
       <View style={styles.adminContent}>
         <Text style={styles.adminName}>{admin.name}</Text>
         <Text style={styles.adminRole}>{admin.role.replace('_', ' ').toUpperCase()}</Text>
         <Text style={styles.adminLastSeen}>
-          {admin.isActive ? '🟢 Online' : `Last seen: ${new Date(admin.lastSeen).toLocaleTimeString()}`}
+          {admin.isActive
+            ? '🟢 Online'
+            : `Last seen: ${new Date(admin.lastSeen).toLocaleTimeString()}`}
         </Text>
       </View>
     </View>
@@ -268,15 +277,19 @@ export default function SystemMonitoringScreen() {
             ]}
           >
             <Text style={styles.statusIcon}>
-              {metrics.systemHealth === 'healthy' ? '💚' : 
-               metrics.systemHealth === 'warning' ? '⚠️' : '🔴'}
+              {metrics.systemHealth === 'healthy'
+                ? '💚'
+                : metrics.systemHealth === 'warning'
+                  ? '⚠️'
+                  : '🔴'}
             </Text>
             <View style={styles.statusContent}>
               <Text style={styles.statusTitle}>
                 System Status: {metrics.systemHealth?.toUpperCase() || 'UNKNOWN'}
               </Text>
               <Text style={styles.statusSubtitle}>
-                Uptime: {metrics.uptime || 0}% • Last Backup: {new Date(metrics.lastBackup).toLocaleDateString()}
+                Uptime: {metrics.uptime || 0}% • Last Backup:{' '}
+                {new Date(metrics.lastBackup).toLocaleDateString()}
               </Text>
             </View>
           </View>
@@ -337,7 +350,7 @@ export default function SystemMonitoringScreen() {
         <Text style={styles.sectionTitle}>Online Admins</Text>
         {onlineAdmins.length > 0 ? (
           <View style={styles.adminsList}>
-            {onlineAdmins.map((admin) => (
+            {onlineAdmins.map(admin => (
               <AdminItem key={admin.id} admin={admin} />
             ))}
           </View>
@@ -353,7 +366,7 @@ export default function SystemMonitoringScreen() {
         <Text style={styles.sectionTitle}>Recent Admin Activities</Text>
         {adminActivities.length > 0 ? (
           <View style={styles.activitiesList}>
-            {adminActivities.map((activity) => (
+            {adminActivities.map(activity => (
               <ActivityItem key={activity.id} activity={activity} />
             ))}
           </View>
@@ -392,10 +405,7 @@ export default function SystemMonitoringScreen() {
             <Text style={styles.quickActionText}>Settings</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={loadMonitoringData}
-          >
+          <TouchableOpacity style={styles.quickActionButton} onPress={loadMonitoringData}>
             <Text style={styles.quickActionIcon}>🔄</Text>
             <Text style={styles.quickActionText}>Refresh</Text>
           </TouchableOpacity>

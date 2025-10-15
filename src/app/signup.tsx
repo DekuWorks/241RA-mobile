@@ -61,7 +61,11 @@ export default function SignupScreen() {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    } else if (formData.email.includes('..') || formData.email.startsWith('.') || formData.email.endsWith('.')) {
+    } else if (
+      formData.email.includes('..') ||
+      formData.email.startsWith('.') ||
+      formData.email.endsWith('.')
+    ) {
       newErrors.email = 'Email format is invalid';
     }
 
@@ -139,7 +143,8 @@ export default function SignupScreen() {
       }
     } catch (error: any) {
       console.error('Signup error:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'An error occurred during registration';
+      const errorMessage =
+        error.response?.data?.message || error.message || 'An error occurred during registration';
       Alert.alert('Signup Failed', errorMessage);
     } finally {
       setIsLoading(false);
@@ -179,7 +184,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, errors.firstName && styles.inputError]}
               value={formData.firstName}
-              onChangeText={(value) => updateFormData('firstName', value)}
+              onChangeText={value => updateFormData('firstName', value)}
               placeholder="Enter your first name"
               placeholderTextColor={colors.gray[400]}
               autoCapitalize="words"
@@ -193,7 +198,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, errors.lastName && styles.inputError]}
               value={formData.lastName}
-              onChangeText={(value) => updateFormData('lastName', value)}
+              onChangeText={value => updateFormData('lastName', value)}
               placeholder="Enter your last name"
               placeholderTextColor={colors.gray[400]}
               autoCapitalize="words"
@@ -207,7 +212,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, errors.email && styles.inputError]}
               value={formData.email}
-              onChangeText={(value) => updateFormData('email', value)}
+              onChangeText={value => updateFormData('email', value)}
               placeholder="Enter your email"
               placeholderTextColor={colors.gray[400]}
               keyboardType="email-address"
@@ -222,7 +227,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, errors.phoneNumber && styles.inputError]}
               value={formData.phoneNumber}
-              onChangeText={(value) => updateFormData('phoneNumber', value)}
+              onChangeText={value => updateFormData('phoneNumber', value)}
               placeholder="Enter your phone number"
               placeholderTextColor={colors.gray[400]}
               keyboardType="phone-pad"
@@ -236,7 +241,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, errors.password && styles.inputError]}
               value={formData.password}
-              onChangeText={(value) => updateFormData('password', value)}
+              onChangeText={value => updateFormData('password', value)}
               placeholder="Create a strong password"
               placeholderTextColor={colors.gray[400]}
               secureTextEntry
@@ -248,7 +253,7 @@ export default function SignupScreen() {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Your Role *</Text>
             <View style={styles.roleContainer}>
-              {roles.map((role) => (
+              {roles.map(role => (
                 <TouchableOpacity
                   key={role.value}
                   style={[

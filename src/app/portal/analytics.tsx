@@ -37,41 +37,43 @@ export default function AnalyticsScreen() {
       console.log('[ANALYTICS] Reports data:', reportsData);
 
       // Set analytics data with fallback
-      setAnalytics(analyticsData || {
-        casesByStatus: {
-          active: 18,
-          resolved: 229,
-          archived: 45,
-          pending: 3,
-        },
-        casesByPriority: {
-          urgent: 2,
-          high: 8,
-          medium: 12,
-          low: 25,
-        },
-        casesByMonth: [
-          { month: 'Aug 2024', count: 23 },
-          { month: 'Sep 2024', count: 31 },
-          { month: 'Oct 2024', count: 28 },
-          { month: 'Nov 2024', count: 35 },
-          { month: 'Dec 2024', count: 29 },
-          { month: 'Jan 2025', count: 18 },
-        ],
-        topReporters: [
-          { id: 'user1', name: 'Sarah Johnson', casesReported: 12 },
-          { id: 'user2', name: 'Michael Chen', casesReported: 8 },
-          { id: 'user3', name: 'Detective Martinez', casesReported: 15 },
-          { id: 'user4', name: 'Officer Williams', casesReported: 7 },
-          { id: 'user5', name: 'Community Volunteer', casesReported: 5 },
-        ],
-        responseTime: {
-          average: 127,
-          median: 98,
-          p95: 245,
-        },
-        errorRate: 0.05,
-      });
+      setAnalytics(
+        analyticsData || {
+          casesByStatus: {
+            active: 18,
+            resolved: 229,
+            archived: 45,
+            pending: 3,
+          },
+          casesByPriority: {
+            urgent: 2,
+            high: 8,
+            medium: 12,
+            low: 25,
+          },
+          casesByMonth: [
+            { month: 'Aug 2024', count: 23 },
+            { month: 'Sep 2024', count: 31 },
+            { month: 'Oct 2024', count: 28 },
+            { month: 'Nov 2024', count: 35 },
+            { month: 'Dec 2024', count: 29 },
+            { month: 'Jan 2025', count: 18 },
+          ],
+          topReporters: [
+            { id: 'user1', name: 'Sarah Johnson', casesReported: 12 },
+            { id: 'user2', name: 'Michael Chen', casesReported: 8 },
+            { id: 'user3', name: 'Detective Martinez', casesReported: 15 },
+            { id: 'user4', name: 'Officer Williams', casesReported: 7 },
+            { id: 'user5', name: 'Community Volunteer', casesReported: 5 },
+          ],
+          responseTime: {
+            average: 127,
+            median: 98,
+            p95: 245,
+          },
+          errorRate: 0.05,
+        }
+      );
 
       // Set reports data
       setReports(reportsData.reports || []);
@@ -227,18 +229,14 @@ export default function AnalyticsScreen() {
         <TouchableOpacity
           style={styles.generateButton}
           onPress={() => {
-            Alert.alert(
-              'Export Options',
-              'Choose what to export:',
-              [
-                { text: 'Cases (CSV)', onPress: () => handleExportCases('csv') },
-                { text: 'Cases (JSON)', onPress: () => handleExportCases('json') },
-                { text: 'Users (CSV)', onPress: () => handleExportUsers('csv') },
-                { text: 'Users (JSON)', onPress: () => handleExportUsers('json') },
-                { text: 'System Report', onPress: () => handleGenerateReport('system') },
-                { text: 'Cancel', style: 'cancel' },
-              ]
-            );
+            Alert.alert('Export Options', 'Choose what to export:', [
+              { text: 'Cases (CSV)', onPress: () => handleExportCases('csv') },
+              { text: 'Cases (JSON)', onPress: () => handleExportCases('json') },
+              { text: 'Users (CSV)', onPress: () => handleExportUsers('csv') },
+              { text: 'Users (JSON)', onPress: () => handleExportUsers('json') },
+              { text: 'System Report', onPress: () => handleGenerateReport('system') },
+              { text: 'Cancel', style: 'cancel' },
+            ]);
           }}
         >
           <Text style={styles.generateButtonText}>📊</Text>

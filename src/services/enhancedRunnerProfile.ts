@@ -54,7 +54,9 @@ export class EnhancedRunnerProfileService {
   /**
    * Create a new enhanced runner profile
    */
-  static async createRunnerProfile(profileData: CreateEnhancedRunnerProfileData): Promise<EnhancedRunnerProfile> {
+  static async createRunnerProfile(
+    profileData: CreateEnhancedRunnerProfileData
+  ): Promise<EnhancedRunnerProfile> {
     try {
       const data = await ApiClient.post('/api/v1/runner-profile', profileData);
       return data;
@@ -67,7 +69,9 @@ export class EnhancedRunnerProfileService {
   /**
    * Update existing enhanced runner profile
    */
-  static async updateRunnerProfile(profileData: UpdateEnhancedRunnerProfileData): Promise<EnhancedRunnerProfile> {
+  static async updateRunnerProfile(
+    profileData: UpdateEnhancedRunnerProfileData
+  ): Promise<EnhancedRunnerProfile> {
     try {
       const data = await ApiClient.put('/api/v1/runner-profile', profileData);
       return data;
@@ -120,18 +124,20 @@ export class EnhancedRunnerProfileService {
       const data = await ApiClient.uploadFile(
         '/api/v1/runner-profile/photos',
         formData,
-        onProgress ? (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
-        } : undefined
+        onProgress
+          ? progressEvent => {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              onProgress(progress);
+            }
+          : undefined
       );
 
       return { success: true, photo: data };
     } catch (error: any) {
       console.error('Failed to upload photo:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to upload photo' 
+      return {
+        success: false,
+        error: error.message || 'Failed to upload photo',
       };
     }
   }
@@ -148,29 +154,29 @@ export class EnhancedRunnerProfileService {
       successfulUploads: 0,
       failedUploads: 0,
       uploadedPhotos: [],
-      errors: []
+      errors: [],
     };
 
     for (let i = 0; i < photoUris.length; i++) {
       const uri = photoUris[i];
       const fileName = `photo_${i + 1}_${Date.now()}`;
-      
+
       // Report progress start
       if (onProgress) {
         onProgress({
           fileName,
           progress: 0,
-          status: 'uploading'
+          status: 'uploading',
         });
       }
 
       try {
-        const result = await this.uploadPhoto(uri, (progress) => {
+        const result = await this.uploadPhoto(uri, progress => {
           if (onProgress) {
             onProgress({
               fileName,
               progress,
-              status: progress === 100 ? 'completed' : 'uploading'
+              status: progress === 100 ? 'completed' : 'uploading',
             });
           }
         });
@@ -182,25 +188,25 @@ export class EnhancedRunnerProfileService {
           response.failedUploads++;
           response.errors.push(`Failed to upload ${fileName}: ${result.error}`);
         }
-        
+
         if (onProgress) {
           onProgress({
             fileName,
             progress: 100,
             status: result.success ? 'completed' : 'error',
-            error: result.error
+            error: result.error,
           });
         }
       } catch (error: any) {
         response.failedUploads++;
         response.errors.push(`Failed to upload ${fileName}: ${error.message}`);
-        
+
         if (onProgress) {
           onProgress({
             fileName,
             progress: 0,
             status: 'error',
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -245,7 +251,7 @@ export class EnhancedRunnerProfileService {
       return {
         emailNotifications: true,
         pushNotifications: true,
-        reminderFrequency: 'weekly'
+        reminderFrequency: 'weekly',
       };
     }
   }
@@ -253,7 +259,9 @@ export class EnhancedRunnerProfileService {
   /**
    * Update notification settings for the current user
    */
-  static async updateNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+  static async updateNotificationSettings(
+    settings: NotificationSettings
+  ): Promise<NotificationSettings> {
     try {
       const data = await ApiClient.put('/api/v1/runner-profile/notification-settings', settings);
       return data;
@@ -296,11 +304,11 @@ export class EnhancedRunnerProfileService {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -311,7 +319,7 @@ export class EnhancedRunnerProfileService {
     const lastUpdate = new Date(lastPhotoUpdate);
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
+
     return lastUpdate < sixMonthsAgo;
   }
 
@@ -323,27 +331,30 @@ export class EnhancedRunnerProfileService {
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - lastUpdate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays;
   }
 
   /**
    * Validate photo before upload
    */
-  static validatePhoto(photoUri: string, options: PhotoUploadOptions = DEFAULT_PHOTO_OPTIONS): {
+  static validatePhoto(
+    photoUri: string,
+    options: PhotoUploadOptions = DEFAULT_PHOTO_OPTIONS
+  ): {
     isValid: boolean;
     errors: string[];
   } {
     const errors: string[] = [];
-    
+
     // This is a basic validation - in a real app, you'd check file size, type, etc.
     if (!photoUri) {
       errors.push('Photo URI is required');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -354,7 +365,7 @@ export class EnhancedRunnerProfileService {
     try {
       const profile = await this.getRunnerProfile();
       const photos = await this.getPhotos();
-      
+
       if (!profile) {
         return {
           totalPhotos: 0,
@@ -362,12 +373,12 @@ export class EnhancedRunnerProfileService {
           daysSinceLastUpdate: 0,
           reminderCount: 0,
           profileCompleteness: 0,
-          lastActivity: new Date().toISOString()
+          lastActivity: new Date().toISOString(),
         };
       }
 
       const primaryPhoto = photos.find(p => p.isPrimary);
-      const daysSinceLastUpdate = profile.lastPhotoUpdate 
+      const daysSinceLastUpdate = profile.lastPhotoUpdate
         ? this.getDaysSinceLastPhotoUpdate(profile.lastPhotoUpdate)
         : 0;
 
@@ -390,7 +401,7 @@ export class EnhancedRunnerProfileService {
         daysSinceLastUpdate,
         reminderCount: profile.reminderCount,
         profileCompleteness: completeness,
-        lastActivity: profile.updatedAt
+        lastActivity: profile.updatedAt,
       };
     } catch (error: any) {
       console.error('Failed to get profile stats:', error);
@@ -404,7 +415,7 @@ export class EnhancedRunnerProfileService {
   static async getPhotoAnalytics(): Promise<PhotoAnalytics> {
     try {
       const photos = await this.getPhotos();
-      
+
       if (photos.length === 0) {
         return {
           totalUploads: 0,
@@ -412,21 +423,21 @@ export class EnhancedRunnerProfileService {
           failedUploads: 0,
           averageFileSize: 0,
           mostCommonMimeType: '',
-          uploadFrequency: 'rarely'
+          uploadFrequency: 'rarely',
         };
       }
 
       const totalFileSize = photos.reduce((sum, photo) => sum + photo.fileSize, 0);
       const mimeTypes = photos.map(p => p.mimeType);
-      const mostCommonMimeType = mimeTypes.reduce((a, b, i, arr) => 
+      const mostCommonMimeType = mimeTypes.reduce((a, b, i, arr) =>
         arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
       );
 
       // Calculate upload frequency based on upload dates
       const uploadDates = photos.map(p => new Date(p.uploadedAt));
       const now = new Date();
-      const recentUploads = uploadDates.filter(date => 
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24) <= 30
+      const recentUploads = uploadDates.filter(
+        date => (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24) <= 30
       ).length;
 
       let uploadFrequency: PhotoAnalytics['uploadFrequency'] = 'rarely';
@@ -440,7 +451,7 @@ export class EnhancedRunnerProfileService {
         failedUploads: 0,
         averageFileSize: totalFileSize / photos.length,
         mostCommonMimeType,
-        uploadFrequency
+        uploadFrequency,
       };
     } catch (error: any) {
       console.error('Failed to get photo analytics:', error);

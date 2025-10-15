@@ -1,9 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ENV } from '../config/env';
 import { SecureTokenService } from './secureTokens';
+import { isAxiosError, AxiosErrorResponse } from '../types/api';
 
 /**
- * Centralized API client with authentication and error handling
+ * Centralized API Client
+ * 
+ * Handles all HTTP requests with:
+ * - Automatic token refresh and management
+ * - Request/response interceptors
+ * - Production-safe error handling
+ * - Retry logic for failed requests
  */
 export class ApiClient {
   private static instance: AxiosInstance;
@@ -41,7 +48,7 @@ export class ApiClient {
           method: config.method?.toUpperCase(),
           url: config.url,
           hasToken: !!token,
-          baseURL: config.baseURL
+          baseURL: config.baseURL,
         });
         return config;
       },
@@ -54,7 +61,7 @@ export class ApiClient {
         console.log('[API] Response:', {
           status: response.status,
           url: response.config.url,
-          method: response.config.method?.toUpperCase()
+          method: response.config.method?.toUpperCase(),
         });
         return response;
       },
@@ -91,13 +98,16 @@ export class ApiClient {
           }
         }
 
-        console.log('[API] Error:', {
-          status: error.response?.status,
-          url: error.config?.url,
-          method: error.config?.method?.toUpperCase(),
-          message: error.message,
-          data: error.response?.data
-        });
+        // Log API errors for debugging (only in development)
+        if (__DEV__) {
+          console.log('[API] Error:', {
+            status: error.response?.status,
+            url: error.config?.url,
+            method: error.config?.method?.toUpperCase(),
+            message: error.message,
+            data: error.response?.data,
+          });
+        }
         return Promise.reject(this.handleError(error));
       }
     );
@@ -107,15 +117,21 @@ export class ApiClient {
 
   /**
    * Handle API errors with proper formatting
+   * @param error - The error object from Axios or other sources
+   * @returns Formatted Error object safe for production
    */
-  private static handleError(error: any): Error {
+  private static handleError(error: unknown): Error {
     // Don't expose sensitive error details in production
     const isProduction = !__DEV__;
 
-    if (error.response) {
-      // Server responded with error status
-      const status = error.response.status;
-      const message = error.response.data?.message || error.response.data?.error || 'Server error';
+    // Type guard for Axios error
+    if (isAxiosError(error)) {
+      const axiosError = error as AxiosErrorResponse;
+      
+      if (axiosError.response) {
+        // Server responded with error status
+        const status = axiosError.response.status;
+        const message = axiosError.response.data?.message || axiosError.response.data?.error || 'Server error';
 
       if (isProduction) {
         // In production, provide generic error messages
@@ -153,27 +169,27 @@ export class ApiClient {
   /**
    * Convenience methods for HTTP requests
    */
-  static async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  static async get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.getInstance().get(url, config);
     return response.data;
   }
 
-  static async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  static async post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.getInstance().post(url, data, config);
     return response.data;
   }
 
-  static async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  static async put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.getInstance().put(url, data, config);
     return response.data;
   }
 
-  static async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  static async patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.getInstance().patch(url, data, config);
     return response.data;
   }
 
-  static async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  static async delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.getInstance().delete(url, config);
     return response.data;
   }

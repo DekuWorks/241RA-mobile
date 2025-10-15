@@ -43,7 +43,7 @@ export class TopicService {
       console.log('✅ Subscribed to topic via API:', topic);
     } catch (apiError) {
       console.warn('⚠️ API topic subscription failed, trying SignalR fallback:', apiError);
-      
+
       // If API fails, try SignalR group join as fallback
       try {
         await signalRService.joinGroup(`topic_${topic}`);
@@ -52,8 +52,15 @@ export class TopicService {
       } catch (signalRError) {
         console.warn('⚠️ SignalR topic subscription also failed:', signalRError);
         // Don't throw error - just log it and continue
-        console.log('📝 Topic subscription not available, continuing without real-time updates for:', topic);
-        logEvent('topic_subscribe_not_available', { topic, apiError: String(apiError), signalRError: String(signalRError) });
+        console.log(
+          '📝 Topic subscription not available, continuing without real-time updates for:',
+          topic
+        );
+        logEvent('topic_subscribe_not_available', {
+          topic,
+          apiError: String(apiError),
+          signalRError: String(signalRError),
+        });
       }
     }
   }

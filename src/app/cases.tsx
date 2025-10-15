@@ -54,7 +54,7 @@ export default function CasesScreen() {
             // Clear all local data first
             await AuthService.logout();
             await NotificationService.unregisterDevice();
-            
+
             // Navigate to login and clear the navigation stack
             router.dismissAll();
             router.replace('/login');

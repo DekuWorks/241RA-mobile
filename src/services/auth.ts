@@ -32,42 +32,69 @@ export interface User {
   twoFactorEnabled: boolean;
 }
 
+/**
+ * Authentication Service
+ *
+ * Handles user authentication including:
+ * - Login/logout functionality
+ * - Token management
+ * - User session persistence
+ * - Role-based access control
+ */
 export class AuthService {
+  /**
+   * Authenticate user with email/password and optional 2FA
+   * @param credentials - User login credentials
+   * @returns Authentication response with user data and tokens
+   */
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    console.log('[AUTH] Attempting login with credentials:', { 
-      email: credentials.email, 
-      hasPassword: !!credentials.password,
-      hasTwoFactor: !!credentials.twoFactorCode 
-    });
-    
+    // Log authentication attempt (development only)
+    if (__DEV__) {
+      console.log('[AUTH] Attempting login with credentials:', {
+        email: credentials.email,
+        hasPassword: !!credentials.password,
+        hasTwoFactor: !!credentials.twoFactorCode,
+      });
+    }
+
     // Ensure email is normalized (lowercase, trimmed) like the static site
     const normalizedCredentials = {
       ...credentials,
-      email: credentials.email.toLowerCase().trim()
+      email: credentials.email.toLowerCase().trim(),
     };
-    
-    console.log('[AUTH] Normalized credentials:', normalizedCredentials);
-    
-    // Test API connectivity first
-    try {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://241runners-api-v2.azurewebsites.net';
-      console.log('[AUTH] Using API URL:', apiUrl);
-      
-      const healthResponse = await fetch(`${apiUrl}/api/health`);
-      console.log('[AUTH] API health check:', healthResponse.status);
-    } catch (healthError) {
-      console.warn('[AUTH] API health check failed:', healthError);
+
+    if (__DEV__) {
+      console.log('[AUTH] Normalized credentials:', normalizedCredentials);
     }
-    
+
+    // Test API connectivity first (development only)
+    if (__DEV__) {
+      try {
+        const apiUrl =
+          process.env.EXPO_PUBLIC_API_URL || 'https://241runners-api-v2.azurewebsites.net';
+        console.log('[AUTH] Using API URL:', apiUrl);
+
+        const healthResponse = await fetch(`${apiUrl}/api/health`);
+        console.log('[AUTH] API health check:', healthResponse.status);
+      } catch (healthError) {
+        console.warn('[AUTH] API health check failed:', healthError);
+      }
+    }
+
     const data = await ApiClient.post('/api/v1/auth/login', normalizedCredentials);
 
-    console.log('[AUTH] Login response data:', data);
-    console.log('[AUTH] User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
-    console.log('[AUTH] User role:', data.user?.role);
-    console.log('[AUTH] User allRoles:', data.user?.allRoles);
-    console.log('[AUTH] User primaryUserRole:', data.user?.primaryUserRole);
-    console.log('[AUTH] User isAdminUser:', data.user?.isAdminUser);
-    console.log('[AUTH] Has access token:', !!data.accessToken);
+    // Log authentication success details (development only)
+    if (__DEV__) {
+      console.log('[AUTH] Login response data:', data);
+      console.log('[AUTH] User ID type:', typeof data.user?.id, 'Value:', data.user?.id);
+      console.log('[AUTH] User role:', data.user?.role);
+      console.log('[AUTH] User allRoles:', data.user?.allRoles);
+      console.log('[AUTH] User primaryUserRole:', data.user?.primaryUserRole);
+      console.log('[AUTH] User isAdminUser:', data.user?.isAdminUser);
+    }
+    if (__DEV__) {
+      console.log('[AUTH] Has access token:', !!data.accessToken);
+    }
 
     if (data.accessToken) {
       await SecureTokenService.setAccessToken(String(data.accessToken));
@@ -102,9 +129,9 @@ export class AuthService {
   }
 
   static async loginWithGoogle(googleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', {
       provider: 'google',
-      token: googleToken 
+      token: googleToken,
     });
 
     if (data.accessToken) {
@@ -135,9 +162,8 @@ export class AuthService {
   }
 
   static async loginWithApple(appleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
-      provider: 'apple',
-      token: appleToken 
+    const data = await ApiClient.post('/api/v1/auth/oauth/apple', {
+      token: appleToken,
     });
 
     if (data.accessToken) {
@@ -168,9 +194,9 @@ export class AuthService {
   }
 
   static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', { 
+    const data = await ApiClient.post('/api/v1/auth/oauth/register', {
       provider: 'microsoft',
-      token: microsoftToken 
+      token: microsoftToken,
     });
 
     if (data.accessToken) {
@@ -210,7 +236,7 @@ export class AuthService {
     } finally {
       // Always clear local tokens and data
       await SecureTokenService.clearAll();
-      
+
       // Clear any cached user data
       try {
         // Clear any cached queries or user data
@@ -225,19 +251,21 @@ export class AuthService {
   static async deleteAccount(): Promise<void> {
     try {
       console.log('[AUTH] Deleting user account...');
-      
+
       // Call the backend to delete the account
       await ApiClient.delete('/api/v1/auth/account');
-      
+
       console.log('[AUTH] Account deletion successful');
     } catch (error: any) {
       console.error('[AUTH] Account deletion failed:', error);
-      
+
       // If the backend endpoint doesn't exist yet, throw a more helpful error
       if (error?.response?.status === 404) {
-        throw new Error('Account deletion is not yet available. Please contact support to delete your account.');
+        throw new Error(
+          'Account deletion is not yet available. Please contact support to delete your account.'
+        );
       }
-      
+
       throw error;
     }
   }
@@ -245,7 +273,7 @@ export class AuthService {
   static async getCurrentUser(): Promise<User | null> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
-      
+
       // Ensure dual role fields are properly set with defaults if not present
       const userData: User = {
         ...data,
@@ -253,18 +281,18 @@ export class AuthService {
         primaryUserRole: data.primaryUserRole || data.role || 'user',
         isAdminUser: data.isAdminUser || false,
       };
-      
+
       console.log('[AUTH] Current user data:', userData);
       return userData;
     } catch (error: any) {
       console.error('Failed to get current user:', error);
-      
+
       // If we get a 401, the token is invalid, clear it
       if (error?.response?.status === 401) {
         console.log('Token is invalid, clearing stored tokens');
         await SecureTokenService.clearAll();
       }
-      
+
       return null;
     }
   }
@@ -311,19 +339,19 @@ export class AuthService {
   }> {
     try {
       const data = await ApiClient.post('/api/v1/auth/register', signupData);
-      
+
       if (data.success) {
         console.log('Signup successful:', data);
         return {
           success: true,
           message: data.message || 'Account created successfully!',
-          user: data.user
+          user: data.user,
         };
       } else {
         return {
           success: false,
           message: data.message || 'Signup failed',
-          error: data.error?.message || 'Unknown error'
+          error: data.error?.message || 'Unknown error',
         };
       }
     } catch (error: any) {
@@ -331,7 +359,7 @@ export class AuthService {
       return {
         success: false,
         message: error.message || 'Signup failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -342,14 +370,14 @@ export class AuthService {
   private static async initializeRealtimeServices(user?: User): Promise<void> {
     try {
       console.log('[AUTH] Initializing real-time services for user:', user?.role || 'unknown');
-      
+
       // Wait a moment to ensure authentication is complete
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Start SignalR connection with retry logic
       let retryCount = 0;
       const maxRetries = 3;
-      
+
       while (retryCount < maxRetries) {
         try {
           await signalRService.startConnection();
@@ -357,8 +385,11 @@ export class AuthService {
           break;
         } catch (signalRError: any) {
           retryCount++;
-          console.warn(`[AUTH] SignalR connection attempt ${retryCount} failed:`, signalRError.message);
-          
+          console.warn(
+            `[AUTH] SignalR connection attempt ${retryCount} failed:`,
+            signalRError.message
+          );
+
           if (retryCount < maxRetries) {
             console.log(`[AUTH] Retrying SignalR connection in 2 seconds...`);
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -384,11 +415,13 @@ export class AuthService {
       console.log('[AUTH] Real-time services initialized successfully');
     } catch (error: any) {
       console.warn('[AUTH] Failed to initialize real-time services:', error);
-      
+
       // Handle specific SignalR errors
       if (error?.message?.includes('403')) {
         console.error('[AUTH] SignalR 403 - User may not have permission for real-time features');
-        console.log('[AUTH] This is normal for some user roles - continuing without real-time features');
+        console.log(
+          '[AUTH] This is normal for some user roles - continuing without real-time features'
+        );
       } else if (error?.message?.includes('401')) {
         console.error('[AUTH] SignalR 401 - Authentication token issue');
         console.log('[AUTH] Real-time features will be unavailable');
@@ -397,5 +430,4 @@ export class AuthService {
       }
     }
   }
-
 }

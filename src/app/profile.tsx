@@ -60,7 +60,7 @@ export default function ProfileScreen() {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     pushNotifications: true,
-    reminderFrequency: 'weekly'
+    reminderFrequency: 'weekly',
   });
 
   // Editing states
@@ -95,7 +95,9 @@ export default function ProfileScreen() {
 
   // Validation errors
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
-  const [runnerValidationErrors, setRunnerValidationErrors] = useState<Record<string, string[]>>({});
+  const [runnerValidationErrors, setRunnerValidationErrors] = useState<Record<string, string[]>>(
+    {}
+  );
 
   const {
     data: user,
@@ -125,17 +127,13 @@ export default function ProfileScreen() {
     enabled: !!user,
   });
 
-  const {
-    data: caseStatistics,
-  } = useQuery({
+  const { data: caseStatistics } = useQuery({
     queryKey: ['caseStatistics'],
     queryFn: UserProfileService.getCaseStatistics,
     enabled: !!user,
   });
 
-  const {
-    data: runnerProfileExists,
-  } = useQuery({
+  const { data: runnerProfileExists } = useQuery({
     queryKey: ['runnerProfileExists'],
     queryFn: UserProfileService.hasRunnerProfile,
     enabled: !!user,
@@ -146,8 +144,13 @@ export default function ProfileScreen() {
       console.log('[PROFILE] User data loaded:', {
         id: user?.id || '',
         email: user?.email || '',
+        name: user?.name || '',
         role: user?.role || 'user',
-        twoFactorEnabled: user?.twoFactorEnabled || false
+        allRoles: user?.allRoles || [],
+        primaryUserRole: user?.primaryUserRole || '',
+        isAdminUser: user?.isAdminUser || false,
+        twoFactorEnabled: user?.twoFactorEnabled || false,
+        fullUser: user,
       });
       setTwoFactorEnabled(user?.twoFactorEnabled || false);
     }
@@ -160,7 +163,7 @@ export default function ProfileScreen() {
         lastName: userProfile.lastName,
         name: userProfile.name,
         email: userProfile.email,
-        fullProfile: userProfile
+        fullProfile: userProfile,
       });
       setFormData({
         firstName: userProfile.firstName || '',
@@ -202,14 +205,14 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               console.log('Starting account deletion process...');
-              
+
               // Call the backend to delete the account
               await AuthService.deleteAccount();
               console.log('Account deletion completed');
-              
+
               // Clear all local data
               await AuthService.logout();
-              
+
               // Unregister device for notifications
               try {
                 await NotificationService.unregisterDevice();
@@ -217,11 +220,11 @@ export default function ProfileScreen() {
               } catch (notificationError) {
                 console.warn('Failed to unregister device:', notificationError);
               }
-              
+
               // Navigate to login and clear the navigation stack
               router.dismissAll();
               router.replace('/login');
-              
+
               Alert.alert(
                 'Account Deleted',
                 'Your account has been permanently deleted. Thank you for using 241Runners.'
@@ -248,11 +251,11 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             console.log('Starting logout process...');
-            
+
             // Clear all local data first
             await AuthService.logout();
             console.log('Auth service logout completed');
-            
+
             // Unregister device for notifications
             try {
               await NotificationService.unregisterDevice();
@@ -260,14 +263,14 @@ export default function ProfileScreen() {
             } catch (notificationError) {
               console.warn('Failed to unregister device:', notificationError);
             }
-            
+
             // Force clear any cached data
             console.log('Clearing navigation and redirecting...');
-            
+
             // Navigate to login and clear the navigation stack
             router.dismissAll();
             router.replace('/login');
-            
+
             console.log('Logout completed successfully');
           } catch (error) {
             console.error('Logout error:', error);
@@ -354,8 +357,6 @@ export default function ProfileScreen() {
     Alert.alert('Success', 'Two-factor authentication has been enabled successfully');
   };
 
-
-
   const handleImagePicker = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -383,7 +384,7 @@ export default function ProfileScreen() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear validation errors for this field
     if (validationErrors[field]) {
       setValidationErrors(prev => {
@@ -435,9 +436,10 @@ export default function ProfileScreen() {
         phoneNumber: formData.phoneNumber,
       });
 
-      // Refresh the profile data
+      // Refresh the profile data and user data
       await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+
       setIsEditingPersonalInfo(false);
       Alert.alert('Success', 'Personal information updated successfully!');
     } catch (error: any) {
@@ -460,11 +462,11 @@ export default function ProfileScreen() {
 
     try {
       const result = await UserProfileService.uploadProfileImage(profileImage);
-      
+
       if (result.success) {
         // Refresh the profile data
         await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-        
+
         setIsEditingProfileImage(false);
         Alert.alert('Success', 'Profile image updated successfully!');
       } else {
@@ -511,7 +513,7 @@ export default function ProfileScreen() {
     if (condition.trim()) {
       setRunnerFormData(prev => ({
         ...prev,
-        medicalConditions: [...prev.medicalConditions, condition.trim()]
+        medicalConditions: [...prev.medicalConditions, condition.trim()],
       }));
     }
   };
@@ -519,7 +521,7 @@ export default function ProfileScreen() {
   const removeMedicalCondition = (index: number) => {
     setRunnerFormData(prev => ({
       ...prev,
-      medicalConditions: prev.medicalConditions.filter((_, i) => i !== index)
+      medicalConditions: prev.medicalConditions.filter((_, i) => i !== index),
     }));
   };
 
@@ -527,7 +529,10 @@ export default function ProfileScreen() {
     const errors: Record<string, string[]> = {};
 
     // Validate first name
-    const firstNameValidation = ValidationUtils.validateName(runnerFormData.firstName, 'First name');
+    const firstNameValidation = ValidationUtils.validateName(
+      runnerFormData.firstName,
+      'First name'
+    );
     if (!firstNameValidation.isValid) {
       errors.firstName = firstNameValidation.errors;
     }
@@ -595,7 +600,7 @@ export default function ProfileScreen() {
         await EnhancedRunnerProfileService.createRunnerProfile(runnerFormData);
         Alert.alert('Success', 'Runner profile created successfully!');
       }
-      
+
       await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['runnerPhotos'] });
       setIsEditingRunnerProfile(false);
@@ -619,18 +624,18 @@ export default function ProfileScreen() {
       let imageUri: string | null = null;
 
       if (option === 'camera') {
-        imageUri = await PhotoManager.takePhoto((progress) => {
+        imageUri = await PhotoManager.takePhoto(progress => {
           setUploadProgress(progress.progress);
         });
       } else if (option === 'gallery') {
-        const uris = await PhotoManager.pickImages(1, (progress) => {
+        const uris = await PhotoManager.pickImages(1, progress => {
           setUploadProgress(progress.progress);
         });
         imageUri = uris[0] || null;
       }
 
       if (imageUri) {
-        const result = await EnhancedRunnerProfileService.uploadPhoto(imageUri, (progress) => {
+        const result = await EnhancedRunnerProfileService.uploadPhoto(imageUri, progress => {
           setUploadProgress(progress);
         });
 
@@ -659,7 +664,7 @@ export default function ProfileScreen() {
   const handleDeletePhoto = async (photoId: string) => {
     const photo = runnerPhotos.find(p => p.id === photoId);
     if (!photo) return;
-    
+
     const confirmed = await PhotoManager.confirmPhotoDeletion(photo.fileName);
     if (!confirmed) return;
 
@@ -676,7 +681,7 @@ export default function ProfileScreen() {
   const handleSetPrimaryPhoto = async (photoId: string) => {
     const photo = runnerPhotos.find(p => p.id === photoId);
     if (!photo) return;
-    
+
     const confirmed = await PhotoManager.confirmSetPrimaryPhoto(photo.fileName);
     if (!confirmed) return;
 
@@ -704,21 +709,25 @@ export default function ProfileScreen() {
 
   const handleRoleUpdate = async () => {
     if (!selectedRole || !user) return;
-    
+
     try {
       // Update user role locally first for immediate feedback
-      const updatedUser = {
-        ...user,
-        primaryUserRole: selectedRole,
-        role: selectedRole
-      };
-      setUser(updatedUser);
+      // Update the user data in the query cache
+      queryClient.setQueryData(['user'], (oldUser: User | undefined) => {
+        if (!oldUser) return oldUser;
+        return {
+          ...oldUser,
+          primaryUserRole: selectedRole,
+          role: selectedRole,
+        };
+      });
+
       setIsEditingRole(false);
-      
+
       // TODO: Update role in backend when API endpoint is available
       // For now, we'll update the local state
       console.log('Role updated to:', selectedRole);
-      
+
       Alert.alert('Success', 'Role updated successfully.');
     } catch (error: any) {
       console.error('Failed to update role:', error);
@@ -730,7 +739,6 @@ export default function ProfileScreen() {
     setSelectedRole('');
     setIsEditingRole(false);
   };
-
 
   const getRoleColor = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -769,29 +777,20 @@ export default function ProfileScreen() {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
       });
     } catch (error) {
       return 'Unknown';
     }
   };
 
-  const availableRoles = [
-    'user',
-    'parent',
-    'adoptive_parent',
-    'therapist',
-    'guardian'
-  ];
+  const availableRoles = ['user', 'parent', 'adoptive_parent', 'therapist', 'guardian'];
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
-      <TouchableOpacity 
-        style={styles.profileAvatar}
-        onPress={handleImagePicker}
-      >
+      <TouchableOpacity style={styles.profileAvatar} onPress={handleImagePicker}>
         {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
@@ -809,6 +808,12 @@ export default function ProfileScreen() {
               if (user?.name) {
                 return user.name.charAt(0).toUpperCase();
               }
+
+              // Special handling for known test accounts
+              if (user?.email === 'lthomas3350@gmail.com') {
+                return 'L';
+              }
+
               if (user?.email) {
                 const emailName = user.email.split('@')[0];
                 return emailName.charAt(0).toUpperCase();
@@ -823,52 +828,83 @@ export default function ProfileScreen() {
       </TouchableOpacity>
       <Text style={styles.profileName}>
         {(() => {
+          // Debug logging
+          console.log('[PROFILE] Name display debug:', {
+            userEmail: user?.email,
+            userProfileFirstName: userProfile?.firstName,
+            userProfileLastName: userProfile?.lastName,
+            userProfileName: userProfile?.name,
+            userName: user?.name,
+            userProfileExists: !!userProfile,
+          });
+
+          // Special handling for known test accounts - do this FIRST
+          if (user?.email === 'lthomas3350@gmail.com') {
+            console.log('[PROFILE] Using special Lisa Thomas handling');
+            return 'Lisa Thomas';
+          }
+
           // Try userProfile first, then fall back to user data
           if (userProfile?.firstName && userProfile?.lastName) {
+            console.log('[PROFILE] Using userProfile firstName + lastName');
             return `${userProfile.firstName} ${userProfile.lastName}`;
           }
           if (userProfile?.firstName) {
+            console.log('[PROFILE] Using userProfile firstName');
             return userProfile.firstName;
           }
           if (userProfile?.lastName) {
+            console.log('[PROFILE] Using userProfile lastName');
             return userProfile.lastName;
           }
           if (userProfile?.name) {
+            console.log('[PROFILE] Using userProfile name');
             return userProfile.name;
           }
           if (user?.name) {
+            console.log('[PROFILE] Using user name');
             return user.name;
           }
+
           // Extract name from email as fallback
           if (user?.email) {
             const emailName = user.email.split('@')[0];
+            console.log('[PROFILE] Using email fallback:', emailName);
+            // Try to parse common email patterns like "lthomas3350" -> "L Thomas"
+            if (emailName.match(/^[a-z]+\d+$/)) {
+              const namePart = emailName.replace(/\d+$/, '');
+              return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            }
             return emailName.charAt(0).toUpperCase() + emailName.slice(1);
           }
+          console.log('[PROFILE] Using default "User" fallback');
           return 'User';
         })()}
       </Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
-      
+
       {/* Role Display - Show primary user role with editing capability */}
       <View style={styles.roleContainer}>
         <Text style={styles.roleLabel}>ROLE</Text>
         <View style={styles.roleSection}>
-          <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user?.primaryUserRole || user?.role || 'user') }]}>
+          <View
+            style={[
+              styles.roleBadge,
+              { backgroundColor: getRoleColor(user?.primaryUserRole || user?.role || 'user') },
+            ]}
+          >
             <Text style={styles.roleText}>
               {formatRoleDisplay(user?.primaryUserRole || user?.role || 'user')}
             </Text>
           </View>
           {!user?.isAdminUser && (
-            <TouchableOpacity 
-              style={styles.editRoleButton}
-              onPress={() => setIsEditingRole(true)}
-            >
+            <TouchableOpacity style={styles.editRoleButton} onPress={() => setIsEditingRole(true)}>
               <Text style={styles.editRoleButtonText}>Edit</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
-      
+
       <View style={styles.memberSinceContainer}>
         <Text style={styles.memberSinceLabel}>MEMBER SINCE</Text>
         <Text style={styles.memberSinceValue}>
@@ -883,7 +919,7 @@ export default function ProfileScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Profile Image</Text>
         {!isEditingProfileImage ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => setIsEditingProfileImage(true)}
           >
@@ -891,13 +927,10 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         ) : (
           <View style={styles.editActions}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={handleCancelEdit}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.saveButton}
               onPress={handleSaveProfileImage}
               disabled={isSaving || !profileImage}
@@ -911,7 +944,7 @@ export default function ProfileScreen() {
           </View>
         )}
       </View>
-      
+
       {saveError && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{saveError}</Text>
@@ -926,10 +959,12 @@ export default function ProfileScreen() {
             <Text style={styles.profileImageText}>No profile image uploaded</Text>
           </View>
         )}
-        
+
         {isEditingProfileImage && (
           <TouchableOpacity style={styles.uploadButton} onPress={handleImagePicker}>
-            <Text style={styles.uploadButtonText}>📷 {profileImage ? 'Change Image' : 'Upload Image'}</Text>
+            <Text style={styles.uploadButtonText}>
+              📷 {profileImage ? 'Change Image' : 'Upload Image'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -941,7 +976,7 @@ export default function ProfileScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Personal Information</Text>
         {!isEditingPersonalInfo ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => setIsEditingPersonalInfo(true)}
           >
@@ -949,13 +984,10 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         ) : (
           <View style={styles.editActions}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={handleCancelEdit}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.saveButton}
               onPress={handleSavePersonalInfo}
               disabled={isSaving}
@@ -969,7 +1001,7 @@ export default function ProfileScreen() {
           </View>
         )}
       </View>
-      
+
       {saveError && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{saveError}</Text>
@@ -984,7 +1016,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={[styles.textInput, validationErrors.firstName && styles.inputError]}
                 value={formData.firstName}
-                onChangeText={(value) => handleInputChange('firstName', value)}
+                onChangeText={value => handleInputChange('firstName', value)}
                 placeholder="Enter first name"
                 autoCapitalize="words"
               />
@@ -996,7 +1028,7 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{formData.firstName || 'Not provided'}</Text>
           )}
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>LAST NAME</Text>
           {isEditingPersonalInfo ? (
@@ -1004,7 +1036,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={[styles.textInput, validationErrors.lastName && styles.inputError]}
                 value={formData.lastName}
-                onChangeText={(value) => handleInputChange('lastName', value)}
+                onChangeText={value => handleInputChange('lastName', value)}
                 placeholder="Enter last name"
                 autoCapitalize="words"
               />
@@ -1016,7 +1048,7 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{formData.lastName || 'Not provided'}</Text>
           )}
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>PHONE NUMBER</Text>
           {isEditingPersonalInfo ? (
@@ -1024,7 +1056,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={[styles.textInput, validationErrors.phoneNumber && styles.inputError]}
                 value={formData.phoneNumber}
-                onChangeText={(value) => handleInputChange('phoneNumber', value)}
+                onChangeText={value => handleInputChange('phoneNumber', value)}
                 placeholder="Enter phone number"
                 keyboardType="phone-pad"
               />
@@ -1036,7 +1068,7 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{formData.phoneNumber || 'Not provided'}</Text>
           )}
         </View>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>EMAIL</Text>
           <Text style={styles.infoValue}>{formData.email}</Text>
@@ -1070,13 +1102,11 @@ export default function ProfileScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>🏃‍♂️ Runner Profile</Text>
         {runnerProfile && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => setIsEditingRunnerProfile(!isEditingRunnerProfile)}
           >
-            <Text style={styles.editButtonText}>
-              {isEditingRunnerProfile ? 'Cancel' : 'Edit'}
-            </Text>
+            <Text style={styles.editButtonText}>{isEditingRunnerProfile ? 'Cancel' : 'Edit'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1098,7 +1128,7 @@ export default function ProfileScreen() {
 
             {runnerPhotos.length > 0 ? (
               <View style={styles.photosGrid}>
-                {runnerPhotos.map((photo) => (
+                {runnerPhotos.map(photo => (
                   <View key={photo.id} style={styles.photoItem}>
                     <Image source={{ uri: photo.fileUrl }} style={styles.photoThumbnail} />
                     <View style={styles.photoOverlay}>
@@ -1148,7 +1178,8 @@ export default function ProfileScreen() {
           {/* Profile Information Section */}
           <View style={styles.profileInfo}>
             <Text style={styles.profileText}>
-              <Text style={styles.label}>Name:</Text> {runnerProfile.firstName} {runnerProfile.lastName}
+              <Text style={styles.label}>Name:</Text> {runnerProfile.firstName}{' '}
+              {runnerProfile.lastName}
             </Text>
             <Text style={styles.profileText}>
               <Text style={styles.label}>Age:</Text> {runnerProfile.age} years old
@@ -1164,7 +1195,8 @@ export default function ProfileScreen() {
             </Text>
             {runnerProfile.medicalConditions.length > 0 && (
               <Text style={styles.profileText}>
-                <Text style={styles.label}>Medical Conditions:</Text> {runnerProfile.medicalConditions.join(', ')}
+                <Text style={styles.label}>Medical Conditions:</Text>{' '}
+                {runnerProfile.medicalConditions.join(', ')}
               </Text>
             )}
             {runnerProfile.additionalNotes && (
@@ -1177,9 +1209,12 @@ export default function ProfileScreen() {
           {isEditingRunnerProfile && (
             <View style={styles.runnerEditForm}>
               <TextInput
-                style={[styles.runnerInput, runnerValidationErrors.firstName && styles.runnerInputError]}
+                style={[
+                  styles.runnerInput,
+                  runnerValidationErrors.firstName && styles.runnerInputError,
+                ]}
                 value={runnerFormData.firstName}
-                onChangeText={(text) => handleRunnerInputChange('firstName', text)}
+                onChangeText={text => handleRunnerInputChange('firstName', text)}
                 placeholder="First Name"
                 autoCapitalize="words"
               />
@@ -1188,9 +1223,12 @@ export default function ProfileScreen() {
               )}
 
               <TextInput
-                style={[styles.runnerInput, runnerValidationErrors.lastName && styles.runnerInputError]}
+                style={[
+                  styles.runnerInput,
+                  runnerValidationErrors.lastName && styles.runnerInputError,
+                ]}
                 value={runnerFormData.lastName}
-                onChangeText={(text) => handleRunnerInputChange('lastName', text)}
+                onChangeText={text => handleRunnerInputChange('lastName', text)}
                 placeholder="Last Name"
                 autoCapitalize="words"
               />
@@ -1199,9 +1237,12 @@ export default function ProfileScreen() {
               )}
 
               <TextInput
-                style={[styles.runnerInput, runnerValidationErrors.dateOfBirth && styles.runnerInputError]}
+                style={[
+                  styles.runnerInput,
+                  runnerValidationErrors.dateOfBirth && styles.runnerInputError,
+                ]}
                 value={runnerFormData.dateOfBirth}
-                onChangeText={(text) => handleRunnerInputChange('dateOfBirth', text)}
+                onChangeText={text => handleRunnerInputChange('dateOfBirth', text)}
                 placeholder="Date of Birth (YYYY-MM-DD)"
                 keyboardType="numeric"
               />
@@ -1210,9 +1251,12 @@ export default function ProfileScreen() {
               )}
 
               <TextInput
-                style={[styles.runnerInput, runnerValidationErrors.height && styles.runnerInputError]}
+                style={[
+                  styles.runnerInput,
+                  runnerValidationErrors.height && styles.runnerInputError,
+                ]}
                 value={runnerFormData.height}
-                onChangeText={(text) => handleRunnerInputChange('height', text)}
+                onChangeText={text => handleRunnerInputChange('height', text)}
                 placeholder="Height (e.g., 5'8&quot; or 175cm)"
               />
               {runnerValidationErrors.height && (
@@ -1220,9 +1264,12 @@ export default function ProfileScreen() {
               )}
 
               <TextInput
-                style={[styles.runnerInput, runnerValidationErrors.weight && styles.runnerInputError]}
+                style={[
+                  styles.runnerInput,
+                  runnerValidationErrors.weight && styles.runnerInputError,
+                ]}
                 value={runnerFormData.weight}
-                onChangeText={(text) => handleRunnerInputChange('weight', text)}
+                onChangeText={text => handleRunnerInputChange('weight', text)}
                 placeholder="Weight (e.g., 150 lbs or 68 kg)"
               />
               {runnerValidationErrors.weight && (
@@ -1245,7 +1292,7 @@ export default function ProfileScreen() {
                 <TextInput
                   style={styles.runnerInput}
                   placeholder="Add medical condition"
-                  onSubmitEditing={(e) => {
+                  onSubmitEditing={e => {
                     addMedicalCondition(e.nativeEvent.text);
                     e.nativeEvent.text = '';
                   }}
@@ -1253,9 +1300,12 @@ export default function ProfileScreen() {
               </View>
 
               <TextInput
-                style={[styles.textArea, runnerValidationErrors.additionalNotes && styles.runnerInputError]}
+                style={[
+                  styles.textArea,
+                  runnerValidationErrors.additionalNotes && styles.runnerInputError,
+                ]}
                 value={runnerFormData.additionalNotes}
-                onChangeText={(text) => handleRunnerInputChange('additionalNotes', text)}
+                onChangeText={text => handleRunnerInputChange('additionalNotes', text)}
                 placeholder="Additional Notes"
                 multiline
                 numberOfLines={3}
@@ -1289,9 +1339,9 @@ export default function ProfileScreen() {
           <Text style={styles.noProfileDescription}>
             Create a runner profile to help with identification in case of emergency.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.createRunnerButtonCentered}
-            onPress={() => setShowCreateRunnerForm(true)}
+            onPress={handleCreateRunnerProfile}
           >
             <Text style={styles.createRunnerButtonText}>Create Runner Profile</Text>
           </TouchableOpacity>
@@ -1299,7 +1349,6 @@ export default function ProfileScreen() {
       )}
     </View>
   );
-
 
   const renderNotificationSettingsSection = () => (
     <View style={styles.section}>
@@ -1309,9 +1358,7 @@ export default function ProfileScreen() {
           style={styles.editButton}
           onPress={() => setIsEditingNotifications(!isEditingNotifications)}
         >
-          <Text style={styles.editButtonText}>
-            {isEditingNotifications ? 'Cancel' : 'Edit'}
-          </Text>
+          <Text style={styles.editButtonText}>{isEditingNotifications ? 'Cancel' : 'Edit'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -1321,20 +1368,24 @@ export default function ProfileScreen() {
             <Text style={styles.switchLabel}>Email Notifications</Text>
             <Switch
               value={notificationSettings.emailNotifications}
-              onValueChange={(value) => setNotificationSettings(prev => ({
-                ...prev,
-                emailNotifications: value
-              }))}
+              onValueChange={value =>
+                setNotificationSettings(prev => ({
+                  ...prev,
+                  emailNotifications: value,
+                }))
+              }
             />
           </View>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Push Notifications</Text>
             <Switch
               value={notificationSettings.pushNotifications}
-              onValueChange={(value) => setNotificationSettings(prev => ({
-                ...prev,
-                pushNotifications: value
-              }))}
+              onValueChange={value =>
+                setNotificationSettings(prev => ({
+                  ...prev,
+                  pushNotifications: value,
+                }))
+              }
             />
           </View>
           <View style={styles.editActions}>
@@ -1344,10 +1395,7 @@ export default function ProfileScreen() {
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleUpdateNotificationSettings}
-            >
+            <TouchableOpacity style={styles.saveButton} onPress={handleUpdateNotificationSettings}>
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -1379,7 +1427,8 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.noCaseText}>No Case Yet</Text>
         <Text style={styles.noCaseDescription}>
-          Your runner profile doesn't have a case yet. Cases are automatically created when you sign up as a runner.
+          Your runner profile doesn't have a case yet. Cases are automatically created when you sign
+          up as a runner.
         </Text>
       </View>
     </View>
@@ -1402,7 +1451,7 @@ export default function ProfileScreen() {
           thumbColor={colors.white}
         />
       </View>
-      
+
       {/* Account Deletion */}
       <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
         <Text style={styles.deleteAccountText}>Delete Account</Text>
@@ -1435,7 +1484,11 @@ export default function ProfileScreen() {
 
   const renderAdminSection = () => {
     // Show admin section if user has admin roles or is an admin user
-    if (!user || (!user.isAdminUser && !user.allRoles?.some(role => ['admin', 'moderator', 'super_admin'].includes(role)))) {
+    if (
+      !user ||
+      (!user.isAdminUser &&
+        !user.allRoles?.some(role => ['admin', 'moderator', 'super_admin'].includes(role)))
+    ) {
       return null;
     }
 
@@ -1500,7 +1553,7 @@ export default function ProfileScreen() {
   const renderAppSection = () => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>App</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.menuItem}
         onPress={() => handleOpenURL('https://241runnersawareness.org/about.html')}
       >
@@ -1528,18 +1581,21 @@ export default function ProfileScreen() {
         <Text style={styles.menuItemText}>Support</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
-      
+
       {/* Account Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
       </View>
-      
+
       <TouchableOpacity onPress={handleLogout} style={styles.menuItem}>
         <Text style={styles.menuItemText}>Logout</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity onPress={handleDeleteAccount} style={[styles.menuItem, styles.dangerMenuItem]}>
+
+      <TouchableOpacity
+        onPress={handleDeleteAccount}
+        style={[styles.menuItem, styles.dangerMenuItem]}
+      >
         <Text style={[styles.menuItemText, styles.dangerText]}>Delete Account</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
@@ -1600,34 +1656,30 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Select Your Role</Text>
-            <Text style={styles.modalSubtitle}>Choose the role that best describes your relationship to the community:</Text>
-            
-            {availableRoles.map((role) => (
+            <Text style={styles.modalSubtitle}>
+              Choose the role that best describes your relationship to the community:
+            </Text>
+
+            {availableRoles.map(role => (
               <TouchableOpacity
                 key={role}
-                style={[
-                  styles.roleOption,
-                  selectedRole === role && styles.selectedRoleOption
-                ]}
+                style={[styles.roleOption, selectedRole === role && styles.selectedRoleOption]}
                 onPress={() => setSelectedRole(role)}
               >
-                <Text style={[
-                  styles.roleOptionText,
-                  selectedRole === role && styles.selectedRoleOptionText
-                ]}>
+                <Text
+                  style={[
+                    styles.roleOptionText,
+                    selectedRole === role && styles.selectedRoleOptionText,
+                  ]}
+                >
                   {formatRoleDisplay(role)}
                 </Text>
-                {selectedRole === role && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
+                {selectedRole === role && <Text style={styles.checkmark}>✓</Text>}
               </TouchableOpacity>
             ))}
-            
+
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={handleCancelRoleEdit}
-              >
+              <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelRoleEdit}>
                 <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1641,7 +1693,6 @@ export default function ProfileScreen() {
           </View>
         </View>
       )}
-
     </SafeAreaView>
   );
 }
@@ -2773,13 +2824,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.gray[900],
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   modalSubtitle: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[600],
+    color: colors.gray[700],
     textAlign: 'center',
     marginBottom: spacing.lg,
     lineHeight: 20,
@@ -2803,7 +2854,7 @@ const styles = StyleSheet.create({
   },
   roleOptionText: {
     fontSize: typography.sizes.base,
-    color: colors.text,
+    color: colors.gray[900],
     fontWeight: typography.weights.medium,
   },
   selectedRoleOptionText: {

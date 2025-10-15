@@ -70,7 +70,9 @@ export class GroupManager {
       }
     }
 
-    console.log(`📊 Group join results: ${results.success.length} success, ${results.failed.length} failed`);
+    console.log(
+      `📊 Group join results: ${results.success.length} success, ${results.failed.length} failed`
+    );
     if (results.failed.length > 0) {
       console.log('❌ Failed groups:', results.failed);
     }
@@ -98,10 +100,10 @@ export class GroupManager {
   static async rejoinAllGroups(): Promise<void> {
     const groups = Array.from(this.joinedGroups);
     console.log(`🔄 Rejoining ${groups.length} groups after reconnection...`);
-    
+
     // Clear the current list
     this.joinedGroups.clear();
-    
+
     // Rejoin all groups
     await this.joinGroups(groups);
   }
@@ -112,7 +114,7 @@ export class GroupManager {
   static async leaveAllGroups(): Promise<void> {
     const groups = Array.from(this.joinedGroups);
     console.log(`👋 Leaving ${groups.length} groups...`);
-    
+
     for (const group of groups) {
       await this.leaveGroup(group);
     }

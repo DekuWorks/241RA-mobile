@@ -13,11 +13,11 @@ import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { EnhancedRunnerProfileService } from '../../services/enhancedRunnerProfile';
-import { 
-  EnhancedRunnerProfile, 
-  CreateEnhancedRunnerProfileData, 
+import {
+  EnhancedRunnerProfile,
+  CreateEnhancedRunnerProfileData,
   UpdateEnhancedRunnerProfileData,
-  EnhancedRunnerPhoto 
+  EnhancedRunnerPhoto,
 } from '../../types/enhancedRunnerProfile';
 import RunnerProfileForm from '../../components/RunnerProfileForm';
 import PhotoUpload from '../../components/PhotoUpload';
@@ -37,9 +37,7 @@ export default function RunnerProfileScreen() {
     queryFn: EnhancedRunnerProfileService.getRunnerProfile,
   });
 
-  const {
-    data: hasProfile,
-  } = useQuery({
+  const { data: hasProfile } = useQuery({
     queryKey: ['hasRunnerProfile'],
     queryFn: EnhancedRunnerProfileService.hasRunnerProfile,
   });
@@ -108,23 +106,20 @@ export default function RunnerProfileScreen() {
             } finally {
               setIsLoading(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
-  const renderProfileView = (profile: RunnerProfile) => (
+  const renderProfileView = (profile: EnhancedRunnerProfile) => (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Runner Profile</Text>
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => setIsEditing(true)}
-        >
+        <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -136,7 +131,7 @@ export default function RunnerProfileScreen() {
             {profile.firstName} {profile.lastName}
           </Text>
           <Text style={styles.profileAge}>
-            Age: {RunnerProfileService.calculateAge(profile.dateOfBirth)}
+            Age: {EnhancedRunnerProfileService.calculateAge(profile.dateOfBirth)}
           </Text>
         </View>
 
@@ -212,12 +207,13 @@ export default function RunnerProfileScreen() {
         </View>
 
         {/* Photo Update Reminder */}
-        {RunnerProfileService.needsPhotoUpdate(profile.lastPhotoUpdate) && (
+        {EnhancedRunnerProfileService.needsPhotoUpdate(profile.lastPhotoUpdate) && (
           <View style={styles.reminderContainer}>
             <Text style={styles.reminderTitle}>📸 Photo Update Required</Text>
             <Text style={styles.reminderText}>
-              Your photos are {RunnerProfileService.getDaysSinceLastPhotoUpdate(profile.lastPhotoUpdate)} days old. 
-              Please update them for better identification.
+              Your photos are{' '}
+              {EnhancedRunnerProfileService.getDaysSinceLastPhotoUpdate(profile.lastPhotoUpdate)}{' '}
+              days old. Please update them for better identification.
             </Text>
             <TouchableOpacity style={styles.updatePhotosButton}>
               <Text style={styles.updatePhotosButtonText}>Update Photos</Text>
@@ -227,7 +223,7 @@ export default function RunnerProfileScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.deleteButton}
             onPress={handleDeleteProfile}
             disabled={isLoading}
@@ -273,9 +269,9 @@ export default function RunnerProfileScreen() {
           <Text style={styles.headerTitle}>Create Runner Profile</Text>
           <View style={styles.headerSpacer} />
         </View>
-        
+
         <RunnerProfileForm
-          onSubmit={handleCreateProfile as (data: CreateRunnerProfileData | UpdateRunnerProfileData) => Promise<void>}
+          onSubmit={handleCreateProfile}
           onCancel={() => router.back()}
           isLoading={isLoading}
         />
@@ -293,7 +289,7 @@ export default function RunnerProfileScreen() {
           <Text style={styles.headerTitle}>Edit Runner Profile</Text>
           <View style={styles.headerSpacer} />
         </View>
-        
+
         <RunnerProfileForm
           initialData={runnerProfile}
           isEditing={true}
@@ -306,11 +302,7 @@ export default function RunnerProfileScreen() {
   }
 
   if (runnerProfile) {
-    return (
-      <SafeAreaView style={styles.container}>
-        {renderProfileView(runnerProfile)}
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={styles.container}>{renderProfileView(runnerProfile)}</SafeAreaView>;
   }
 
   return (

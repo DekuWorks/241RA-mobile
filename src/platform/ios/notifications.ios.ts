@@ -3,14 +3,14 @@
  * Enhanced push notification support for iOS devices
  */
 
-import { Platform } from 'react-native';
+// Platform import removed as it's not used
 import { logEvent, recordError } from '../../lib/crash';
 
 // Conditional Firebase import for iOS builds
 let messaging: any = null;
 try {
   messaging = require('@react-native-firebase/messaging').default;
-} catch (error) {
+} catch {
   console.warn('Firebase Messaging not available in iOS build');
 }
 
@@ -39,7 +39,7 @@ export class IOSNotificationService {
       console.log('iOS notification permission status:', authStatus);
       logEvent('ios_notification_permission_requested', {
         status: authStatus,
-        enabled: enabled
+        enabled: enabled,
       });
 
       return enabled;
@@ -60,7 +60,7 @@ export class IOSNotificationService {
       const token = await messaging().getToken();
       console.log('iOS FCM token:', token ? `${token.substring(0, 20)}...` : 'null');
       logEvent('ios_fcm_token_retrieved', {
-        tokenLength: token?.length || 0
+        tokenLength: token?.length || 0,
       });
       return token;
     } catch (error) {
@@ -81,7 +81,7 @@ export class IOSNotificationService {
         console.log('iOS: Foreground message received:', remoteMessage);
         logEvent('ios_foreground_message_received', {
           messageId: remoteMessage.messageId,
-          from: remoteMessage.from
+          from: remoteMessage.from,
         });
 
         // iOS-specific foreground notification handling
@@ -104,7 +104,7 @@ export class IOSNotificationService {
         console.log('iOS: Background message received:', remoteMessage);
         logEvent('ios_background_message_received', {
           messageId: remoteMessage.messageId,
-          from: remoteMessage.from
+          from: remoteMessage.from,
         });
 
         // iOS-specific background message handling
@@ -126,7 +126,7 @@ export class IOSNotificationService {
       // iOS-specific test notification
       console.log('iOS: Sending test notification');
       logEvent('ios_test_notification_sent');
-      
+
       // iOS might require different test notification handling
     } catch (error) {
       console.error('iOS: Failed to send test notification:', error);
@@ -161,7 +161,7 @@ export class IOSNotificationService {
       if (initialNotification) {
         console.log('iOS: Initial notification found:', initialNotification);
         logEvent('ios_initial_notification_found', {
-          messageId: initialNotification.messageId
+          messageId: initialNotification.messageId,
         });
       }
       return initialNotification;
@@ -190,7 +190,7 @@ export class IOSNotificationService {
       console.log('iOS provisional notification permission:', authStatus);
       logEvent('ios_provisional_notification_permission', {
         status: authStatus,
-        enabled: enabled
+        enabled: enabled,
       });
 
       return enabled;

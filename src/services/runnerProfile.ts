@@ -96,18 +96,20 @@ export class RunnerProfileService {
       const data = await ApiClient.uploadFile(
         '/api/v1/runner-profile/photos',
         formData,
-        onProgress ? (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
-        } : undefined
+        onProgress
+          ? progressEvent => {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              onProgress(progress);
+            }
+          : undefined
       );
 
       return { success: true, photo: data };
     } catch (error: any) {
       console.error('Failed to upload photo:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to upload photo' 
+      return {
+        success: false,
+        error: error.message || 'Failed to upload photo',
       };
     }
   }
@@ -120,54 +122,54 @@ export class RunnerProfileService {
     onProgress?: (progress: PhotoUploadProgress) => void
   ): Promise<PhotoUploadResponse[]> {
     const results: PhotoUploadResponse[] = [];
-    
+
     for (let i = 0; i < photoUris.length; i++) {
       const uri = photoUris[i];
       const fileName = `photo_${i + 1}_${Date.now()}`;
-      
+
       // Report progress start
       if (onProgress) {
         onProgress({
           fileName,
           progress: 0,
-          status: 'uploading'
+          status: 'uploading',
         });
       }
 
       try {
-        const result = await this.uploadPhoto(uri, (progress) => {
+        const result = await this.uploadPhoto(uri, progress => {
           if (onProgress) {
             onProgress({
               fileName,
               progress,
-              status: progress === 100 ? 'completed' : 'uploading'
+              status: progress === 100 ? 'completed' : 'uploading',
             });
           }
         });
 
         results.push(result);
-        
+
         if (onProgress) {
           onProgress({
             fileName,
             progress: 100,
             status: result.success ? 'completed' : 'error',
-            error: result.error
+            error: result.error,
           });
         }
       } catch (error: any) {
         const errorResult = {
           success: false,
-          error: error.message || 'Upload failed'
+          error: error.message || 'Upload failed',
         };
         results.push(errorResult);
-        
+
         if (onProgress) {
           onProgress({
             fileName,
             progress: 0,
             status: 'error',
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -225,7 +227,7 @@ export class RunnerProfileService {
       return {
         emailNotifications: true,
         pushNotifications: true,
-        reminderFrequency: 'weekly'
+        reminderFrequency: 'weekly',
       };
     }
   }
@@ -233,7 +235,9 @@ export class RunnerProfileService {
   /**
    * Update notification settings
    */
-  static async updateNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+  static async updateNotificationSettings(
+    settings: NotificationSettings
+  ): Promise<NotificationSettings> {
     try {
       const data = await ApiClient.put('/api/v1/runner-profile/notification-settings', settings);
       return data;
@@ -276,11 +280,11 @@ export class RunnerProfileService {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -291,7 +295,7 @@ export class RunnerProfileService {
     const lastUpdate = new Date(lastPhotoUpdate);
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
+
     return lastUpdate < sixMonthsAgo;
   }
 
@@ -303,7 +307,7 @@ export class RunnerProfileService {
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - lastUpdate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays;
   }
 }

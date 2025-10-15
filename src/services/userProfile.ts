@@ -109,13 +109,15 @@ export class UserProfileService {
   /**
    * Update emergency contacts
    */
-  static async updateEmergencyContacts(contacts: Array<{
-    id?: string;
-    name: string;
-    relationship: string;
-    phoneNumber: string;
-    email?: string;
-  }>): Promise<UserProfile> {
+  static async updateEmergencyContacts(
+    contacts: Array<{
+      id?: string;
+      name: string;
+      relationship: string;
+      phoneNumber: string;
+      email?: string;
+    }>
+  ): Promise<UserProfile> {
     try {
       const data = await ApiClient.put('/api/v1/user/profile/emergency-contacts', { contacts });
       return data;

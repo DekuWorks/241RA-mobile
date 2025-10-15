@@ -5,6 +5,11 @@ import { AuthService } from './auth';
 export class AppleAuthService {
   static async isAvailable(): Promise<boolean> {
     try {
+      // Apple Sign-In is only natively available on iOS
+      if (Platform.OS !== 'ios') {
+        console.log('Apple Sign-In: Not available on Android (native)');
+        return false;
+      }
       return await AppleAuthentication.isAvailableAsync();
     } catch (error) {
       console.error('Error checking Apple Authentication availability:', error);
@@ -16,6 +21,12 @@ export class AppleAuthService {
     try {
       // Check if Apple Authentication is available (iOS 13+)
       if (!(await this.isAvailable())) {
+        if (Platform.OS === 'android') {
+          return {
+            success: false,
+            error: 'Apple Sign-In is not available on Android devices',
+          };
+        }
         return {
           success: false,
           error: 'Apple Sign-In is not available on this device',
@@ -34,7 +45,7 @@ export class AppleAuthService {
 
       // Create a token from the credential
       const identityToken = credential.identityToken;
-      
+
       if (!identityToken) {
         throw new Error('No identity token received from Apple');
       }
@@ -92,7 +103,7 @@ export class AppleAuthService {
   static async getCredentialState(userID: string): Promise<string> {
     try {
       const credentialState = await AppleAuthentication.getCredentialStateAsync(userID);
-      
+
       switch (credentialState) {
         case AppleAuthentication.AppleAuthenticationCredentialState.AUTHORIZED:
           return 'authorized';

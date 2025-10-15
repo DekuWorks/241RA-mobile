@@ -22,12 +22,14 @@ interface PhotoUploadProps {
     fileName: string;
     isPrimary?: boolean;
   }>;
-  onPhotosChange: (photos: Array<{
-    id: string;
-    fileUrl: string;
-    fileName: string;
-    isPrimary?: boolean;
-  }>) => void;
+  onPhotosChange: (
+    photos: Array<{
+      id: string;
+      fileUrl: string;
+      fileName: string;
+      isPrimary?: boolean;
+    }>
+  ) => void;
   maxPhotos?: number;
   disabled?: boolean;
 }
@@ -87,20 +89,26 @@ export default function PhotoUpload({
 
     try {
       const newPhotos = [...photos];
-      
+
       for (const asset of assets) {
         const fileName = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Validate file size (max 10MB)
         if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-          Alert.alert('File Too Large', `${asset.fileName || 'Photo'} is larger than 10MB. Please select a smaller image.`);
+          Alert.alert(
+            'File Too Large',
+            `${asset.fileName || 'Photo'} is larger than 10MB. Please select a smaller image.`
+          );
           continue;
         }
 
         // Validate file type
         const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (asset.mimeType && !validTypes.includes(asset.mimeType)) {
-          Alert.alert('Invalid File Type', `${asset.fileName || 'Photo'} is not a supported image format. Please select a JPEG, PNG, GIF, or WebP image.`);
+          Alert.alert(
+            'Invalid File Type',
+            `${asset.fileName || 'Photo'} is not a supported image format. Please select a JPEG, PNG, GIF, or WebP image.`
+          );
           continue;
         }
 
@@ -116,35 +124,37 @@ export default function PhotoUpload({
         onPhotosChange(newPhotos);
 
         // Simulate upload progress
-        setUploadProgress(prev => [...prev, {
-          fileName: asset.fileName || fileName,
-          progress: 0,
-          status: 'uploading'
-        }]);
+        setUploadProgress(prev => [
+          ...prev,
+          {
+            fileName: asset.fileName || fileName,
+            progress: 0,
+            status: 'uploading',
+          },
+        ]);
 
         // Simulate progress
         for (let i = 0; i <= 100; i += 10) {
           await new Promise(resolve => setTimeout(resolve, 50));
-          setUploadProgress(prev => prev.map(p => 
-            p.fileName === (asset.fileName || fileName) 
-              ? { ...p, progress: i }
-              : p
-          ));
+          setUploadProgress(prev =>
+            prev.map(p => (p.fileName === (asset.fileName || fileName) ? { ...p, progress: i } : p))
+          );
         }
 
         // Mark as completed
-        setUploadProgress(prev => prev.map(p => 
-          p.fileName === (asset.fileName || fileName) 
-            ? { ...p, progress: 100, status: 'completed' }
-            : p
-        ));
+        setUploadProgress(prev =>
+          prev.map(p =>
+            p.fileName === (asset.fileName || fileName)
+              ? { ...p, progress: 100, status: 'completed' }
+              : p
+          )
+        );
       }
 
       // Clear progress after a delay
       setTimeout(() => {
         setUploadProgress([]);
       }, 1000);
-
     } catch (error) {
       console.error('Error uploading photos:', error);
       Alert.alert('Upload Error', 'Failed to upload some photos. Please try again.');
@@ -156,27 +166,23 @@ export default function PhotoUpload({
   const handleRemovePhoto = (photoId: string) => {
     if (disabled || isUploading) return;
 
-    Alert.alert(
-      'Remove Photo',
-      'Are you sure you want to remove this photo?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            const updatedPhotos = photos.filter(photo => photo.id !== photoId);
-            
-            // If we removed the primary photo, make the first remaining photo primary
-            if (photos.find(p => p.id === photoId)?.isPrimary && updatedPhotos.length > 0) {
-              updatedPhotos[0].isPrimary = true;
-            }
-            
-            onPhotosChange(updatedPhotos);
+    Alert.alert('Remove Photo', 'Are you sure you want to remove this photo?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          const updatedPhotos = photos.filter(photo => photo.id !== photoId);
+
+          // If we removed the primary photo, make the first remaining photo primary
+          if (photos.find(p => p.id === photoId)?.isPrimary && updatedPhotos.length > 0) {
+            updatedPhotos[0].isPrimary = true;
           }
-        }
-      ]
-    );
+
+          onPhotosChange(updatedPhotos);
+        },
+      },
+    ]);
   };
 
   const handleSetPrimary = (photoId: string) => {
@@ -184,9 +190,9 @@ export default function PhotoUpload({
 
     const updatedPhotos = photos.map(photo => ({
       ...photo,
-      isPrimary: photo.id === photoId
+      isPrimary: photo.id === photoId,
     }));
-    
+
     onPhotosChange(updatedPhotos);
   };
 
@@ -195,7 +201,7 @@ export default function PhotoUpload({
     setShowPhotoModal(true);
   };
 
-  const renderPhoto = (photo: typeof photos[0], index: number) => (
+  const renderPhoto = (photo: (typeof photos)[0], index: number) => (
     <View key={photo.id} style={styles.photoContainer}>
       <TouchableOpacity
         style={styles.photoWrapper}
@@ -203,13 +209,13 @@ export default function PhotoUpload({
         disabled={disabled}
       >
         <Image source={{ uri: photo.fileUrl }} style={styles.photo} />
-        
+
         {photo.isPrimary && (
           <View style={styles.primaryBadge}>
             <Text style={styles.primaryText}>Primary</Text>
           </View>
         )}
-        
+
         {!disabled && (
           <View style={styles.photoActions}>
             <TouchableOpacity
@@ -218,7 +224,7 @@ export default function PhotoUpload({
             >
               <Text style={styles.actionButtonText}>×</Text>
             </TouchableOpacity>
-            
+
             {!photo.isPrimary && (
               <TouchableOpacity
                 style={[styles.actionButton, styles.setPrimaryButton]}
@@ -242,12 +248,7 @@ export default function PhotoUpload({
           <View key={index} style={styles.uploadProgressItem}>
             <Text style={styles.uploadProgressText}>{progress.fileName}</Text>
             <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { width: `${progress.progress}%` }
-                ]} 
-              />
+              <View style={[styles.progressFill, { width: `${progress.progress}%` }]} />
             </View>
             <Text style={styles.progressText}>{progress.progress}%</Text>
           </View>
@@ -268,7 +269,7 @@ export default function PhotoUpload({
       <ScrollView style={styles.photoGrid} showsVerticalScrollIndicator={false}>
         <View style={styles.photosContainer}>
           {photos.map(renderPhoto)}
-          
+
           {photos.length < maxPhotos && (
             <TouchableOpacity
               style={[styles.uploadButton, disabled && styles.uploadButtonDisabled]}
@@ -303,13 +304,9 @@ export default function PhotoUpload({
           >
             <Text style={styles.modalCloseText}>×</Text>
           </TouchableOpacity>
-          
+
           {selectedPhoto && (
-            <Image
-              source={{ uri: selectedPhoto }}
-              style={styles.modalImage}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: selectedPhoto }} style={styles.modalImage} resizeMode="contain" />
           )}
         </View>
       </Modal>

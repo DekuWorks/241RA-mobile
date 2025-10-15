@@ -29,14 +29,7 @@ export interface RunnerPhoto {
   isPrimary: boolean; // Main profile photo
 }
 
-export type EyeColor = 
-  | 'Brown'
-  | 'Blue' 
-  | 'Green'
-  | 'Hazel'
-  | 'Gray'
-  | 'Amber'
-  | 'Other';
+export type EyeColor = 'Brown' | 'Blue' | 'Green' | 'Hazel' | 'Gray' | 'Amber' | 'Other';
 
 export interface CreateRunnerProfileData {
   firstName: string;

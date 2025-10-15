@@ -6,7 +6,7 @@ import { colors, spacing, typography } from '../theme/tokens';
 
 export default function Home() {
   const [loadingText, setLoadingText] = useState('Loading...');
-  
+
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -15,7 +15,7 @@ export default function Home() {
     try {
       setLoadingText('Starting app...');
       console.log('App starting - redirecting to login screen');
-      
+
       // Add a small delay to ensure proper initialization
       setTimeout(() => {
         setLoadingText('Redirecting to login...');
@@ -31,7 +31,6 @@ export default function Home() {
           }, 1000);
         }
       }, 500);
-      
     } catch (error) {
       console.error('Navigation error:', error);
       setLoadingText('Error occurred, retrying...');

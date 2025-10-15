@@ -37,7 +37,7 @@ export class RealtimeSyncService {
       'admin_users',
       'admin_cases',
       'admin_system',
-      'admin_notifications'
+      'admin_notifications',
     ];
 
     // Initialize group manager
@@ -45,12 +45,12 @@ export class RealtimeSyncService {
 
     // Join all admin groups
     const results = await GroupManager.joinGroups(adminGroups);
-    
+
     if (results.failed.length > 0) {
       console.warn(`⚠️ Some admin groups failed to join: ${results.failed.join(', ')}`);
-      logEvent('admin_groups_partial_failure', { 
-        successful: results.success, 
-        failed: results.failed 
+      logEvent('admin_groups_partial_failure', {
+        successful: results.success,
+        failed: results.failed,
       });
     } else {
       console.log('✅ All admin groups joined successfully');
@@ -61,16 +61,20 @@ export class RealtimeSyncService {
   /**
    * Handle user management operations with real-time sync
    */
-  static async syncUserOperation(operation: 'create' | 'update' | 'delete' | 'role_change' | 'status_change', userId: string, data?: any): Promise<void> {
+  static async syncUserOperation(
+    operation: 'create' | 'update' | 'delete' | 'role_change' | 'status_change',
+    userId: string,
+    data?: any
+  ): Promise<void> {
     try {
       // The backend should automatically trigger SignalR events
       // This method ensures proper logging and monitoring
       console.log(`User operation ${operation} for user ${userId}:`, data);
-      
+
       logEvent('admin_user_operation', {
         operation,
         userId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Additional real-time sync logic can be added here if needed
@@ -80,7 +84,7 @@ export class RealtimeSyncService {
       logEvent('admin_user_operation_failed', {
         operation,
         userId,
-        error: String(error)
+        error: String(error),
       });
     }
   }
@@ -88,16 +92,20 @@ export class RealtimeSyncService {
   /**
    * Handle case management operations with real-time sync
    */
-  static async syncCaseOperation(operation: 'create' | 'update' | 'delete' | 'status_change' | 'priority_change', caseId: string, data?: any): Promise<void> {
+  static async syncCaseOperation(
+    operation: 'create' | 'update' | 'delete' | 'status_change' | 'priority_change',
+    caseId: string,
+    data?: any
+  ): Promise<void> {
     try {
       // The backend should automatically trigger SignalR events
       // This method ensures proper logging and monitoring
       console.log(`Case operation ${operation} for case ${caseId}:`, data);
-      
+
       logEvent('admin_case_operation', {
         operation,
         caseId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Additional real-time sync logic can be added here if needed
@@ -107,7 +115,7 @@ export class RealtimeSyncService {
       logEvent('admin_case_operation_failed', {
         operation,
         caseId,
-        error: String(error)
+        error: String(error),
       });
     }
   }
@@ -115,15 +123,18 @@ export class RealtimeSyncService {
   /**
    * Handle system operations with real-time sync
    */
-  static async syncSystemOperation(operation: 'backup' | 'maintenance' | 'settings_change' | 'bulk_operation', data?: any): Promise<void> {
+  static async syncSystemOperation(
+    operation: 'backup' | 'maintenance' | 'settings_change' | 'bulk_operation',
+    data?: any
+  ): Promise<void> {
     try {
       // The backend should automatically trigger SignalR events
       // This method ensures proper logging and monitoring
       console.log(`System operation ${operation}:`, data);
-      
+
       logEvent('admin_system_operation', {
         operation,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Additional real-time sync logic can be added here if needed
@@ -132,7 +143,7 @@ export class RealtimeSyncService {
       console.error(`Failed to sync system operation ${operation}:`, error);
       logEvent('admin_system_operation_failed', {
         operation,
-        error: String(error)
+        error: String(error),
       });
     }
   }
@@ -173,7 +184,7 @@ export class RealtimeSyncService {
       signalRConnected: signalRService.isConnected(),
       adminGroupsJoined: groupStatus.joinedGroups,
       totalGroups: groupStatus.totalGroups,
-      lastSyncCheck: new Date().toISOString()
+      lastSyncCheck: new Date().toISOString(),
     };
   }
 
@@ -192,4 +203,3 @@ export class RealtimeSyncService {
     }
   }
 }
-

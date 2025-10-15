@@ -21,14 +21,17 @@ export default function PortalUsersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  
+
   // Bulk Operations State
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
-  
+
   // Advanced Filters
-  const [dateRange, setDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+    start: '',
+    end: '',
+  });
   const [activityLevel, setActivityLevel] = useState<string>('');
 
   // CRUD Modal States
@@ -232,30 +235,26 @@ export default function PortalUsersScreen() {
   const handleBulkRoleChange = async (newRole: string) => {
     if (selectedUsers.size === 0) return;
 
-    Alert.alert(
-      'Bulk Role Change',
-      `Change role to ${newRole} for ${selectedUsers.size} users?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              const promises = Array.from(selectedUsers).map(userId => 
-                AdminService.updateUserRole(userId, newRole)
-              );
-              await Promise.all(promises);
-              Alert.alert('Success', `Updated roles for ${selectedUsers.size} users`);
-              clearSelection();
-              await loadUsers();
-            } catch (error: any) {
-              console.error('Failed to bulk update roles:', error);
-              Alert.alert('Error', error.message || 'Failed to update user roles');
-            }
-          },
+    Alert.alert('Bulk Role Change', `Change role to ${newRole} for ${selectedUsers.size} users?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: async () => {
+          try {
+            const promises = Array.from(selectedUsers).map(userId =>
+              AdminService.updateUserRole(userId, newRole)
+            );
+            await Promise.all(promises);
+            Alert.alert('Success', `Updated roles for ${selectedUsers.size} users`);
+            clearSelection();
+            await loadUsers();
+          } catch (error: any) {
+            console.error('Failed to bulk update roles:', error);
+            Alert.alert('Error', error.message || 'Failed to update user roles');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleBulkStatusChange = async (isActive: boolean) => {
@@ -270,11 +269,14 @@ export default function PortalUsersScreen() {
           text: 'Confirm',
           onPress: async () => {
             try {
-              const promises = Array.from(selectedUsers).map(userId => 
+              const promises = Array.from(selectedUsers).map(userId =>
                 AdminService.toggleUserStatus(userId, isActive)
               );
               await Promise.all(promises);
-              Alert.alert('Success', `${isActive ? 'Activated' : 'Deactivated'} ${selectedUsers.size} users`);
+              Alert.alert(
+                'Success',
+                `${isActive ? 'Activated' : 'Deactivated'} ${selectedUsers.size} users`
+              );
               clearSelection();
               await loadUsers();
             } catch (error: any) {
@@ -300,7 +302,7 @@ export default function PortalUsersScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const promises = Array.from(selectedUsers).map(userId => 
+              const promises = Array.from(selectedUsers).map(userId =>
                 AdminService.forceDeleteUser(userId)
               );
               await Promise.all(promises);
@@ -325,17 +327,20 @@ export default function PortalUsersScreen() {
       role: user.role || '',
       status: user.isActive ? 'Active' : 'Inactive',
       created: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown',
-      lastLogin: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'
+      lastLogin: user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never',
     }));
 
     const csvContent = [
       'Name,Email,Role,Status,Created,Last Login',
-      ...csvData.map(row => Object.values(row).join(','))
+      ...csvData.map(row => Object.values(row).join(',')),
     ].join('\n');
 
     // In a real app, you'd use a file sharing library
     console.log('CSV Export:', csvContent);
-    Alert.alert('Export Complete', 'User data has been exported to console (implement file sharing for production)');
+    Alert.alert(
+      'Export Complete',
+      'User data has been exported to console (implement file sharing for production)'
+    );
   };
 
   const getRoleColor = (role: string) => {
@@ -396,15 +401,11 @@ export default function PortalUsersScreen() {
         <TouchableOpacity
           style={styles.exportButton}
           onPress={() => {
-            Alert.alert(
-              'Export Users',
-              'Choose export format:',
-              [
-                { text: 'CSV', onPress: () => handleExportUsers('csv') },
-                { text: 'JSON', onPress: () => handleExportUsers('json') },
-                { text: 'Cancel', style: 'cancel' },
-              ]
-            );
+            Alert.alert('Export Users', 'Choose export format:', [
+              { text: 'CSV', onPress: () => handleExportUsers('csv') },
+              { text: 'JSON', onPress: () => handleExportUsers('json') },
+              { text: 'Cancel', style: 'cancel' },
+            ]);
           }}
         >
           <Text style={styles.exportButtonText}>📊</Text>
@@ -418,9 +419,9 @@ export default function PortalUsersScreen() {
             <Text style={styles.createButtonIcon}>➕</Text>
             <Text style={styles.createButtonText}>Create User</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]} 
+
+          <TouchableOpacity
+            style={[styles.bulkModeButton, bulkMode && styles.bulkModeButtonActive]}
             onPress={() => {
               setBulkMode(!bulkMode);
               if (bulkMode) {
@@ -428,16 +429,14 @@ export default function PortalUsersScreen() {
               }
             }}
           >
-            <Text style={styles.bulkModeButtonText}>
-              {bulkMode ? 'Exit Bulk' : 'Bulk Mode'}
-            </Text>
+            <Text style={styles.bulkModeButtonText}>{bulkMode ? 'Exit Bulk' : 'Bulk Mode'}</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.exportButton} onPress={exportUsers}>
             <Text style={styles.exportButtonText}>📊 Export</Text>
           </TouchableOpacity>
         </View>
-        
+
         {bulkMode && (
           <View style={styles.bulkControls}>
             <TouchableOpacity style={styles.selectAllButton} onPress={selectAllUsers}>
@@ -450,37 +449,37 @@ export default function PortalUsersScreen() {
             )}
           </View>
         )}
-        
+
         {showBulkActions && selectedUsers.size > 0 && (
           <View style={styles.bulkActions}>
             <Text style={styles.bulkActionsTitle}>{selectedUsers.size} users selected</Text>
             <View style={styles.bulkActionsRow}>
-              <TouchableOpacity 
-                style={styles.bulkActionButton} 
+              <TouchableOpacity
+                style={styles.bulkActionButton}
                 onPress={() => handleBulkRoleChange('admin')}
               >
                 <Text style={styles.bulkActionButtonText}>Make Admin</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.bulkActionButton} 
+              <TouchableOpacity
+                style={styles.bulkActionButton}
                 onPress={() => handleBulkRoleChange('moderator')}
               >
                 <Text style={styles.bulkActionButtonText}>Make Moderator</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.bulkActionButton} 
+              <TouchableOpacity
+                style={styles.bulkActionButton}
                 onPress={() => handleBulkStatusChange(true)}
               >
                 <Text style={styles.bulkActionButtonText}>Activate</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.bulkActionButton} 
+              <TouchableOpacity
+                style={styles.bulkActionButton}
                 onPress={() => handleBulkStatusChange(false)}
               >
                 <Text style={styles.bulkActionButtonText}>Deactivate</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.bulkActionButton, styles.bulkDeleteButton]} 
+              <TouchableOpacity
+                style={[styles.bulkActionButton, styles.bulkDeleteButton]}
                 onPress={handleBulkDelete}
               >
                 <Text style={styles.bulkActionButtonText}>Delete</Text>
@@ -564,12 +563,15 @@ export default function PortalUsersScreen() {
       {/* Users List */}
       <View style={styles.usersContainer}>
         {users.map(user => (
-          <View key={user.id} style={[
-            styles.userCard, 
-            bulkMode && selectedUsers.has(user.id) && styles.selectedUserCard
-          ]}>
+          <View
+            key={user.id}
+            style={[
+              styles.userCard,
+              bulkMode && selectedUsers.has(user.id) && styles.selectedUserCard,
+            ]}
+          >
             {bulkMode && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.selectionCheckbox}
                 onPress={() => toggleUserSelection(user.id)}
               >
@@ -578,7 +580,7 @@ export default function PortalUsersScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-            
+
             <View style={styles.userHeader}>
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>
@@ -587,7 +589,9 @@ export default function PortalUsersScreen() {
                 <Text style={styles.userEmail}>{user.email}</Text>
               </View>
               <View style={styles.userBadges}>
-                <View style={[styles.badge, { backgroundColor: getRoleColor(user.role || 'user') }]}>
+                <View
+                  style={[styles.badge, { backgroundColor: getRoleColor(user.role || 'user') }]}
+                >
                   <Text style={styles.badgeText}>{(user.role || 'user').toUpperCase()}</Text>
                 </View>
                 <View
@@ -603,7 +607,8 @@ export default function PortalUsersScreen() {
 
             <View style={styles.userMeta}>
               <Text style={styles.userMetaText}>
-                Created: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+                Created:{' '}
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
               </Text>
               {user.lastLoginAt && (
                 <Text style={styles.userMetaText}>

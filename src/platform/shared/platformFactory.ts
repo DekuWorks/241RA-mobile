@@ -82,7 +82,7 @@ export class PlatformServiceFactory {
         auth: {
           biometricTimeout: 30000,
           secureStorageType: 'keystore',
-        }
+        },
       },
       ios: {
         signalR: {
@@ -99,8 +99,8 @@ export class PlatformServiceFactory {
         auth: {
           biometricTimeout: 30000,
           secureStorageType: 'keychain',
-        }
-      }
+        },
+      },
     };
 
     return Platform.OS === 'android' ? config.android : config.ios;
@@ -111,8 +111,8 @@ export class PlatformServiceFactory {
     try {
       console.log(`🚀 Initializing platform-specific services for ${Platform.OS}`);
 
-      const signalRService = this.getSignalRService();
-      const notificationService = this.getNotificationService();
+      // const signalRService = this.getSignalRService(); // Unused
+      // const notificationService = this.getNotificationService(); // Unused
       const authService = this.getAuthService();
 
       // Initialize platform-specific authentication
@@ -126,7 +126,10 @@ export class PlatformServiceFactory {
 
       console.log(`✅ Platform-specific services initialized for ${Platform.OS}`);
     } catch (error) {
-      console.error(`❌ Failed to initialize platform-specific services for ${Platform.OS}:`, error);
+      console.error(
+        `❌ Failed to initialize platform-specific services for ${Platform.OS}:`,
+        error
+      );
       throw error;
     }
   }
@@ -134,7 +137,7 @@ export class PlatformServiceFactory {
   // Get platform-specific error messages
   static getPlatformErrorMessage(error: any): string {
     const baseMessage = error.message || 'An unknown error occurred';
-    
+
     if (this.isAndroid()) {
       if (error.code === 'NETWORK_ERROR') {
         return 'Android: Network connection failed. Please check your internet connection.';
@@ -157,7 +160,7 @@ export class PlatformServiceFactory {
     const platformData = {
       platform: Platform.OS,
       version: Platform.Version,
-      ...data
+      ...data,
     };
 
     console.log(`[${Platform.OS.toUpperCase()}] ${eventName}:`, platformData);

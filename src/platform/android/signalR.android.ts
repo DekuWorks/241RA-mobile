@@ -66,9 +66,10 @@ export class AndroidSignalRService {
       }
 
       const userRole = await this.getUserRole();
-      const hubUrl = userRole === 'admin' || userRole === 'super_admin' || userRole === 'moderator'
-        ? `${API_BASE}/hubs/admin`
-        : `${API_BASE}/hubs/alerts`;
+      const hubUrl =
+        userRole === 'admin' || userRole === 'super_admin' || userRole === 'moderator'
+          ? `${API_BASE}/hubs/admin`
+          : `${API_BASE}/hubs/alerts`;
 
       console.log('🔌 Android SignalR connecting to:', hubUrl);
 
@@ -93,9 +94,9 @@ export class AndroidSignalRService {
           withCredentials: false,
           timeout: 60000, // Extended timeout for Android
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'User-Agent': '241Runners-Mobile-Android/1.0.0',
-            'Connection': 'keep-alive',
+            Connection: 'keep-alive',
             'Cache-Control': 'no-cache',
             'X-Platform': 'android',
           },
@@ -104,21 +105,24 @@ export class AndroidSignalRService {
           serverTimeoutInMilliseconds: 60000,
         })
         .withAutomaticReconnect({
-          nextRetryDelayInMilliseconds: (retryContext) => {
+          nextRetryDelayInMilliseconds: retryContext => {
             // Android-specific retry strategy
             const baseDelays = [0, 1000, 3000, 8000, 15000, 30000];
-            
+
             if (retryContext.previousRetryCount < baseDelays.length) {
               return baseDelays[retryContext.previousRetryCount];
             }
-            
+
             // Continue retrying with exponential backoff
             if (retryContext.previousRetryCount < this.maxReconnectAttempts) {
-              return Math.min(120000, 30000 * Math.pow(2, retryContext.previousRetryCount - baseDelays.length));
+              return Math.min(
+                120000,
+                30000 * Math.pow(2, retryContext.previousRetryCount - baseDelays.length)
+              );
             }
-            
+
             return null; // Stop retrying
-          }
+          },
         })
         .configureLogging(signalR.LogLevel.Warning)
         .build();
@@ -127,41 +131,40 @@ export class AndroidSignalRService {
 
       try {
         console.log('🚀 Starting Android SignalR connection...');
-        
+
         // Extended delay for Android initialization
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         await Promise.race([
           this.connection.start(),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Android connection timeout')), 15000)
-          )
+          ),
         ]);
-        
+
         logEvent('android_signalr_connected', {
           connectionId: this.connection.connectionId || 'unknown',
         });
 
         console.log('✅ Android SignalR connected successfully');
         this.reconnectAttempts = 0;
-        
       } catch (startError: any) {
         console.warn('⚠️ Android SignalR connection failed:', startError);
-        
+
         this.failureCount++;
         this.reconnectAttempts++;
-        
+
         if (this.failureCount >= 3) {
           console.warn('🚫 Android SignalR disabled after 3 failures');
           this.isEnabled = false;
         }
-        
+
         WebSocketDiagnostics.recordError(
           'Android SignalR connection failed',
           startError?.statusCode,
           startError
         );
-        
+
         throw startError;
       }
     } catch (error) {
@@ -177,42 +180,42 @@ export class AndroidSignalRService {
 
     this.connection.onclose(error => {
       console.log('Android SignalR connection closed:', error);
-      
+
       if (error) {
         console.error('Android SignalR close error:', {
           code: error.code,
           reason: error.reason,
-          wasClean: error.wasClean
+          wasClean: error.wasClean,
         });
-        
+
         // Enhanced Android error handling
         if (error.code === 1006) {
           console.warn('Android WebSocket 1006: Abnormal closure');
           WebSocketDiagnostics.recordError('Android WebSocket 1006: Abnormal closure', error.code);
-          logEvent('android_websocket_1006', { 
+          logEvent('android_websocket_1006', {
             error: 'Abnormal closure - Android network issue',
-            code: error.code
+            code: error.code,
           });
-          
+
           // Android-specific reconnection strategy
           this.handleAndroidReconnection();
         } else {
           WebSocketDiagnostics.recordError(`Android WebSocket error ${error.code}`, error.code);
         }
       }
-      
-      logEvent('android_signalr_disconnected', { 
+
+      logEvent('android_signalr_disconnected', {
         error: error?.message || 'unknown',
         code: error?.code,
-        wasClean: error?.wasClean 
+        wasClean: error?.wasClean,
       });
     });
 
     this.connection.onreconnecting(error => {
       console.log('Android SignalR reconnecting:', error);
-      logEvent('android_signalr_reconnecting', { 
+      logEvent('android_signalr_reconnecting', {
         error: error?.message || 'unknown',
-        code: error?.code 
+        code: error?.code,
       });
     });
 
@@ -235,9 +238,11 @@ export class AndroidSignalRService {
     // Progressive reconnection delays for Android
     const delays = [2000, 5000, 10000, 20000, 30000];
     const delay = delays[Math.min(this.reconnectAttempts, delays.length - 1)];
-    
+
     setTimeout(() => {
-      console.log(`Android: Reconnection attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts}`);
+      console.log(
+        `Android: Reconnection attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts}`
+      );
       this.startConnection();
     }, delay);
   }
@@ -316,20 +321,20 @@ export class AndroidSignalRService {
 
       const state = this.connection.state;
       if (state === signalR.HubConnectionState.Connected) {
-        return { 
-          success: true, 
-          connectionId: this.connection.connectionId || 'unknown' 
+        return {
+          success: true,
+          connectionId: this.connection.connectionId || 'unknown',
         };
       } else {
-        return { 
-          success: false, 
-          error: `Android connection state: ${state}` 
+        return {
+          success: false,
+          error: `Android connection state: ${state}`,
         };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'Unknown Android error' 
+      return {
+        success: false,
+        error: error.message || 'Unknown Android error',
       };
     }
   }

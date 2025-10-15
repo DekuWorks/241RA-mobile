@@ -19,9 +19,9 @@ export class GoogleAuthService {
           process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
           '933970195369-5qqs8ju3elg8ujeklqsgsoqae60bo3gb.apps.googleusercontent.com',
         // Android client ID (if different from web client ID)
-        // androidClientId:
-        //   process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
-        //   '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
+        androidClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+          '933970195369-dreapndpfibqgqmr54a662hjaliv4j7l.apps.googleusercontent.com',
         // Enable offline access
         offlineAccess: false,
         // Force consent screen
@@ -49,10 +49,12 @@ export class GoogleAuthService {
       // Configure if not already done
       await this.configure();
 
-      // Check if device supports Google Play Services
-      await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
+      // Check if device supports Google Play Services (iOS doesn't need this)
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({
+          showPlayServicesUpdateDialog: true,
+        });
+      }
 
       // Sign in
       const userInfo = await GoogleSignin.signIn();

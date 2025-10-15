@@ -1,0 +1,24 @@
+# Test files that are meant for development/testing only
+test-*.js
+scripts/write-google-services.js
+
+# Build outputs
+build/
+dist/
+*.apk
+*.aab
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.generated.*
+*.d.ts
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

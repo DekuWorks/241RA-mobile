@@ -81,17 +81,23 @@ export class SignalRService {
         hasToken: !!token,
         tokenLength: token?.length,
         tokenPrefix: token?.substring(0, 20) + '...',
-        isJWT: token?.includes('.')
+        isJWT: token?.includes('.'),
       });
 
       // Determine which hub to use based on user role
       const userRole = await this.getUserRole();
-      const hubUrl = userRole === 'admin' || userRole === 'super_admin' || userRole === 'moderator'
-        ? `${API_BASE}/hubs/admin`    // AdminHub for admin users
-        : `${API_BASE}/hubs/alerts`;  // AlertsHub for regular users
+      const hubUrl =
+        userRole === 'admin' || userRole === 'super_admin' || userRole === 'moderator'
+          ? `${API_BASE}/hubs/admin` // AdminHub for admin users
+          : `${API_BASE}/hubs/alerts`; // AlertsHub for regular users
 
       console.log('🔌 Connecting to SignalR hub:', hubUrl);
-      console.log('👤 User role:', userRole, '→ Using', userRole?.includes('admin') || userRole === 'moderator' ? 'AdminHub' : 'AlertsHub');
+      console.log(
+        '👤 User role:',
+        userRole,
+        '→ Using',
+        userRole?.includes('admin') || userRole === 'moderator' ? 'AdminHub' : 'AlertsHub'
+      );
       console.log('🔑 Access token available:', !!token);
       console.log('🌐 API Base URL:', API_BASE);
 
@@ -114,11 +120,14 @@ export class SignalRService {
             }
           },
           skipNegotiation: false, // Allow negotiation for better compatibility
-          transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
+          transport:
+            signalR.HttpTransportType.WebSockets |
+            signalR.HttpTransportType.ServerSentEvents |
+            signalR.HttpTransportType.LongPolling,
           withCredentials: false,
           timeout: 30000, // 30 second timeout
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           // Android-specific WebSocket options
           ...(Platform.OS === 'android' && {
@@ -131,30 +140,33 @@ export class SignalRService {
             // Android-specific headers
             headers: {
               'User-Agent': '241Runners-Mobile-Android',
-              'Connection': 'keep-alive',
+              Connection: 'keep-alive',
               'Cache-Control': 'no-cache',
             },
           }),
         })
         .withAutomaticReconnect({
-          nextRetryDelayInMilliseconds: (retryContext) => {
+          nextRetryDelayInMilliseconds: retryContext => {
             // Enhanced retry logic for Android WebSocket issues
             const isAndroid = Platform.OS === 'android';
-            const baseDelays = isAndroid 
+            const baseDelays = isAndroid
               ? [0, 1000, 3000, 8000, 15000, 30000] // More aggressive for Android
               : [0, 2000, 5000, 10000, 30000];
-            
+
             if (retryContext.previousRetryCount < baseDelays.length) {
               return baseDelays[retryContext.previousRetryCount];
             }
-            
+
             // Continue retrying for Android with exponential backoff
             if (isAndroid && retryContext.previousRetryCount < 10) {
-              return Math.min(60000, 30000 * Math.pow(2, retryContext.previousRetryCount - baseDelays.length));
+              return Math.min(
+                60000,
+                30000 * Math.pow(2, retryContext.previousRetryCount - baseDelays.length)
+              );
             }
-            
+
             return null; // Stop retrying
-          }
+          },
         })
         .configureLogging(signalR.LogLevel.Warning) // Reduce logging noise
         .build();
@@ -165,18 +177,18 @@ export class SignalRService {
       // Start connection with enhanced error handling
       try {
         console.log('🚀 Starting SignalR connection...');
-        
+
         // Add a small delay to ensure authentication is fully processed
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Try to start with timeout
         await Promise.race([
           this.connection.start(),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Connection timeout')), 10000)
-          )
+          ),
         ]);
-        
+
         logEvent('signalr_connected', {
           connectionId: this.connection.connectionId || 'unknown',
         });
@@ -186,20 +198,25 @@ export class SignalRService {
         console.log('🌐 Hub URL:', hubUrl);
         console.log('👤 User Role:', userRole);
       } catch (startError: any) {
-        console.warn('⚠️ SignalR connection failed (app will work without real-time features):', startError);
-        
+        console.warn(
+          '⚠️ SignalR connection failed (app will work without real-time features):',
+          startError
+        );
+
         this.failureCount++;
-        
+
         // Disable SignalR after 3 consecutive failures
         if (this.failureCount >= 3) {
-          console.warn('🚫 SignalR disabled after 3 failures - app will work without real-time features');
+          console.warn(
+            '🚫 SignalR disabled after 3 failures - app will work without real-time features'
+          );
           this.isEnabled = false;
         }
-        
+
         // Handle specific error types (non-blocking)
         if (startError?.statusCode === 403) {
           console.warn('⚠️ SignalR authentication issue - continuing without real-time features');
-          
+
           WebSocketDiagnostics.recordError(
             'SignalR 403 Forbidden - Authentication failed',
             403,
@@ -236,28 +253,28 @@ export class SignalRService {
     // Handle connection events
     this.connection.onclose(error => {
       console.log('SignalR connection closed:', error);
-      
+
       // Handle specific error codes
       if (error) {
         console.error('SignalR close error details:', {
           code: error.code,
           reason: error.reason,
-          wasClean: error.wasClean
+          wasClean: error.wasClean,
         });
-        
+
         // Handle WebSocket error 1006 (abnormal closure)
         if (error.code === 1006) {
           console.warn('WebSocket error 1006: Abnormal closure detected');
           WebSocketDiagnostics.recordError('WebSocket 1006: Abnormal closure', error.code);
-          logEvent('signalr_websocket_1006', { 
+          logEvent('signalr_websocket_1006', {
             error: 'Abnormal closure - possible network or server issue',
             code: error.code,
-            platform: Platform.OS
+            platform: Platform.OS,
           });
-          
+
           // Log diagnostics for troubleshooting
           WebSocketDiagnostics.logDiagnostics();
-          
+
           // Android-specific reconnection strategy
           if (Platform.OS === 'android') {
             // More aggressive reconnection for Android
@@ -265,18 +282,24 @@ export class SignalRService {
               console.log('Android: Attempting immediate reconnect after WebSocket 1006...');
               this.startConnection();
             }, 2000);
-            
+
             // Additional fallback reconnection
             setTimeout(() => {
-              if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
+              if (
+                !this.connection ||
+                this.connection.state !== signalR.HubConnectionState.Connected
+              ) {
                 console.log('Android: Fallback reconnection attempt...');
                 this.startConnection();
               }
             }, 10000);
-            
+
             // Third attempt for Android if still not connected
             setTimeout(() => {
-              if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
+              if (
+                !this.connection ||
+                this.connection.state !== signalR.HubConnectionState.Connected
+              ) {
                 console.log('Android: Third reconnection attempt...');
                 this.forceReconnect();
               }
@@ -291,7 +314,7 @@ export class SignalRService {
         } else {
           // Record other WebSocket errors
           WebSocketDiagnostics.recordError(`WebSocket error ${error.code}`, error.code);
-          
+
           // Handle other common Android WebSocket errors
           if (Platform.OS === 'android' && (error.code === 1000 || error.code === 1001)) {
             setTimeout(() => {
@@ -301,19 +324,19 @@ export class SignalRService {
           }
         }
       }
-      
-      logEvent('signalr_disconnected', { 
+
+      logEvent('signalr_disconnected', {
         error: error?.message || 'unknown',
         code: error?.code,
-        wasClean: error?.wasClean 
+        wasClean: error?.wasClean,
       });
     });
 
     this.connection.onreconnecting(error => {
       console.log('SignalR reconnecting:', error);
-      logEvent('signalr_reconnecting', { 
+      logEvent('signalr_reconnecting', {
         error: error?.message || 'unknown',
-        code: error?.code 
+        code: error?.code,
       });
     });
 
@@ -372,7 +395,7 @@ export class SignalRService {
     this.connection.on('userCreated', (payload: any) => {
       console.log('User created via SignalR:', payload);
       logEvent('signalr_user_created', { userId: payload.id });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -383,7 +406,7 @@ export class SignalRService {
     this.connection.on('userUpdated', (payload: any) => {
       console.log('User updated via SignalR:', payload);
       logEvent('signalr_user_updated', { userId: payload.id });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -395,7 +418,7 @@ export class SignalRService {
     this.connection.on('userDeleted', (payload: any) => {
       console.log('User deleted via SignalR:', payload);
       logEvent('signalr_user_deleted', { userId: payload.id });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -406,7 +429,7 @@ export class SignalRService {
     this.connection.on('userRoleChanged', (payload: any) => {
       console.log('User role changed via SignalR:', payload);
       logEvent('signalr_user_role_changed', { userId: payload.id, newRole: payload.role });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -418,7 +441,7 @@ export class SignalRService {
     this.connection.on('userStatusChanged', (payload: any) => {
       console.log('User status changed via SignalR:', payload);
       logEvent('signalr_user_status_changed', { userId: payload.id, isActive: payload.isActive });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -431,7 +454,7 @@ export class SignalRService {
     this.connection.on('caseStatusChanged', (payload: any) => {
       console.log('Case status changed via SignalR:', payload);
       logEvent('signalr_case_status_changed', { caseId: payload.id, newStatus: payload.status });
-      
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -442,8 +465,11 @@ export class SignalRService {
 
     this.connection.on('casePriorityChanged', (payload: any) => {
       console.log('Case priority changed via SignalR:', payload);
-      logEvent('signalr_case_priority_changed', { caseId: payload.id, newPriority: payload.priority });
-      
+      logEvent('signalr_case_priority_changed', {
+        caseId: payload.id,
+        newPriority: payload.priority,
+      });
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -455,7 +481,7 @@ export class SignalRService {
     this.connection.on('caseDeleted', (payload: any) => {
       console.log('Case deleted via SignalR:', payload);
       logEvent('signalr_case_deleted', { caseId: payload.id });
-      
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -467,7 +493,7 @@ export class SignalRService {
     this.connection.on('adminStatsUpdated', (payload: any) => {
       console.log('Admin stats updated via SignalR:', payload);
       logEvent('signalr_admin_stats_updated');
-      
+
       // Invalidate admin dashboard queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
@@ -480,7 +506,7 @@ export class SignalRService {
     this.connection.on('systemSettingsChanged', (payload: any) => {
       console.log('System settings changed via SignalR:', payload);
       logEvent('signalr_system_settings_changed', { setting: payload.setting });
-      
+
       // Invalidate settings queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
@@ -492,7 +518,7 @@ export class SignalRService {
     this.connection.on('databaseBackupCompleted', (payload: any) => {
       console.log('Database backup completed via SignalR:', payload);
       logEvent('signalr_database_backup_completed', { backupId: payload.backupId });
-      
+
       // Invalidate database queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'database'] });
@@ -503,7 +529,7 @@ export class SignalRService {
     this.connection.on('databaseMaintenanceCompleted', (payload: any) => {
       console.log('Database maintenance completed via SignalR:', payload);
       logEvent('signalr_database_maintenance_completed', { operation: payload.operation });
-      
+
       // Invalidate database queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'database'] });
@@ -514,8 +540,11 @@ export class SignalRService {
     // Handle bulk operations
     this.connection.on('bulkOperationCompleted', (payload: any) => {
       console.log('Bulk operation completed via SignalR:', payload);
-      logEvent('signalr_bulk_operation_completed', { operation: payload.operation, count: payload.count });
-      
+      logEvent('signalr_bulk_operation_completed', {
+        operation: payload.operation,
+        count: payload.count,
+      });
+
       // Invalidate relevant queries based on operation type
       if (this.queryClient) {
         if (payload.operation.includes('user')) {
@@ -534,7 +563,7 @@ export class SignalRService {
     this.connection.on('NewUserRegistration', (data: any) => {
       console.log('👤 New user registration:', data);
       logEvent('signalr_new_user_registration', { userId: data.userData?.id });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -546,7 +575,7 @@ export class SignalRService {
     this.connection.on('CaseCreated', (data: any) => {
       console.log('📋 New case created:', data);
       logEvent('signalr_case_created', { caseId: data.caseData?.id });
-      
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -558,7 +587,7 @@ export class SignalRService {
     this.connection.on('CaseUpdated', (data: any) => {
       console.log('📋 Case updated:', data);
       logEvent('signalr_case_updated_admin', { caseId: data.id });
-      
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -570,7 +599,7 @@ export class SignalRService {
     this.connection.on('caseDeleted', (data: any) => {
       console.log('🗑️ Case deleted:', data);
       logEvent('signalr_case_deleted_admin', { caseId: data.data?.id });
-      
+
       // Invalidate case queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['cases'] });
@@ -583,7 +612,7 @@ export class SignalRService {
     this.connection.on('AdminConnected', (data: any) => {
       console.log('👑 Admin connected:', data);
       logEvent('signalr_admin_connected', { adminId: data.adminId, adminName: data.adminName });
-      
+
       // Invalidate admin queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'online'] });
@@ -594,7 +623,7 @@ export class SignalRService {
     this.connection.on('AdminDisconnected', (data: any) => {
       console.log('👑 Admin disconnected:', data);
       logEvent('signalr_admin_disconnected', { adminId: data.adminId, adminName: data.adminName });
-      
+
       // Invalidate admin queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'online'] });
@@ -605,7 +634,7 @@ export class SignalRService {
     this.connection.on('CurrentAdmins', (data: any) => {
       console.log('👥 Current admins:', data);
       logEvent('signalr_current_admins', { count: data.length });
-      
+
       // Update admin list in cache
       if (this.queryClient) {
         this.queryClient.setQueryData(['admin', 'online'], data);
@@ -615,7 +644,7 @@ export class SignalRService {
     this.connection.on('UserChanged', (data: any) => {
       console.log('👤 User changed:', data);
       logEvent('signalr_user_changed_admin', { userId: data.userId, operation: data.operation });
-      
+
       // Invalidate user queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -627,7 +656,7 @@ export class SignalRService {
     this.connection.on('RunnerChanged', (data: any) => {
       console.log('🏃 Runner changed:', data);
       logEvent('signalr_runner_changed', { runnerId: data.runnerId, operation: data.operation });
-      
+
       // Invalidate runner queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['runners'] });
@@ -638,8 +667,11 @@ export class SignalRService {
 
     this.connection.on('AdminProfileChanged', (data: any) => {
       console.log('👑 Admin profile changed:', data);
-      logEvent('signalr_admin_profile_changed', { adminId: data.adminId, operation: data.operation });
-      
+      logEvent('signalr_admin_profile_changed', {
+        adminId: data.adminId,
+        operation: data.operation,
+      });
+
       // Invalidate admin profile queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'profile'] });
@@ -650,7 +682,7 @@ export class SignalRService {
     this.connection.on('DataVersionChanged', (data: any) => {
       console.log('📊 Data version changed:', data);
       logEvent('signalr_data_version_changed', { dataType: data.dataType, version: data.version });
-      
+
       // Invalidate all relevant queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
@@ -661,7 +693,7 @@ export class SignalRService {
     this.connection.on('AdminActivity', (data: any) => {
       console.log('👑 Admin activity:', data);
       logEvent('signalr_admin_activity', { adminId: data.adminId, activity: data.activity });
-      
+
       // Invalidate admin activity queries
       if (this.queryClient) {
         this.queryClient.invalidateQueries({ queryKey: ['admin', 'activity'] });
@@ -671,7 +703,7 @@ export class SignalRService {
     this.connection.on('OnlineAdmins', (data: any) => {
       console.log('👥 Online admins:', data);
       logEvent('signalr_online_admins', { count: data.length });
-      
+
       // Update online admins in cache
       if (this.queryClient) {
         this.queryClient.setQueryData(['admin', 'online'], data);
@@ -694,7 +726,7 @@ export class SignalRService {
       // Try different method names that might exist on the server
       const methods = ['joingroup', 'JoinGroup', 'joinGroup', 'JoinGroupAsync'];
       let success = false;
-      
+
       for (const method of methods) {
         try {
           await this.connection.invoke(method, groupName);
@@ -706,9 +738,11 @@ export class SignalRService {
           console.log(`❌ Method '${method}' failed for group '${groupName}':`, methodError);
         }
       }
-      
+
       if (!success) {
-        console.warn(`⚠️ All methods failed for group '${groupName}'. Server may not support group joins yet.`);
+        console.warn(
+          `⚠️ All methods failed for group '${groupName}'. Server may not support group joins yet.`
+        );
         logEvent('signalr_group_join_not_supported', { groupName });
       }
     } catch (error) {
@@ -727,7 +761,7 @@ export class SignalRService {
       // Try different method names that might exist on the server
       const methods = ['leavegroup', 'LeaveGroup', 'leaveGroup', 'LeaveGroupAsync'];
       let success = false;
-      
+
       for (const method of methods) {
         try {
           await this.connection.invoke(method, groupName);
@@ -739,9 +773,11 @@ export class SignalRService {
           console.log(`❌ Method '${method}' failed for group '${groupName}':`, methodError);
         }
       }
-      
+
       if (!success) {
-        console.warn(`⚠️ All methods failed for group '${groupName}'. Server may not support group leaves yet.`);
+        console.warn(
+          `⚠️ All methods failed for group '${groupName}'. Server may not support group leaves yet.`
+        );
         logEvent('signalr_group_leave_not_supported', { groupName });
       }
     } catch (error) {
@@ -776,7 +812,11 @@ export class SignalRService {
     return this.platformService.testConnection();
   }
 
-  async testConnectionLegacy(): Promise<{ success: boolean; error?: string; connectionId?: string }> {
+  async testConnectionLegacy(): Promise<{
+    success: boolean;
+    error?: string;
+    connectionId?: string;
+  }> {
     try {
       if (!this.connection) {
         return { success: false, error: 'No connection established' };
@@ -784,20 +824,20 @@ export class SignalRService {
 
       const state = this.connection.state;
       if (state === signalR.HubConnectionState.Connected) {
-        return { 
-          success: true, 
-          connectionId: this.connection.connectionId || 'unknown' 
+        return {
+          success: true,
+          connectionId: this.connection.connectionId || 'unknown',
         };
       } else {
-        return { 
-          success: false, 
-          error: `Connection state: ${state}` 
+        return {
+          success: false,
+          error: `Connection state: ${state}`,
         };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'Unknown error' 
+      return {
+        success: false,
+        error: error.message || 'Unknown error',
       };
     }
   }
@@ -859,10 +899,6 @@ export class SignalRService {
 
   getConnectionState(): signalR.HubConnectionState | null {
     return this.platformService.getConnectionState();
-  }
-
-  async forceReconnect(): Promise<void> {
-    return this.platformService.forceReconnect();
   }
 }
 

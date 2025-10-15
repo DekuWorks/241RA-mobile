@@ -85,7 +85,7 @@ export default function AdminProfileScreen() {
             await AuthService.logout();
             await UserDataService.clearUserData();
             await NotificationService.unregisterDevice();
-            
+
             // Navigate to login and clear the navigation stack
             router.dismissAll();
             router.replace('/login');

@@ -14,7 +14,7 @@ export class TrackingTransparencyService {
 
     try {
       const { status } = await TrackingTransparency.requestTrackingPermissionsAsync();
-      
+
       if (status === 'granted') {
         console.log('Tracking permission granted');
         return true;
@@ -54,7 +54,7 @@ export class TrackingTransparencyService {
     }
 
     // Show explanation dialog first
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       Alert.alert(
         'Help Us Improve 241Runners',
         'We use anonymous usage data to improve the app and help find missing persons more effectively. This data is never shared with third parties for advertising.\n\nYou can change this setting anytime in your device settings.',
@@ -76,4 +76,3 @@ export class TrackingTransparencyService {
     });
   }
 }
-

@@ -21,12 +21,12 @@ export class WebSocketDiagnostics {
     this.lastError = error;
     this.lastErrorCode = code || null;
     this.retryCount++;
-    
+
     console.error('WebSocket Error Recorded:', {
       error,
       code,
       retryCount: this.retryCount,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -43,7 +43,7 @@ export class WebSocketDiagnostics {
       errorCode: this.lastErrorCode || undefined,
       retryCount: this.retryCount,
       isHealthy,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -180,11 +180,10 @@ export class WebSocketDiagnostics {
   static logDiagnostics(): void {
     const info = this.getDiagnosticInfo('unknown', false);
     console.log('WebSocket Diagnostics:', info);
-    
+
     if (info.errorCode) {
       const recommendations = this.getErrorRecommendations(info.errorCode);
       console.log('Recommendations:', recommendations);
     }
   }
 }
-

@@ -77,10 +77,10 @@ export default function SLAConfigurationScreen() {
       setLoading(true);
       // In a real app, this would fetch from the API
       console.log('[SLA] Loading SLA configuration and metrics...');
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       console.log('[SLA] SLA data loaded successfully');
     } catch (error) {
       console.error('[SLA] Failed to load SLA data:', error);
@@ -100,11 +100,11 @@ export default function SLAConfigurationScreen() {
     try {
       // In a real app, this would save to the API
       console.log('[SLA] Saving SLA settings:', editingSettings);
-      
+
       setSlaSettings(prev => ({ ...prev, ...editingSettings }));
       setShowEditModal(false);
       setEditingSettings({});
-      
+
       Alert.alert('Success', 'SLA settings updated successfully');
     } catch (error) {
       console.error('[SLA] Failed to save settings:', error);
@@ -205,7 +205,11 @@ export default function SLAConfigurationScreen() {
             title="Average Response Time"
             value={`${slaMetrics.averageResponseTime}h`}
             subtitle={`Target: ${slaSettings.caseResponseTime}h`}
-            color={slaMetrics.averageResponseTime <= slaSettings.caseResponseTime ? colors.success[600] : colors.warning[600]}
+            color={
+              slaMetrics.averageResponseTime <= slaSettings.caseResponseTime
+                ? colors.success[600]
+                : colors.warning[600]
+            }
             icon="⚡"
             trend="down"
           />
@@ -213,7 +217,11 @@ export default function SLAConfigurationScreen() {
             title="Average Resolution Time"
             value={`${slaMetrics.averageResolutionTime}h`}
             subtitle={`Target: ${slaSettings.caseResolutionTime}h`}
-            color={slaMetrics.averageResolutionTime <= slaSettings.caseResolutionTime ? colors.success[600] : colors.warning[600]}
+            color={
+              slaMetrics.averageResolutionTime <= slaSettings.caseResolutionTime
+                ? colors.success[600]
+                : colors.warning[600]
+            }
             icon="🎯"
             trend="down"
           />
@@ -255,7 +263,7 @@ export default function SLAConfigurationScreen() {
       {/* SLA Settings */}
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>SLA Timeframes</Text>
-        
+
         <SLASettingCard
           title="Case Response Time"
           description="Maximum time to respond to new cases"
@@ -264,7 +272,7 @@ export default function SLAConfigurationScreen() {
           color={colors.info[600]}
           onPress={() => openEditModal({ caseResponseTime: slaSettings.caseResponseTime })}
         />
-        
+
         <SLASettingCard
           title="Case Resolution Time"
           description="Maximum time to resolve cases"
@@ -273,25 +281,29 @@ export default function SLAConfigurationScreen() {
           color={colors.warning[600]}
           onPress={() => openEditModal({ caseResolutionTime: slaSettings.caseResolutionTime })}
         />
-        
+
         <SLASettingCard
           title="Urgent Case Response"
           description="Maximum time to respond to urgent cases"
           value={slaSettings.urgentCaseResponseTime}
           unit=" hours"
           color={colors.error}
-          onPress={() => openEditModal({ urgentCaseResponseTime: slaSettings.urgentCaseResponseTime })}
+          onPress={() =>
+            openEditModal({ urgentCaseResponseTime: slaSettings.urgentCaseResponseTime })
+          }
         />
-        
+
         <SLASettingCard
           title="Urgent Case Resolution"
           description="Maximum time to resolve urgent cases"
           value={slaSettings.urgentCaseResolutionTime}
           unit=" hours"
           color={colors.error}
-          onPress={() => openEditModal({ urgentCaseResolutionTime: slaSettings.urgentCaseResolutionTime })}
+          onPress={() =>
+            openEditModal({ urgentCaseResolutionTime: slaSettings.urgentCaseResolutionTime })
+          }
         />
-        
+
         <SLASettingCard
           title="Escalation Time"
           description="Time before cases are escalated"
@@ -300,21 +312,23 @@ export default function SLAConfigurationScreen() {
           color={colors.warning[600]}
           onPress={() => openEditModal({ escalationTime: slaSettings.escalationTime })}
         />
-        
+
         <SLASettingCard
           title="Notification Frequency"
           description="How often to send SLA notifications"
           value={slaSettings.notificationFrequency}
           unit=" hours"
           color={colors.primary[600]}
-          onPress={() => openEditModal({ notificationFrequency: slaSettings.notificationFrequency })}
+          onPress={() =>
+            openEditModal({ notificationFrequency: slaSettings.notificationFrequency })
+          }
         />
       </View>
 
       {/* Automation Settings */}
       <View style={styles.automationSection}>
         <Text style={styles.sectionTitle}>Automation Settings</Text>
-        
+
         <SLASettingCard
           title="Auto Escalation"
           description="Automatically escalate cases that exceed SLA"
@@ -322,7 +336,7 @@ export default function SLAConfigurationScreen() {
           color={slaSettings.autoEscalation ? colors.success[600] : colors.gray[500]}
           onPress={() => openEditModal({ autoEscalation: !slaSettings.autoEscalation })}
         />
-        
+
         <SLASettingCard
           title="Weekend Escalation"
           description="Include weekends in SLA calculations"
@@ -330,7 +344,7 @@ export default function SLAConfigurationScreen() {
           color={slaSettings.weekendEscalation ? colors.success[600] : colors.gray[500]}
           onPress={() => openEditModal({ weekendEscalation: !slaSettings.weekendEscalation })}
         />
-        
+
         <SLASettingCard
           title="Holiday Escalation"
           description="Include holidays in SLA calculations"
@@ -343,7 +357,7 @@ export default function SLAConfigurationScreen() {
       {/* Notification Settings */}
       <View style={styles.notificationSection}>
         <Text style={styles.sectionTitle}>Notification Preferences</Text>
-        
+
         <SLASettingCard
           title="Email Notifications"
           description="Send SLA alerts via email"
@@ -351,7 +365,7 @@ export default function SLAConfigurationScreen() {
           color={slaSettings.emailNotifications ? colors.success[600] : colors.gray[500]}
           onPress={() => openEditModal({ emailNotifications: !slaSettings.emailNotifications })}
         />
-        
+
         <SLASettingCard
           title="SMS Notifications"
           description="Send SLA alerts via SMS"
@@ -359,7 +373,7 @@ export default function SLAConfigurationScreen() {
           color={slaSettings.smsNotifications ? colors.success[600] : colors.gray[500]}
           onPress={() => openEditModal({ smsNotifications: !slaSettings.smsNotifications })}
         />
-        
+
         <SLASettingCard
           title="Push Notifications"
           description="Send SLA alerts via push notifications"
@@ -374,74 +388,101 @@ export default function SLAConfigurationScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit SLA Setting</Text>
-            
+
             {editingSettings.caseResponseTime !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Case Response Time (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.caseResponseTime.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, caseResponseTime: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({
+                      ...editingSettings,
+                      caseResponseTime: parseInt(text) || 0,
+                    })
+                  }
                   keyboardType="numeric"
                 />
               </>
             )}
-            
+
             {editingSettings.caseResolutionTime !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Case Resolution Time (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.caseResolutionTime.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, caseResolutionTime: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({
+                      ...editingSettings,
+                      caseResolutionTime: parseInt(text) || 0,
+                    })
+                  }
                   keyboardType="numeric"
                 />
               </>
             )}
-            
+
             {editingSettings.urgentCaseResponseTime !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Urgent Case Response Time (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.urgentCaseResponseTime.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, urgentCaseResponseTime: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({
+                      ...editingSettings,
+                      urgentCaseResponseTime: parseInt(text) || 0,
+                    })
+                  }
                   keyboardType="numeric"
                 />
               </>
             )}
-            
+
             {editingSettings.urgentCaseResolutionTime !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Urgent Case Resolution Time (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.urgentCaseResolutionTime.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, urgentCaseResolutionTime: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({
+                      ...editingSettings,
+                      urgentCaseResolutionTime: parseInt(text) || 0,
+                    })
+                  }
                   keyboardType="numeric"
                 />
               </>
             )}
-            
+
             {editingSettings.escalationTime !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Escalation Time (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.escalationTime.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, escalationTime: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({ ...editingSettings, escalationTime: parseInt(text) || 0 })
+                  }
                   keyboardType="numeric"
                 />
               </>
             )}
-            
+
             {editingSettings.notificationFrequency !== undefined && (
               <>
                 <Text style={styles.modalLabel}>Notification Frequency (hours)</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingSettings.notificationFrequency.toString()}
-                  onChangeText={(text) => setEditingSettings({...editingSettings, notificationFrequency: parseInt(text) || 0})}
+                  onChangeText={text =>
+                    setEditingSettings({
+                      ...editingSettings,
+                      notificationFrequency: parseInt(text) || 0,
+                    })
+                  }
                   keyboardType="numeric"
                 />
               </>

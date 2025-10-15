@@ -12,11 +12,11 @@ import {
   FlatList,
 } from 'react-native';
 import { colors, spacing, typography, radii } from '../theme/tokens';
-import { 
-  CreateRunnerProfileData, 
-  UpdateRunnerProfileData, 
+import {
+  CreateRunnerProfileData,
+  UpdateRunnerProfileData,
   EyeColor,
-  ValidationError 
+  ValidationError,
 } from '../types/runnerProfile';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
 import PhotoUpload from './PhotoUpload';
@@ -68,9 +68,12 @@ export default function RunnerProfileForm({
     }
   }, [initialData]);
 
-  const handleInputChange = (field: keyof CreateRunnerProfileData, value: string | EyeColor | string[]) => {
+  const handleInputChange = (
+    field: keyof CreateRunnerProfileData,
+    value: string | EyeColor | string[]
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear validation errors for this field
     if (validationErrors[field]) {
       setValidationErrors(prev => {
@@ -124,7 +127,7 @@ export default function RunnerProfileForm({
 
   const validateForm = (): boolean => {
     const validation = RunnerValidationUtils.validateRunnerProfile(formData);
-    
+
     if (!validation.isValid) {
       const errorsByField: Record<string, ValidationError[]> = {};
       validation.errors.forEach(error => {
@@ -136,7 +139,7 @@ export default function RunnerProfileForm({
       setValidationErrors(errorsByField);
       return false;
     }
-    
+
     return true;
   };
 
@@ -155,7 +158,10 @@ export default function RunnerProfileForm({
 
   const handleAddMedicalCondition = () => {
     if (newMedicalCondition.trim()) {
-      handleInputChange('medicalConditions', [...formData.medicalConditions, newMedicalCondition.trim()]);
+      handleInputChange('medicalConditions', [
+        ...formData.medicalConditions,
+        newMedicalCondition.trim(),
+      ]);
       setNewMedicalCondition('');
     }
   };
@@ -182,10 +188,10 @@ export default function RunnerProfileForm({
           style={[
             styles.textInput,
             multiline && styles.multilineInput,
-            errors.length > 0 && styles.inputError
+            errors.length > 0 && styles.inputError,
           ]}
           value={value}
-          onChangeText={(text) => handleInputChange(field, text)}
+          onChangeText={text => handleInputChange(field, text)}
           onBlur={() => validateField(field)}
           placeholder={placeholder}
           keyboardType={keyboardType}
@@ -193,9 +199,7 @@ export default function RunnerProfileForm({
           numberOfLines={multiline ? 3 : 1}
           editable={!isLoading}
         />
-        {errors.length > 0 && (
-          <Text style={styles.errorText}>{errors[0].message}</Text>
-        )}
+        {errors.length > 0 && <Text style={styles.errorText}>{errors[0].message}</Text>}
       </View>
     );
   };
@@ -214,9 +218,7 @@ export default function RunnerProfileForm({
           <Text style={styles.selectorButtonText}>{formData.eyeColor}</Text>
           <Text style={styles.selectorButtonArrow}>▼</Text>
         </TouchableOpacity>
-        {errors.length > 0 && (
-          <Text style={styles.errorText}>{errors[0].message}</Text>
-        )}
+        {errors.length > 0 && <Text style={styles.errorText}>{errors[0].message}</Text>}
       </View>
     );
   };
@@ -227,7 +229,7 @@ export default function RunnerProfileForm({
     return (
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Medical Conditions (Optional)</Text>
-        
+
         {/* Add new condition */}
         <View style={styles.addConditionContainer}>
           <TextInput
@@ -263,10 +265,8 @@ export default function RunnerProfileForm({
             ))}
           </View>
         )}
-        
-        {errors.length > 0 && (
-          <Text style={styles.errorText}>{errors[0].message}</Text>
-        )}
+
+        {errors.length > 0 && <Text style={styles.errorText}>{errors[0].message}</Text>}
       </View>
     );
   };
@@ -278,33 +278,20 @@ export default function RunnerProfileForm({
           <Text style={styles.title}>
             {isEditing ? 'Edit Runner Profile' : 'Create Runner Profile'}
           </Text>
-          
+
           {renderInput('firstName', 'First Name *', 'Enter your first name')}
           {renderInput('lastName', 'Last Name *', 'Enter your last name')}
-          
-          {renderInput(
-            'dateOfBirth', 
-            'Date of Birth *', 
-            'YYYY-MM-DD',
-            'numeric'
-          )}
-          
-          {renderInput(
-            'height', 
-            'Height *', 
-            'e.g., 5\'8" or 175cm'
-          )}
-          
-          {renderInput(
-            'weight', 
-            'Weight *', 
-            'e.g., 150 lbs or 68 kg'
-          )}
-          
+
+          {renderInput('dateOfBirth', 'Date of Birth *', 'YYYY-MM-DD', 'numeric')}
+
+          {renderInput('height', 'Height *', 'e.g., 5\'8" or 175cm')}
+
+          {renderInput('weight', 'Weight *', 'e.g., 150 lbs or 68 kg')}
+
           {renderEyeColorSelector()}
-          
+
           {renderMedicalConditions()}
-          
+
           {renderInput(
             'additionalNotes',
             'Additional Notes (Optional)',
@@ -316,14 +303,10 @@ export default function RunnerProfileForm({
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={onCancel}
-          disabled={isLoading}
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel} disabled={isLoading}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -351,22 +334,24 @@ export default function RunnerProfileForm({
             <Text style={styles.modalTitle}>Select Eye Color</Text>
             <FlatList
               data={EYE_COLORS}
-              keyExtractor={(item) => item}
+              keyExtractor={item => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
                     styles.modalOption,
-                    item === formData.eyeColor && styles.modalOptionSelected
+                    item === formData.eyeColor && styles.modalOptionSelected,
                   ]}
                   onPress={() => {
                     handleInputChange('eyeColor', item);
                     setShowEyeColorModal(false);
                   }}
                 >
-                  <Text style={[
-                    styles.modalOptionText,
-                    item === formData.eyeColor && styles.modalOptionTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      item === formData.eyeColor && styles.modalOptionTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </TouchableOpacity>

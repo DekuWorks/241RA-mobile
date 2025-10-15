@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import { isAxiosError, AxiosErrorResponse } from '../types/api';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
 import { UserDataService } from '../services/userData';
@@ -115,18 +116,31 @@ export default function AdminLoginScreen() {
           isAdmin: user?.role === 'admin',
           isModerator: user?.role === 'moderator',
           isSuperAdmin: user?.role === 'super_admin',
-          hasAdminRole: user?.isAdminUser || user?.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)),
+          hasAdminRole:
+            user?.isAdminUser ||
+            user?.allRoles?.some((role: string) =>
+              ['admin', 'moderator', 'super_admin'].includes(role)
+            ),
           hasAccess:
             user &&
-            (user.isAdminUser || 
-             user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
-             (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin')),
+            (user.isAdminUser ||
+              user.allRoles?.some((role: string) =>
+                ['admin', 'moderator', 'super_admin'].includes(role)
+              ) ||
+              user.role === 'admin' ||
+              user.role === 'moderator' ||
+              user.role === 'super_admin'),
         });
 
-        const hasAdminAccess = user && 
-          (user.isAdminUser || 
-           user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) ||
-           (user.role === 'admin' || user.role === 'moderator' || user.role === 'super_admin'));
+        const hasAdminAccess =
+          user &&
+          (user.isAdminUser ||
+            user.allRoles?.some((role: string) =>
+              ['admin', 'moderator', 'super_admin'].includes(role)
+            ) ||
+            user.role === 'admin' ||
+            user.role === 'moderator' ||
+            user.role === 'super_admin');
 
         if (hasAdminAccess) {
           console.log('Admin role verified, storing user data and navigating to portal...');
@@ -142,9 +156,12 @@ export default function AdminLoginScreen() {
             console.log('Retrieved user data test:', testUserData);
 
             const displayRole = user.primaryUserRole || user.role || 'User';
-            const adminRoles = user.allRoles?.filter((role: string) => ['admin', 'moderator', 'super_admin'].includes(role)) || [];
+            const adminRoles =
+              user.allRoles?.filter((role: string) =>
+                ['admin', 'moderator', 'super_admin'].includes(role)
+              ) || [];
             const roleText = adminRoles.length > 0 ? `${displayRole} (Admin)` : displayRole;
-            
+
             Alert.alert(
               'Admin Access Granted',
               `Welcome, ${user.name || user.email}! You have ${roleText} privileges.\n\nPortal access verified.`,
@@ -185,24 +202,29 @@ export default function AdminLoginScreen() {
           );
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Admin login failed:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config,
-        request: error.request,
-      });
-
+      
       let errorMessage = 'Login failed. Please try again.';
 
-      if (error.response) {
-        // Server responded with error status
-        const status = error.response.status;
-        const serverMessage = error.response.data?.message;
+      // Type guard for Axios error
+      if (isAxiosError(error)) {
+        const axiosError = error as AxiosErrorResponse;
+        
+        console.error('Error details:', {
+          message: axiosError.message,
+          response: axiosError.response?.data,
+          status: axiosError.response?.status,
+          config: axiosError.config,
+          request: axiosError.request,
+        });
 
-        console.log('Server response:', { status, serverMessage, data: error.response.data });
+        if (axiosError.response) {
+          // Server responded with error status
+          const status = axiosError.response.status;
+          const serverMessage = axiosError.response.data?.message;
+
+        console.log('Server response:', { status, serverMessage, data: axiosError.response.data });
 
         switch (status) {
           case 400:

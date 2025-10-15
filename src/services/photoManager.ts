@@ -69,16 +69,16 @@ export class PhotoManager {
       }
 
       const imageUris: string[] = [];
-      
+
       for (let i = 0; i < result.assets.length; i++) {
         const asset = result.assets[i];
         const fileName = `photo_${Date.now()}_${i}.jpg`;
-        
+
         if (onProgress) {
           onProgress({
             fileName,
             progress: 0,
-            status: 'uploading'
+            status: 'uploading',
           });
         }
 
@@ -95,7 +95,7 @@ export class PhotoManager {
           maxWidth: 1920,
           maxHeight: 1920,
           quality: 0.8,
-          format: 'jpeg'
+          format: 'jpeg',
         });
 
         imageUris.push(processedImage.uri);
@@ -104,7 +104,7 @@ export class PhotoManager {
           onProgress({
             fileName,
             progress: 100,
-            status: 'completed'
+            status: 'completed',
           });
         }
       }
@@ -148,7 +148,7 @@ export class PhotoManager {
         onProgress({
           fileName,
           progress: 0,
-          status: 'uploading'
+          status: 'uploading',
         });
       }
 
@@ -165,14 +165,14 @@ export class PhotoManager {
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.8,
-        format: 'jpeg'
+        format: 'jpeg',
       });
 
       if (onProgress) {
         onProgress({
           fileName,
           progress: 100,
-          status: 'completed'
+          status: 'completed',
         });
       }
 
@@ -201,7 +201,9 @@ export class PhotoManager {
 
       // Check file size
       if (fileInfo.size && fileInfo.size > this.options.maxFileSize) {
-        errors.push(`File size exceeds limit of ${Math.round(this.options.maxFileSize / 1024 / 1024)}MB`);
+        errors.push(
+          `File size exceeds limit of ${Math.round(this.options.maxFileSize / 1024 / 1024)}MB`
+        );
       }
 
       // Check file type
@@ -224,14 +226,14 @@ export class PhotoManager {
       return {
         isValid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       console.error('Error validating image:', error);
       return {
         isValid: false,
         errors: ['Failed to validate image'],
-        warnings
+        warnings,
       };
     }
   }
@@ -246,26 +248,26 @@ export class PhotoManager {
     try {
       const dimensions = await this.getImageDimensions(imageUri);
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      
+
       let processedUri = imageUri;
-      
+
       if (options.resize && dimensions) {
         const { width, height } = dimensions;
         const maxWidth = options.maxWidth;
         const maxHeight = options.maxHeight;
-        
+
         if (width > maxWidth || height > maxHeight) {
           // Calculate new dimensions maintaining aspect ratio
           const aspectRatio = width / height;
           let newWidth = maxWidth;
           let newHeight = maxHeight;
-          
+
           if (aspectRatio > 1) {
             newHeight = maxWidth / aspectRatio;
           } else {
             newWidth = maxHeight * aspectRatio;
           }
-          
+
           // For now, we'll use the original image
           // In a real implementation, you'd use a library like react-native-image-resizer
           console.log(`Would resize image to ${newWidth}x${newHeight}`);
@@ -277,7 +279,7 @@ export class PhotoManager {
         fileName: `processed_${Date.now()}.jpg`,
         fileSize: fileInfo.size || 0,
         mimeType: 'image/jpeg',
-        dimensions: dimensions || { width: 0, height: 0 }
+        dimensions: dimensions || { width: 0, height: 0 },
       };
     } catch (error) {
       console.error('Error processing image:', error);
@@ -288,7 +290,9 @@ export class PhotoManager {
   /**
    * Get image dimensions
    */
-  static async getImageDimensions(imageUri: string): Promise<{ width: number; height: number } | null> {
+  static async getImageDimensions(
+    imageUri: string
+  ): Promise<{ width: number; height: number } | null> {
     try {
       // This is a simplified implementation
       // In a real app, you'd use a library like react-native-image-size
@@ -306,13 +310,13 @@ export class PhotoManager {
     try {
       const extension = fileUri.split('.').pop()?.toLowerCase();
       const mimeTypes: { [key: string]: string } = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp'
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
       };
-      
+
       return extension ? mimeTypes[extension] || null : null;
     } catch (error) {
       console.error('Error getting MIME type:', error);
@@ -326,8 +330,10 @@ export class PhotoManager {
   static needsPhotoUpdate(uploadedAt: string): boolean {
     const uploadDate = new Date(uploadedAt);
     const now = new Date();
-    const daysSinceUpload = Math.floor((now.getTime() - uploadDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const daysSinceUpload = Math.floor(
+      (now.getTime() - uploadDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     return daysSinceUpload >= PHOTO_UPDATE_THRESHOLD_DAYS;
   }
 
@@ -345,11 +351,11 @@ export class PhotoManager {
    */
   static formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
@@ -371,7 +377,7 @@ export class PhotoManager {
       daysSinceUpload,
       needsUpdate,
       formattedSize,
-      formattedUploadDate
+      formattedUploadDate,
     };
   }
 
@@ -379,16 +385,12 @@ export class PhotoManager {
    * Show photo selection options
    */
   static async showPhotoOptions(): Promise<'camera' | 'gallery' | 'cancel'> {
-    return new Promise((resolve) => {
-      Alert.alert(
-        'Add Photo',
-        'Choose how you want to add a photo to your runner profile',
-        [
-          { text: 'Camera', onPress: () => resolve('camera') },
-          { text: 'Gallery', onPress: () => resolve('gallery') },
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') }
-        ]
-      );
+    return new Promise(resolve => {
+      Alert.alert('Add Photo', 'Choose how you want to add a photo to your runner profile', [
+        { text: 'Camera', onPress: () => resolve('camera') },
+        { text: 'Gallery', onPress: () => resolve('gallery') },
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+      ]);
     });
   }
 
@@ -396,13 +398,13 @@ export class PhotoManager {
    * Show photo deletion confirmation
    */
   static async confirmPhotoDeletion(photoName: string): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       Alert.alert(
         'Delete Photo',
         `Are you sure you want to delete "${photoName}"? This action cannot be undone.`,
         [
           { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Delete', style: 'destructive', onPress: () => resolve(true) }
+          { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
         ]
       );
     });
@@ -412,15 +414,11 @@ export class PhotoManager {
    * Show primary photo confirmation
    */
   static async confirmSetPrimaryPhoto(photoName: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      Alert.alert(
-        'Set Primary Photo',
-        `Set "${photoName}" as your primary profile photo?`,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Set Primary', onPress: () => resolve(true) }
-        ]
-      );
+    return new Promise(resolve => {
+      Alert.alert('Set Primary Photo', `Set "${photoName}" as your primary profile photo?`, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Set Primary', onPress: () => resolve(true) },
+      ]);
     });
   }
 

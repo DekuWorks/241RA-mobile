@@ -32,7 +32,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
-      
+
       const credentials: LoginCredentials = {
         email: email.toLowerCase().trim(),
         password,
@@ -48,22 +48,25 @@ export default function LoginScreen() {
       } else {
         console.log('[LOGIN] User role from response:', response.user?.role);
         console.log('[LOGIN] Full user object:', response.user);
-        
+
         if (response.user) {
           console.log('[LOGIN] User data:', {
             role: response.user.role,
             allRoles: response.user.allRoles,
             primaryUserRole: response.user.primaryUserRole,
-            isAdminUser: response.user.isAdminUser
+            isAdminUser: response.user.isAdminUser,
           });
-          
+
           // Check if user has admin privileges using dual role system
-          const hasAdminRole = response.user.isAdminUser || 
-            response.user.allRoles?.some((role: string) => ['admin', 'moderator', 'super_admin'].includes(role.toLowerCase())) ||
+          const hasAdminRole =
+            response.user.isAdminUser ||
+            response.user.allRoles?.some((role: string) =>
+              ['admin', 'moderator', 'super_admin'].includes(role.toLowerCase())
+            ) ||
             ['admin', 'moderator', 'super_admin'].includes(response.user.role?.toLowerCase());
-          
+
           console.log('[LOGIN] Has admin role:', hasAdminRole);
-          
+
           // For regular login, always go to profile first
           // Users can access admin portal through the profile screen if they have admin privileges
           console.log('[LOGIN] Redirecting to user profile');
@@ -79,11 +82,11 @@ export default function LoginScreen() {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        statusText: error.response?.statusText
+        statusText: error.response?.statusText,
       });
-      
+
       let errorMessage = 'Invalid email or password';
-      
+
       if (error.response?.status === 401) {
         errorMessage = 'Invalid email or password';
       } else if (error.response?.status === 403) {
@@ -101,7 +104,7 @@ export default function LoginScreen() {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoading(false);
@@ -122,8 +125,8 @@ export default function LoginScreen() {
       if (result.success) {
         if (result.user) {
           if (
-            result.user.role === 'admin' || 
-            result.user.role === 'moderator' || 
+            result.user.role === 'admin' ||
+            result.user.role === 'moderator' ||
             result.user.role === 'super_admin'
           ) {
             router.replace('/portal');
@@ -146,13 +149,16 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+      console.log('[GOOGLE LOGIN] Starting Google Sign-In...');
       const result = await GoogleAuthService.signIn();
+      console.log('[GOOGLE LOGIN] Result:', result);
 
       if (result.success) {
         if (result.user) {
+          console.log('[GOOGLE LOGIN] User role:', result.user.role);
           if (
-            result.user.role === 'admin' || 
-            result.user.role === 'moderator' || 
+            result.user.role === 'admin' ||
+            result.user.role === 'moderator' ||
             result.user.role === 'super_admin'
           ) {
             router.replace('/portal');
@@ -163,9 +169,11 @@ export default function LoginScreen() {
           router.replace('/profile');
         }
       } else {
+        console.error('[GOOGLE LOGIN] Failed:', result.error);
         Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
       }
     } catch (error: any) {
+      console.error('[GOOGLE LOGIN] Error:', error);
       Alert.alert('Google Login Failed', error.message || 'Failed to sign in with Google');
     } finally {
       setIsLoading(false);
@@ -180,7 +188,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>241Runners</Text>
-          <Text style={styles.subtitle}>{"Sign in"}</Text>
+          <Text style={styles.subtitle}>{'Sign in'}</Text>
         </View>
 
         <View style={styles.form}>
@@ -234,10 +242,15 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.linkButton} onPress={() => Alert.alert('Forgot Password', 'Password reset functionality coming soon!')}>
-            <Text style={styles.linkText}>{"Forgot Password?"}</Text>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() =>
+              Alert.alert('Forgot Password', 'Password reset functionality coming soon!')
+            }
+          >
+            <Text style={styles.linkText}>{'Forgot Password?'}</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.signupSection}>
             <Text style={styles.signupText}>Don't have an account?</Text>
             <TouchableOpacity onPress={() => router.push('/signup')}>
@@ -245,7 +258,10 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.adminLinkButton} onPress={() => router.push('/admin-login')}>
+          <TouchableOpacity
+            style={styles.adminLinkButton}
+            onPress={() => router.push('/admin-login')}
+          >
             <Text style={styles.adminLinkText}>Admin Login</Text>
           </TouchableOpacity>
         </View>
@@ -253,7 +269,7 @@ export default function LoginScreen() {
         <View style={styles.oauthSection}>
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{"OR"}</Text>
+            <Text style={styles.dividerText}>{'OR'}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -266,14 +282,16 @@ export default function LoginScreen() {
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.appleButton, isLoading && styles.buttonDisabled]}
-            onPress={handleAppleLogin}
-            disabled={isLoading}
-          >
-            <Text style={styles.appleIcon}>🍎</Text>
-            <Text style={styles.appleButtonText}>Continue with Apple</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.appleButton, isLoading && styles.buttonDisabled]}
+              onPress={handleAppleLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.appleIcon}>🍎</Text>
+              <Text style={styles.appleButtonText}>Continue with Apple</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

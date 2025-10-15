@@ -156,15 +156,11 @@ export default function PortalCasesScreen() {
         <TouchableOpacity
           style={styles.exportButton}
           onPress={() => {
-            Alert.alert(
-              'Export Cases',
-              'Choose export format:',
-              [
-                { text: 'CSV', onPress: () => handleExportCases('csv') },
-                { text: 'JSON', onPress: () => handleExportCases('json') },
-                { text: 'Cancel', style: 'cancel' },
-              ]
-            );
+            Alert.alert('Export Cases', 'Choose export format:', [
+              { text: 'CSV', onPress: () => handleExportCases('csv') },
+              { text: 'JSON', onPress: () => handleExportCases('json') },
+              { text: 'Cancel', style: 'cancel' },
+            ]);
           }}
         >
           <Text style={styles.exportButtonText}>📊</Text>

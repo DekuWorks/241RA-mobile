@@ -7,18 +7,14 @@
 
 import https from 'https';
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// path and fileURLToPath imports removed as they're not used
 
 console.log('🔑 241RA Mobile - API Keys Test');
 console.log('================================');
 console.log('');
 
 // Load environment variables
-require('dotenv').config();
+// dotenv import replaced with ES6 import at top
 
 // Test results
 const results = {
@@ -82,14 +78,14 @@ function testGoogleMaps() {
             results.googleMaps = { status: 'error', message: `API error: ${response.status}` };
             console.log(`   ❌ Google Maps API error: ${response.status}`);
           }
-        } catch (error) {
+        } catch {
           results.googleMaps = { status: 'error', message: 'Invalid response' };
           console.log('   ❌ Invalid response from Google Maps API');
         }
         printSummary();
       });
     })
-    .on('error', error => {
+    .on('error', () => {
       results.googleMaps = { status: 'error', message: 'Network error' };
       console.log('   ❌ Network error testing Google Maps API');
       printSummary();
@@ -204,7 +200,7 @@ async function runTests() {
 // Check if dotenv is available
 try {
   await import('dotenv');
-} catch (error) {
+} catch {
   console.log('❌ dotenv package not found. Installing...');
   console.log('   Run: npm install dotenv');
   process.exit(1);

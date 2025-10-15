@@ -17,7 +17,9 @@ export const WebSocketErrorHandler: React.FC<WebSocketErrorHandlerProps> = ({ ch
       try {
         const isHealthy = await signalRService.checkConnectionHealth();
         if (!isHealthy && !isReconnecting) {
-          setConnectionError('WebSocket connection lost. Real-time features may not work properly.');
+          setConnectionError(
+            'WebSocket connection lost. Real-time features may not work properly.'
+          );
         } else if (isHealthy && connectionError) {
           setConnectionError(null);
         }
@@ -33,10 +35,10 @@ export const WebSocketErrorHandler: React.FC<WebSocketErrorHandlerProps> = ({ ch
     try {
       setIsReconnecting(true);
       setConnectionError(null);
-      
+
       console.log('Attempting to reconnect WebSocket...');
       await signalRService.forceReconnect();
-      
+
       // Check if reconnection was successful
       const isHealthy = await signalRService.checkConnectionHealth();
       if (isHealthy) {
@@ -59,7 +61,7 @@ export const WebSocketErrorHandler: React.FC<WebSocketErrorHandlerProps> = ({ ch
   return (
     <View style={styles.container}>
       {children}
-      
+
       {connectionError && (
         <View style={styles.errorBanner}>
           <View style={styles.errorContent}>
@@ -150,4 +152,3 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 });
-

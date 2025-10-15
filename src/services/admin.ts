@@ -318,17 +318,20 @@ export class AdminService {
           // Get total users count
           totalUsersCount = usersData.users.length;
           console.log('Total users count from users endpoint:', totalUsersCount);
-          
+
           // Only count users with role 'runner' specifically
           // Don't count 'user' role as that might include admin users
-          const calculatedRunners = usersData.users.filter((user: any) => 
-            user.role === 'runner'
+          const calculatedRunners = usersData.users.filter(
+            (user: any) => user.role === 'runner'
           ).length;
-          
+
           // Use calculated count if > 0, otherwise use known value
           runnersCount = calculatedRunners > 0 ? calculatedRunners : 5;
           console.log('Runners count from users (role=runner only):', runnersCount);
-          console.log('User roles found:', usersData.users.map((u: any) => ({ role: u.role, email: u.email })));
+          console.log(
+            'User roles found:',
+            usersData.users.map((u: any) => ({ role: u.role, email: u.email }))
+          );
         }
       } catch (usersError) {
         console.log('Could not get users count from users endpoint, using defaults:', usersError);
@@ -397,7 +400,9 @@ export class AdminService {
       if (filters?.limit) params.append('limit', filters.limit.toString());
 
       const queryString = params.toString();
-      const endpoint = queryString ? `/api/v1/Admin/runners?${queryString}` : '/api/v1/Admin/runners';
+      const endpoint = queryString
+        ? `/api/v1/Admin/runners?${queryString}`
+        : '/api/v1/Admin/runners';
 
       const data = await ApiClient.get(endpoint);
       console.log('Runners response:', data);
@@ -446,37 +451,39 @@ export class AdminService {
 
   static async updateCaseStatus(caseId: string, status: string): Promise<AdminCase> {
     const data = await ApiClient.patch(`/api/v1/Admin/cases/${caseId}/status`, { status });
-    
+
     // The backend should trigger SignalR events automatically
     // This ensures real-time updates across all connected clients
     console.log('Case status updated - SignalR events should be triggered by backend');
-    
+
     // Ensure real-time sync for this operation
     await RealtimeSyncService.syncCaseOperation('status_change', caseId, { newStatus: status });
-    
+
     return data;
   }
 
   static async updateCasePriority(caseId: string, priority: string): Promise<AdminCase> {
     const data = await ApiClient.patch(`/api/v1/Admin/cases/${caseId}/priority`, { priority });
-    
+
     // The backend should trigger SignalR events automatically
     // This ensures real-time updates across all connected clients
     console.log('Case priority updated - SignalR events should be triggered by backend');
-    
+
     // Ensure real-time sync for this operation
-    await RealtimeSyncService.syncCaseOperation('priority_change', caseId, { newPriority: priority });
-    
+    await RealtimeSyncService.syncCaseOperation('priority_change', caseId, {
+      newPriority: priority,
+    });
+
     return data;
   }
 
   static async deleteCase(caseId: string): Promise<void> {
     await ApiClient.delete(`/api/v1/Admin/cases/${caseId}`);
-    
+
     // The backend should trigger SignalR events automatically
     // This ensures real-time updates across all connected clients
     console.log('Case deleted - SignalR events should be triggered by backend');
-    
+
     // Ensure real-time sync for this operation
     await RealtimeSyncService.syncCaseOperation('delete', caseId);
   }
@@ -566,14 +573,14 @@ export class AdminService {
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/v1/Admin/users/${userId}`, { role });
       console.log('Role update result:', result);
-      
+
       // The backend should trigger SignalR events automatically
       // This ensures real-time updates across all connected clients
       console.log('User role updated - SignalR events should be triggered by backend');
-      
+
       // Ensure real-time sync for this operation
       await RealtimeSyncService.syncUserOperation('role_change', userId, { newRole: role });
-      
+
       return result;
     } catch (error: any) {
       console.error('Failed to update user role:', error);
@@ -595,14 +602,14 @@ export class AdminService {
       // Use the existing user update endpoint
       const result = await ApiClient.patch(`/api/v1/Admin/users/${userId}`, { isActive });
       console.log('Status toggle result:', result);
-      
+
       // The backend should trigger SignalR events automatically
       // This ensures real-time updates across all connected clients
       console.log('User status updated - SignalR events should be triggered by backend');
-      
+
       // Ensure real-time sync for this operation
       await RealtimeSyncService.syncUserOperation('status_change', userId, { isActive });
-      
+
       return result;
     } catch (error: any) {
       console.error('Failed to toggle user status:', error);
@@ -620,11 +627,11 @@ export class AdminService {
     try {
       this.validateAdminAccess();
       await ApiClient.delete(`/api/v1/Admin/users/${userId}`);
-      
+
       // The backend should trigger SignalR events automatically
       // This ensures real-time updates across all connected clients
       console.log('User deleted - SignalR events should be triggered by backend');
-      
+
       // Ensure real-time sync for this operation
       await RealtimeSyncService.syncUserOperation('delete', userId);
     } catch (error) {
@@ -640,7 +647,7 @@ export class AdminService {
       // Use the existing /api/v1/Admin/stats endpoint for analytics
       const data = await ApiClient.get('/api/v1/Admin/stats');
       return data;
-    } catch (error: any) {
+    } catch {
       console.log('Analytics API not available, using mock data');
       // Return comprehensive mock analytics data
       return {
@@ -688,7 +695,7 @@ export class AdminService {
       // Settings endpoint doesn't exist, return default settings
       const data = {};
       return data;
-    } catch (error: any) {
+    } catch {
       console.log('System settings API not available, using default settings');
       return {
         appName: '241 Runners Awareness',
@@ -705,7 +712,7 @@ export class AdminService {
     }
   }
 
-  static async updateSystemSettings(settings: Record<string, any>): Promise<Record<string, any>> {
+  static async updateSystemSettings(_settings: Record<string, any>): Promise<Record<string, any>> {
     try {
       this.validateAdminAccess();
       // Settings endpoint doesn't exist, simulate success
@@ -873,7 +880,7 @@ export class AdminService {
     console.log('Database backup created successfully (simulated)');
   }
 
-  static async executeDatabaseQuery(query: string): Promise<any> {
+  static async executeDatabaseQuery(_query: string): Promise<any> {
     // Database query endpoint doesn't exist, return mock result
     return {
       success: true,
@@ -1108,7 +1115,9 @@ export class AdminService {
   static async bulkInsert(tableName: string, data: any[]): Promise<{ insertedCount: number }> {
     try {
       await this.validateSuperAdminAccess();
-      const result = await ApiClient.post(`/api/v1/Admin/database/bulk-insert/${tableName}`, { data });
+      const result = await ApiClient.post(`/api/v1/Admin/database/bulk-insert/${tableName}`, {
+        data,
+      });
       return result;
     } catch (error: any) {
       console.error(`Failed to bulk insert into ${tableName}:`, error);
@@ -1648,7 +1657,9 @@ export class AdminService {
   static async clearCache(cacheType?: 'all' | 'users' | 'cases' | 'settings'): Promise<void> {
     try {
       this.validateAdminAccess();
-      const endpoint = cacheType ? `/api/v1/Admin/cache/clear/${cacheType}` : '/api/v1/Admin/cache/clear';
+      const endpoint = cacheType
+        ? `/api/v1/Admin/cache/clear/${cacheType}`
+        : '/api/v1/Admin/cache/clear';
       await ApiClient.post(endpoint);
     } catch (error: any) {
       console.error('Failed to clear cache:', error);
