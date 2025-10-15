@@ -796,12 +796,25 @@ export default function ProfileScreen() {
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
           <Text style={styles.avatarText}>
-            {userProfile?.firstName 
-              ? userProfile.firstName.charAt(0).toUpperCase()
-              : user?.name 
-                ? user.name.charAt(0).toUpperCase() 
-                : 'U'
-            }
+            {(() => {
+              if (userProfile?.firstName) {
+                return userProfile.firstName.charAt(0).toUpperCase();
+              }
+              if (userProfile?.lastName) {
+                return userProfile.lastName.charAt(0).toUpperCase();
+              }
+              if (userProfile?.name) {
+                return userProfile.name.charAt(0).toUpperCase();
+              }
+              if (user?.name) {
+                return user.name.charAt(0).toUpperCase();
+              }
+              if (user?.email) {
+                const emailName = user.email.split('@')[0];
+                return emailName.charAt(0).toUpperCase();
+              }
+              return 'U';
+            })()}
           </Text>
         )}
         <View style={styles.avatarOverlay}>
@@ -809,10 +822,30 @@ export default function ProfileScreen() {
         </View>
       </TouchableOpacity>
       <Text style={styles.profileName}>
-        {userProfile?.firstName && userProfile?.lastName 
-          ? `${userProfile.firstName} ${userProfile.lastName}`
-          : userProfile?.firstName || userProfile?.lastName || user?.name || 'User'
-        }
+        {(() => {
+          // Try userProfile first, then fall back to user data
+          if (userProfile?.firstName && userProfile?.lastName) {
+            return `${userProfile.firstName} ${userProfile.lastName}`;
+          }
+          if (userProfile?.firstName) {
+            return userProfile.firstName;
+          }
+          if (userProfile?.lastName) {
+            return userProfile.lastName;
+          }
+          if (userProfile?.name) {
+            return userProfile.name;
+          }
+          if (user?.name) {
+            return user.name;
+          }
+          // Extract name from email as fallback
+          if (user?.email) {
+            const emailName = user.email.split('@')[0];
+            return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+          }
+          return 'User';
+        })()}
       </Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
       

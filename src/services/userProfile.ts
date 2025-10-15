@@ -53,7 +53,7 @@ export class UserProfileService {
    */
   static async getProfile(): Promise<UserProfile> {
     try {
-      const data = await ApiClient.get('/api/v1/user/profile');
+      const data = await ApiClient.get('/api/v1/auth/profile');
       return data;
     } catch (error: any) {
       console.error('Failed to get user profile:', error);
@@ -66,7 +66,7 @@ export class UserProfileService {
    */
   static async updateProfile(updateData: ProfileUpdateData): Promise<UserProfile> {
     try {
-      const data = await ApiClient.put('/api/v1/user/profile', updateData);
+      const data = await ApiClient.put('/api/v1/auth/profile', updateData);
       return data;
     } catch (error: any) {
       console.error('Failed to update profile:', error);
