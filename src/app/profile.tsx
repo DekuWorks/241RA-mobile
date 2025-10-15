@@ -155,6 +155,13 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (userProfile) {
+      console.log('[PROFILE] UserProfile data loaded:', {
+        firstName: userProfile.firstName,
+        lastName: userProfile.lastName,
+        name: userProfile.name,
+        email: userProfile.email,
+        fullProfile: userProfile
+      });
       setFormData({
         firstName: userProfile.firstName || '',
         lastName: userProfile.lastName || '',
@@ -789,14 +796,24 @@ export default function ProfileScreen() {
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
           <Text style={styles.avatarText}>
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            {userProfile?.firstName 
+              ? userProfile.firstName.charAt(0).toUpperCase()
+              : user?.name 
+                ? user.name.charAt(0).toUpperCase() 
+                : 'U'
+            }
           </Text>
         )}
         <View style={styles.avatarOverlay}>
           <Text style={styles.avatarOverlayText}>📷</Text>
         </View>
       </TouchableOpacity>
-      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
+      <Text style={styles.profileName}>
+        {userProfile?.firstName && userProfile?.lastName 
+          ? `${userProfile.firstName} ${userProfile.lastName}`
+          : userProfile?.firstName || userProfile?.lastName || user?.name || 'User'
+        }
+      </Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
       
       {/* Role Display - Show primary user role with editing capability */}
@@ -2699,7 +2716,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -2711,6 +2728,14 @@ const styles = StyleSheet.create({
     margin: spacing.lg,
     maxWidth: 400,
     width: '90%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: typography.sizes.lg,
@@ -2733,13 +2758,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
+    borderWidth: 2,
+    borderColor: colors.gray[300],
     backgroundColor: colors.white,
+    minHeight: 50,
   },
   selectedRoleOption: {
     borderColor: colors.primary,
     backgroundColor: colors.primary[50],
+    borderWidth: 2,
   },
   roleOptionText: {
     fontSize: typography.sizes.base,
