@@ -51,6 +51,8 @@ export default function ProfileScreen() {
   });
   const [showCreateRunnerForm, setShowCreateRunnerForm] = useState(false);
   const [showRunnerPhotos, setShowRunnerPhotos] = useState(false);
+  const [isEditingRole, setIsEditingRole] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>('');
 
   // Enhanced runner profile state
   const [runnerProfile, setRunnerProfile] = useState<EnhancedRunnerProfile | null>(null);
@@ -693,6 +695,35 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleRoleUpdate = async () => {
+    if (!selectedRole || !user) return;
+    
+    try {
+      // Update user role locally first for immediate feedback
+      const updatedUser = {
+        ...user,
+        primaryUserRole: selectedRole,
+        role: selectedRole
+      };
+      setUser(updatedUser);
+      setIsEditingRole(false);
+      
+      // TODO: Update role in backend when API endpoint is available
+      // For now, we'll update the local state
+      console.log('Role updated to:', selectedRole);
+      
+      Alert.alert('Success', 'Role updated successfully.');
+    } catch (error: any) {
+      console.error('Failed to update role:', error);
+      Alert.alert('Error', error.message || 'Failed to update role.');
+    }
+  };
+
+  const handleCancelRoleEdit = () => {
+    setSelectedRole('');
+    setIsEditingRole(false);
+  };
+
 
   const getRoleColor = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -704,10 +735,49 @@ export default function ProfileScreen() {
         return colors.info[600];
       case 'runner':
         return colors.success[600];
+      case 'parent':
+        return colors.primary;
+      case 'adoptive_parent':
+        return colors.primary;
+      case 'therapist':
+        return colors.info[500];
+      case 'guardian':
+        return colors.warning[500];
       default:
         return colors.gray[600];
     }
   };
+
+  const formatRoleDisplay = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'adoptive_parent':
+        return 'Adoptive Parent';
+      case 'super_admin':
+        return 'Super Admin';
+      default:
+        return role?.charAt(0).toUpperCase() + role?.slice(1) || 'User';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      });
+    } catch (error) {
+      return 'Unknown';
+    }
+  };
+
+  const availableRoles = [
+    'user',
+    'parent',
+    'adoptive_parent',
+    'therapist',
+    'guardian'
+  ];
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
@@ -726,22 +796,34 @@ export default function ProfileScreen() {
           <Text style={styles.avatarOverlayText}>📷</Text>
         </View>
       </TouchableOpacity>
-      <Text style={styles.profileName}>{user?.name || user?.email || 'User'}</Text>
+      <Text style={styles.profileName}>{user?.name || 'User'}</Text>
       <Text style={styles.profileEmail}>{user?.email}</Text>
       
-      {/* Role Display - Show primary user role without admin indicators */}
+      {/* Role Display - Show primary user role with editing capability */}
       <View style={styles.roleContainer}>
         <Text style={styles.roleLabel}>ROLE</Text>
-        <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user?.primaryUserRole || user?.role || 'user') }]}>
-          <Text style={styles.roleText}>
-            {user?.primaryUserRole || user?.role || 'User'}
-          </Text>
+        <View style={styles.roleSection}>
+          <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user?.primaryUserRole || user?.role || 'user') }]}>
+            <Text style={styles.roleText}>
+              {formatRoleDisplay(user?.primaryUserRole || user?.role || 'user')}
+            </Text>
+          </View>
+          {!user?.isAdminUser && (
+            <TouchableOpacity 
+              style={styles.editRoleButton}
+              onPress={() => setIsEditingRole(true)}
+            >
+              <Text style={styles.editRoleButtonText}>Edit</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
       
       <View style={styles.memberSinceContainer}>
         <Text style={styles.memberSinceLabel}>MEMBER SINCE</Text>
-        <Text style={styles.memberSinceValue}>Unknown</Text>
+        <Text style={styles.memberSinceValue}>
+          {user?.createdAt ? formatDate(user.createdAt) : 'Unknown'}
+        </Text>
       </View>
     </View>
   );
@@ -1462,6 +1544,53 @@ export default function ProfileScreen() {
         onClose={() => setShowTwoFactorSetup(false)}
         onSuccess={handleTwoFactorSetupSuccess}
       />
+
+      {/* Role Editing Modal */}
+      {isEditingRole && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Select Your Role</Text>
+            <Text style={styles.modalSubtitle}>Choose the role that best describes your relationship to the community:</Text>
+            
+            {availableRoles.map((role) => (
+              <TouchableOpacity
+                key={role}
+                style={[
+                  styles.roleOption,
+                  selectedRole === role && styles.selectedRoleOption
+                ]}
+                onPress={() => setSelectedRole(role)}
+              >
+                <Text style={[
+                  styles.roleOptionText,
+                  selectedRole === role && styles.selectedRoleOptionText
+                ]}>
+                  {formatRoleDisplay(role)}
+                </Text>
+                {selectedRole === role && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={handleCancelRoleEdit}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveButton, !selectedRole && styles.disabledButton]}
+                onPress={handleRoleUpdate}
+                disabled={!selectedRole}
+              >
+                <Text style={styles.modalSaveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
     </SafeAreaView>
   );
@@ -2547,5 +2676,116 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.white,
     fontWeight: typography.weights.medium,
+  },
+  roleSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  editRoleButton: {
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+  },
+  editRoleButtonText: {
+    fontSize: typography.sizes.xs,
+    color: colors.gray[700],
+    fontWeight: typography.weights.medium,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContainer: {
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    margin: spacing.lg,
+    maxWidth: 400,
+    width: '90%',
+  },
+  modalTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  modalSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[600],
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  roleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    backgroundColor: colors.white,
+  },
+  selectedRoleOption: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary[50],
+  },
+  roleOptionText: {
+    fontSize: typography.sizes.base,
+    color: colors.text,
+    fontWeight: typography.weights.medium,
+  },
+  selectedRoleOptionText: {
+    color: colors.primary,
+    fontWeight: typography.weights.bold,
+  },
+  checkmark: {
+    fontSize: typography.sizes.lg,
+    color: colors.primary,
+    fontWeight: typography.weights.bold,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: typography.sizes.base,
+    color: colors.gray[700],
+    fontWeight: typography.weights.medium,
+  },
+  modalSaveButton: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: colors.gray[300],
+  },
+  modalSaveButtonText: {
+    fontSize: typography.sizes.base,
+    color: colors.white,
+    fontWeight: typography.weights.bold,
   },
 });
