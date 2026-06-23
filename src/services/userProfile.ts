@@ -1,5 +1,6 @@
 import { ApiClient } from './apiClient';
 import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
+import { UserDataService } from './userData';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
 
@@ -20,7 +21,9 @@ async function fetchProfileWithRetry(): Promise<UserProfile> {
   for (let attempt = 1; attempt <= PROFILE_FETCH_ATTEMPTS; attempt++) {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
-      return mapApiUserToProfile(unwrapApiUser(data));
+      const payload = unwrapApiUser(data);
+      await UserDataService.setStoredApiUser(payload);
+      return mapApiUserToProfile(payload);
     } catch (error: unknown) {
       lastError = error;
 
@@ -89,6 +92,11 @@ export class UserProfileService {
    * Get current user's full profile (same database as 241runnersawareness.org)
    */
   static async getProfile(): Promise<UserProfile> {
+    const cached = await UserDataService.getStoredApiUser();
+    if (cached) {
+      return mapApiUserToProfile(cached);
+    }
+
     try {
       return await fetchProfileWithRetry();
     } catch (error: unknown) {

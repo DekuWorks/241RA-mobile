@@ -1,12 +1,25 @@
+import { QueryClient } from '@tanstack/react-query';
 import { ApiClient } from './apiClient';
 import { SecureTokenService } from './secureTokens';
+import { UserDataService } from './userData';
 import { initCrashlytics } from '../lib/crash';
 import { NotificationService } from './notifications';
 import { signalRService } from './signalR';
 import { TopicService } from './topics';
-import { mapApiUserToAuthUser, unwrapApiUser } from './apiUserMapper';
+import {
+  ApiUserPayload,
+  mapApiUserToAuthUser,
+  mapApiUserToProfile,
+  unwrapApiUser,
+} from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
+
+let authQueryClient: QueryClient | null = null;
+
+export function setAuthQueryClient(queryClient: QueryClient): void {
+  authQueryClient = queryClient;
+}
 
 export interface LoginCredentials {
   email: string;
@@ -92,6 +105,27 @@ export class AuthService {
     return data;
   }
 
+  private static authResponseToApiUser(data: AuthResponse): ApiUserPayload {
+    const user = data.user;
+
+    return {
+      id: user?.id ?? data.userId,
+      email: user?.email ?? data.email,
+      fullName: user?.name,
+      role: user?.role ?? 'user',
+      allRoles: user?.allRoles,
+      primaryUserRole: user?.primaryUserRole,
+      isAdminUser: user?.isAdminUser,
+      isEmailVerified: user?.isEmailVerified,
+      twoFactorEnabled: user?.twoFactorEnabled,
+    };
+  }
+
+  private static syncProfileQueries(payload: ApiUserPayload): void {
+    authQueryClient?.setQueryData(['user'], mapApiUserToAuthUser(payload));
+    authQueryClient?.setQueryData(['userProfile'], mapApiUserToProfile(payload));
+  }
+
   private static async persistSession(data: AuthResponse): Promise<void> {
     await SecureTokenService.setAccessToken(String(data.accessToken));
 
@@ -102,6 +136,10 @@ export class AuthService {
     const userId = String(data.user?.id || data.userId || '');
     await SecureTokenService.setUserId(userId);
     initCrashlytics(userId);
+
+    const apiUser = this.authResponseToApiUser(data);
+    await UserDataService.setStoredApiUser(apiUser);
+    this.syncProfileQueries(apiUser);
 
     try {
       await NotificationService.registerDevice();
@@ -119,6 +157,7 @@ export class AuthService {
       console.warn('Server logout failed:', error);
     } finally {
       await SecureTokenService.clearAll();
+      await UserDataService.clearUserData();
     }
   }
 
@@ -135,10 +174,14 @@ export class AuthService {
     }
   }
 
-  static async getCurrentUser(): Promise<User | null> {
+  static async fetchCurrentUserFromApi(): Promise<User | null> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
-      return mapApiUserToAuthUser(unwrapApiUser(data));
+      const payload = unwrapApiUser(data);
+      await UserDataService.setStoredApiUser(payload);
+      const user = mapApiUserToAuthUser(payload);
+      this.syncProfileQueries(payload);
+      return user;
     } catch (error: unknown) {
       if (
         error &&
@@ -147,9 +190,32 @@ export class AuthService {
         (error as { response?: { status?: number } }).response?.status === 401
       ) {
         await SecureTokenService.clearAll();
+        await UserDataService.clearUserData();
         return null;
       }
 
+      throw error;
+    }
+  }
+
+  private static refreshCurrentUserInBackground(): void {
+    void this.fetchCurrentUserFromApi().catch(error => {
+      if (__DEV__ && !isTimeoutError(error)) {
+        console.warn('[AUTH] Background user refresh failed:', error);
+      }
+    });
+  }
+
+  static async getCurrentUser(): Promise<User | null> {
+    const cached = await UserDataService.getStoredApiUser();
+    if (cached) {
+      this.refreshCurrentUserInBackground();
+      return mapApiUserToAuthUser(cached);
+    }
+
+    try {
+      return await this.fetchCurrentUserFromApi();
+    } catch (error: unknown) {
       if (isTimeoutError(error)) {
         throw error;
       }

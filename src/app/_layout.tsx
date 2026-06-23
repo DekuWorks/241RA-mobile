@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { NotificationService, setPushQueryClient } from '../services/notifications';
+import { setAuthQueryClient } from '../services/auth';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
 import { signalRService } from '../services/signalR';
@@ -70,6 +71,7 @@ export default function Root() {
 
         signalRService.setQueryClient(qc);
         setPushQueryClient(qc);
+        setAuthQueryClient(qc);
 
         setTimeout(() => SplashScreen.hideAsync(), 300);
       } catch (error) {

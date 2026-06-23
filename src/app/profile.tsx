@@ -120,10 +120,10 @@ export default function ProfileScreen() {
       }
 
       if (isTimeoutError(queryError)) {
-        return failureCount < 2;
+        return false;
       }
 
-      return failureCount < 3;
+      return failureCount < 2;
     },
   });
 
@@ -137,7 +137,7 @@ export default function ProfileScreen() {
     queryFn: UserProfileService.getProfile,
     enabled: !!user,
     retry: (failureCount, queryError: unknown) =>
-      isTimeoutError(queryError) ? failureCount < 1 : failureCount < 2,
+      isTimeoutError(queryError) ? false : failureCount < 1,
   });
 
   const { data: caseStatistics } = useQuery({
@@ -201,10 +201,16 @@ export default function ProfileScreen() {
   }, [runnerProfileExists]);
 
   useEffect(() => {
-    if (error) {
+    if (error && !user) {
+      if (isTimeoutError(error)) {
+        if (__DEV__) {
+          console.warn('[PROFILE] User refresh timed out with no cached profile data.');
+        }
+        return;
+      }
       console.error('[PROFILE] Error loading user data:', error);
     }
-  }, [error]);
+  }, [error, user]);
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -1598,7 +1604,7 @@ export default function ProfileScreen() {
     </View>
   );
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading profile...</Text>

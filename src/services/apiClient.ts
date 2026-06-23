@@ -77,7 +77,7 @@ export class ApiClient {
             if (refreshToken) {
               const response = await axios.post(`${ENV.API_URL}/api/v1/auth/refresh`, {
                 refreshToken: refreshToken,
-              });
+              }, { timeout: 20000 });
 
               if (response.data.accessToken) {
                 await SecureTokenService.setAccessToken(response.data.accessToken);
