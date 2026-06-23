@@ -13,7 +13,7 @@ import {
   unwrapApiUser,
 } from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
-import { isTimeoutError } from '../types/api';
+import { isRetryableLoginError, isTimeoutError } from '../types/api';
 import { resolveLocalApiUser } from './localUserSession';
 
 let authQueryClient: QueryClient | null = null;
@@ -63,7 +63,22 @@ export interface LoginOptions {
   onRetrying?: () => void;
 }
 
+type RawAuthResponse = AuthResponse & { token?: string };
+
 export class AuthService {
+  private static normalizeLoginResponse(data: RawAuthResponse): AuthResponse {
+    const accessToken = data.accessToken ?? data.token;
+    if (!accessToken) {
+      return data;
+    }
+
+    return {
+      ...data,
+      accessToken,
+      userId: String(data.userId ?? data.user?.id ?? ''),
+    };
+  }
+
   static async login(
     credentials: LoginCredentials,
     options?: LoginOptions
@@ -78,13 +93,15 @@ export class AuthService {
 
     const normalizedCredentials = {
       ...credentials,
-      email: credentials.email.trim(),
+      email: credentials.email.trim().toLowerCase(),
     };
 
-    const postLogin = () =>
-      ApiClient.post<AuthResponse>('/api/v1/auth/login', normalizedCredentials, {
+    const postLogin = async (): Promise<AuthResponse> => {
+      const data = await ApiClient.post<RawAuthResponse>('/api/v1/auth/login', normalizedCredentials, {
         timeout: AUTH_REQUEST_TIMEOUT_MS,
       });
+      return this.normalizeLoginResponse(data);
+    };
 
     try {
       const data = await postLogin();
@@ -95,12 +112,12 @@ export class AuthService {
 
       return data;
     } catch (error: unknown) {
-      if (!isTimeoutError(error)) {
+      if (!isRetryableLoginError(error)) {
         throw error;
       }
 
       if (__DEV__) {
-        console.warn('[AUTH] Login timed out, retrying once (server may be waking up)');
+        console.warn('[AUTH] Login failed (timeout or server error), retrying once');
       }
 
       options?.onRetrying?.();

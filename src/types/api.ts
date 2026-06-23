@@ -114,6 +114,66 @@ export function isTimeoutError(error: unknown): boolean {
   return code === 'ECONNABORTED' || message.includes('timeout');
 }
 
+/** Azure cold starts can surface as client timeouts or server 5xx after ~30s DB wake-up. */
+export function isRetryableLoginError(error: unknown): boolean {
+  if (isTimeoutError(error)) {
+    return true;
+  }
+
+  if (error instanceof ApiRequestError && error.status >= 500) {
+    return true;
+  }
+
+  return false;
+}
+
+const SERVER_UNAVAILABLE_MESSAGE =
+  'The server is temporarily unavailable. It may still be starting up — please try again in a moment.';
+
+/** Map login failures to user-facing copy without leaking raw server exceptions. */
+export function getLoginErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    switch (error.status) {
+      case 401:
+        return 'Invalid email or password';
+      case 403:
+        return 'Account is disabled or requires verification';
+      case 429:
+        return 'Too many login attempts. Please try again later.';
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return SERVER_UNAVAILABLE_MESSAGE;
+      default:
+        if (
+          error.message === 'An error occurred during login' ||
+          error.code === 'INTERNAL_ERROR'
+        ) {
+          return SERVER_UNAVAILABLE_MESSAGE;
+        }
+        return error.message;
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message.includes('Network Error')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    if (isTimeoutError(error)) {
+      return 'The server took too long to respond. Please check your connection and try again.';
+    }
+    if (error.message.includes('Failed to store') && error.message.includes('securely')) {
+      return 'Could not save your session on this device. Try restarting the app and signing in again.';
+    }
+    if (!error.message.includes('[object Object]')) {
+      return error.message;
+    }
+  }
+
+  return 'Invalid email or password';
+}
+
 // Type guard function
 export function isAxiosError(error: unknown): error is AxiosErrorResponse {
   if (error === null || typeof error !== 'object') {

@@ -14,7 +14,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
-import { ApiRequestError, isTimeoutError } from '../types/api';
+import { getLoginErrorMessage, isRetryableLoginError } from '../types/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -81,34 +81,11 @@ export default function LoginScreen() {
         }
       }
     } catch (error: unknown) {
-      if (__DEV__ && !isTimeoutError(error)) {
+      if (__DEV__ && !isRetryableLoginError(error)) {
         console.warn('[LOGIN] Login error:', error);
       }
 
-      let errorMessage = 'Invalid email or password';
-
-      if (error instanceof ApiRequestError) {
-        if (error.status === 401) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.status === 403) {
-          errorMessage = 'Account is disabled or requires verification';
-        } else if (error.status === 429) {
-          errorMessage = 'Too many login attempts. Please try again later.';
-        } else {
-          errorMessage = error.message;
-        }
-      } else if (error instanceof Error) {
-        if (error.message.includes('Network Error')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (isTimeoutError(error)) {
-          errorMessage =
-            'The server took too long to respond. Please check your connection and try again.';
-        } else if (!error.message.includes('[object Object]')) {
-          errorMessage = error.message;
-        }
-      }
-
-      Alert.alert('Login Failed', errorMessage);
+      Alert.alert('Login Failed', getLoginErrorMessage(error));
     } finally {
       setIsLoading(false);
       setLoadingMessage('Signing In...');

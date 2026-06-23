@@ -16,7 +16,9 @@ export class SecureTokenService {
     try {
       await SecureStore.setItemAsync(this.ACCESS_TOKEN_KEY, token);
     } catch (error) {
-      console.error('Failed to store access token:', error);
+      if (__DEV__) {
+        console.warn('Failed to store access token:', error);
+      }
       throw new Error('Failed to store access token securely');
     }
   }
@@ -40,7 +42,9 @@ export class SecureTokenService {
     try {
       await SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, token);
     } catch (error) {
-      console.error('Failed to store refresh token:', error);
+      if (__DEV__) {
+        console.warn('Failed to store refresh token:', error);
+      }
       throw new Error('Failed to store refresh token securely');
     }
   }
@@ -64,7 +68,9 @@ export class SecureTokenService {
     try {
       await SecureStore.setItemAsync(this.USER_ID_KEY, userId);
     } catch (error) {
-      console.error('Failed to store user ID:', error);
+      if (__DEV__) {
+        console.warn('Failed to store user ID:', error);
+      }
       throw new Error('Failed to store user ID securely');
     }
   }
