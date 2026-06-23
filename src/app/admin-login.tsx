@@ -220,40 +220,41 @@ export default function AdminLoginScreen() {
         });
 
         if (axiosError.response) {
-          // Server responded with error status
           const status = axiosError.response.status;
           const serverMessage = axiosError.response.data?.message;
 
-        console.log('Server response:', { status, serverMessage, data: axiosError.response.data });
+          console.log('Server response:', { status, serverMessage, data: axiosError.response.data });
 
-        switch (status) {
-          case 400:
-            errorMessage = serverMessage || 'Invalid email or password format';
-            break;
-          case 401:
-            errorMessage = serverMessage || 'Invalid email or password';
-            break;
-          case 403:
-            errorMessage = 'Account is disabled or restricted';
-            break;
-          case 404:
-            errorMessage = 'Admin account not found';
-            break;
-          case 429:
-            errorMessage = 'Too many login attempts. Please try again later.';
-            break;
-          case 500:
-            errorMessage = 'Server error. Please try again later.';
-            break;
-          default:
-            errorMessage = serverMessage || `Login failed (Error ${status})`;
+          switch (status) {
+            case 400:
+              errorMessage = serverMessage || 'Invalid email or password format';
+              break;
+            case 401:
+              errorMessage = serverMessage || 'Invalid email or password';
+              break;
+            case 403:
+              errorMessage = 'Account is disabled or restricted';
+              break;
+            case 404:
+              errorMessage = 'Admin account not found';
+              break;
+            case 429:
+              errorMessage = 'Too many login attempts. Please try again later.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            default:
+              errorMessage = serverMessage || `Login failed (Error ${status})`;
+          }
+        } else if (axiosError.request) {
+          console.log('Network error - no response received:', axiosError.request);
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (axiosError.message) {
+          console.log('Other error:', axiosError.message);
+          errorMessage = `Login error: ${axiosError.message}`;
         }
-      } else if (error.request) {
-        // Network error
-        console.log('Network error - no response received:', error.request);
-        errorMessage = 'Network error. Please check your internet connection and try again.';
-      } else {
-        console.log('Other error:', error.message);
+      } else if (error instanceof Error) {
         errorMessage = `Login error: ${error.message}`;
       }
 

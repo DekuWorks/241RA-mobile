@@ -9,8 +9,17 @@ API (shared with web): https://241runners-api-v2.azurewebsites.net/swagger/index
 - **Framework:** Expo (React Native + TypeScript)
 - **Platforms:** iOS (App Store), Android (Google Play)
 - **Backend:** Azure App Service (.NET 8 Web API) — same DB & users as the static site
-- **Auth:** Email/Password, Google OAuth, 2FA (TOTP + backup codes)
+- **Auth:** Email/Password, Apple Sign-In (iOS), 2FA (TOTP + backup codes) via .NET API (JWT)
 - **Dual Role System:** Supports users with multiple roles (e.g., Runner + Admin)
+- **Push:** Expo Notifications → `POST /api/Devices/register`
+- **Realtime:** SignalR (`/hubs/alerts`)
+- **Observability:** Sentry
+- **Supabase:** Optional client for storage/realtime (auth stays on .NET API)
+
+## Progress Tracker
+
+See **[PROGRESS_TRACKER.md](./PROGRESS_TRACKER.md)** for current implementation status, completed milestones, and next steps.
+
 
 ## Environment Configuration
 
@@ -25,6 +34,9 @@ cp .env.example .env
 **Required Variables:**
 
 - `EXPO_PUBLIC_API_URL=https://241runners-api-v2.azurewebsites.net`
+- `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (optional)
+- `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (for map screen)
+- `EXPO_PUBLIC_SENTRY_DSN` (production error tracking)
 
 ### EAS Build (Preview/Production)
 
@@ -124,11 +136,8 @@ See [docs/README.md](./docs/README.md) for a complete index of all documentation
 
 ## 7) Keys & Permissions
 
-- [ ] **Maps:** set Google Maps keys (Android & iOS if using Google provider)
+- [ ] **Maps:** set Google Maps API key (Android & iOS)
 - [ ] **Notifications:** configure Expo push (device token → your API)
-- [ ] **OAuth:** add mobile redirect URIs to your provider:
-  - iOS: `org.runners241.app:/oauthredirect`
-  - Android: `org.runners241.app:/oauthredirect`
 
 ---
 

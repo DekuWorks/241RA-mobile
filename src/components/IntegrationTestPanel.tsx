@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { recordError, logEvent, forceTestCrash } from '../lib/crash';
-import { registerDeviceToken } from '../features/push/registerDeviceToken';
-// import { signalRService } from '../services/signalR';
-// import { TopicService } from '../services/topics';
+import { NotificationService } from '../services/notifications';
+import { signalRService } from '../services/signalR';
+import { TopicService } from '../services/topics';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { colors, spacing, radii, typography } from '../theme/tokens';
 
-interface FirebaseTestPanelProps {
+interface IntegrationTestPanelProps {
   userId?: string;
 }
 
-export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
+export function IntegrationTestPanel({ userId }: IntegrationTestPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [testResults, setTestResults] = useState<string[]>([]);
 
@@ -18,25 +19,18 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  const testCrashlyticsError = async () => {
+  const testSentryError = async () => {
     setIsLoading(true);
     try {
-      // Test error recording
-      const testError = new Error('Test Crashlytics Error - This is intentional for testing');
+      const testError = new Error('Test Sentry Error - intentional for testing');
       recordError(testError);
-
-      // Test custom logging
-      logEvent('firebase_test', {
+      logEvent('integration_test', {
         testType: 'error_recording',
         userId: userId || 'unknown',
         timestamp: Date.now(),
       });
-
-      addResult('✅ Crashlytics error recorded successfully');
-      Alert.alert(
-        'Test Complete',
-        'Error recorded to Crashlytics. Check Firebase console in a few minutes.'
-      );
+      addResult('✅ Sentry error recorded successfully');
+      Alert.alert('Test Complete', 'Error recorded to Sentry. Check dashboard in a few minutes.');
     } catch (error) {
       addResult('❌ Failed to record error: ' + String(error));
     } finally {
@@ -44,8 +38,8 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
     }
   };
 
-  const testCrashlyticsCrash = () => {
-    Alert.alert('Test Crash', 'This will crash the app to test Crashlytics. Are you sure?', [
+  const testSentryCrash = () => {
+    Alert.alert('Test Crash', 'This will crash the app to test Sentry. Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Crash App',
@@ -61,7 +55,7 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   const testPushNotification = async () => {
     setIsLoading(true);
     try {
-      await registerDeviceToken();
+      await NotificationService.registerDevice();
       addResult('✅ Device token registration attempted');
       Alert.alert('Test Complete', 'Device token registration completed. Check backend logs.');
     } catch (error) {
@@ -71,25 +65,25 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
     }
   };
 
-  const testCustomLogging = () => {
-    logEvent('firebase_test', {
-      testType: 'custom_logging',
-      userId: userId || 'unknown',
-      timestamp: Date.now(),
-      appVersion: '1.0.0',
-      platform: 'ios',
-    });
-
-    addResult('✅ Custom log event sent');
-    Alert.alert('Test Complete', 'Custom log event sent to Crashlytics.');
+  const testLocalNotification = async () => {
+    setIsLoading(true);
+    try {
+      await NotificationService.testNotification();
+      addResult('✅ Local test notification scheduled');
+      Alert.alert('Test Complete', 'Local notification sent.');
+    } catch (error) {
+      addResult('❌ Failed to send local notification: ' + String(error));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const testSignalRConnection = async () => {
     setIsLoading(true);
     try {
-      // TODO: Re-enable after build testing
-      addResult('⚠️ SignalR test skipped for build testing');
-      Alert.alert('Test Skipped', 'SignalR test skipped for build testing.');
+      await signalRService.startConnection();
+      addResult('✅ SignalR connection started');
+      Alert.alert('Test Complete', 'SignalR connection established.');
     } catch (error) {
       addResult('❌ Failed to connect to SignalR: ' + String(error));
     } finally {
@@ -100,11 +94,11 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
   const testTopicSubscription = async () => {
     setIsLoading(true);
     try {
-      // TODO: Re-enable after build testing
-      addResult('⚠️ Topic subscription test skipped for build testing');
-      Alert.alert('Test Skipped', 'Topic subscription test skipped for build testing.');
+      await TopicService.subscribeToDefaultTopics();
+      addResult('✅ Default topic subscriptions attempted');
+      Alert.alert('Test Complete', 'Topic subscriptions completed.');
     } catch (error) {
-      addResult('❌ Failed to subscribe to topic: ' + String(error));
+      addResult('❌ Failed to subscribe to topics: ' + String(error));
     } finally {
       setIsLoading(false);
     }
@@ -116,20 +110,24 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Firebase Integration Tests</Text>
+      <Text style={styles.title}>Integration Tests</Text>
+      <Text style={styles.subtitle}>
+        Supabase: {isSupabaseConfigured() ? 'configured' : 'not configured'} · Push: Expo ·
+        Realtime: SignalR
+      </Text>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.errorButton]}
-          onPress={testCrashlyticsError}
+          onPress={testSentryError}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Test Error Recording</Text>
+          <Text style={styles.buttonText}>Test Sentry Error</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.crashButton]}
-          onPress={testCrashlyticsCrash}
+          onPress={testSentryCrash}
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>Test App Crash</Text>
@@ -140,15 +138,15 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
           onPress={testPushNotification}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Test Push Notifications</Text>
+          <Text style={styles.buttonText}>Register Push Token</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.logButton]}
-          onPress={testCustomLogging}
+          onPress={testLocalNotification}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Test Custom Logging</Text>
+          <Text style={styles.buttonText}>Local Notification</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -156,7 +154,7 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
           onPress={testSignalRConnection}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Test SignalR Connection</Text>
+          <Text style={styles.buttonText}>Test SignalR</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -164,7 +162,7 @@ export function FirebaseTestPanel({ userId }: FirebaseTestPanelProps) {
           onPress={testTopicSubscription}
           disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Test Topic Subscription</Text>
+          <Text style={styles.buttonText}>Test Topics</Text>
         </TouchableOpacity>
       </View>
 
@@ -197,8 +195,14 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.h2,
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
     textAlign: 'center',
+  },
+  subtitle: {
+    ...typography.caption,
+    color: colors.gray[400],
+    textAlign: 'center',
+    marginBottom: spacing.md,
   },
   buttonContainer: {
     gap: spacing.sm,

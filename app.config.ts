@@ -17,7 +17,13 @@ const config: ExpoConfig = {
   owner: '241-runners-awareness',
   ios: {
     bundleIdentifier: 'org.runners241.app',
+    appleTeamId: process.env.APPLE_TEAM_ID,
     supportsTablet: true,
+    entitlements: {
+      'aps-environment': 'development',
+      'com.apple.developer.associated-domains': ['applinks:241runnersawareness.org'],
+      'keychain-access-groups': ['$(AppIdentifierPrefix)org.runners241.app'],
+    },
     infoPlist: {
       NSCameraUsageDescription:
         '241 Runners uses your camera to capture photos for sighting reports and case updates. Photos are securely stored and only used for the intended reporting purpose.',
@@ -43,7 +49,13 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-secure-store',
-    'expo-notifications',
+    [
+      'expo-notifications',
+      {
+        mode: 'development',
+        enableBackgroundRemoteNotifications: true,
+      },
+    ],
     'expo-location',
     'expo-camera',
     'expo-apple-authentication', // Apple Sign-In for iOS
@@ -64,10 +76,6 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
-    // Firebase plugins (temporarily disabled for build testing)
-    // '@react-native-firebase/app',
-    // '@react-native-firebase/messaging',
-    // '@react-native-firebase/crashlytics',
   ],
   extra: {
     eas: {
@@ -78,7 +86,8 @@ const config: ExpoConfig = {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    oauthRedirectUri: 'org.runners241.app:/oauthredirect',
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   },
 };
 

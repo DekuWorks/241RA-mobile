@@ -26,8 +26,10 @@ eas secret:create --scope project --name EXPO_PUBLIC_FIREBASE_APP_ID --value "1:
 ```bash
 eas secret:create --scope project --name APPLE_ID --value "your-apple-id@example.com"
 eas secret:create --scope project --name ASC_APP_ID --value "your-app-store-connect-app-id"
-eas secret:create --scope project --name APPLE_TEAM_ID --value "your-apple-team-id"
+eas secret:create --scope project --name APPLE_TEAM_ID --value "KR52VK4ZKR"
 ```
+
+Apple Team ID `KR52VK4ZKR` (Marcus Brown Individual) is also set in `ios/241Runners.xcodeproj`.
 
 ### GitHub Actions
 ```bash

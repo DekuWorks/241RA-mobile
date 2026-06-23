@@ -20,7 +20,7 @@ console.log('');
 const results = {
   googleMaps: { status: 'pending', message: '' },
   sentry: { status: 'pending', message: '' },
-  firebase: { status: 'pending', message: '' },
+  supabase: { status: 'pending', message: '' },
   envFile: { status: 'pending', message: '' },
 };
 
@@ -116,26 +116,25 @@ function testSentry() {
   }
 }
 
-// Test 4: Test Firebase Configuration
-function testFirebase() {
-  console.log('🔥 Testing Firebase Configuration...');
+// Test 4: Test Supabase Configuration
+function testSupabase() {
+  console.log('⚡ Testing Supabase Configuration...');
 
-  const iosConfig = 'ios/GoogleService-Info.plist';
-  const androidConfig = 'android/app/google-services.json';
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-  const iosExists = fs.existsSync(iosConfig);
-  const androidExists = fs.existsSync(androidConfig);
+  if (!url || !anonKey) {
+    results.supabase = { status: 'warning', message: 'Optional — not configured' };
+    console.log('   ⚠️  Supabase not configured (optional)');
+    return;
+  }
 
-  if (iosExists && androidExists) {
-    results.firebase = { status: 'success', message: 'Both config files exist' };
-    console.log('   ✅ Firebase config files exist for both platforms');
-  } else if (iosExists || androidExists) {
-    results.firebase = { status: 'warning', message: 'Only one config file exists' };
-    console.log('   ⚠️  Only one Firebase config file exists');
+  if (url.startsWith('https://') && url.includes('.supabase.co') && anonKey.length > 20) {
+    results.supabase = { status: 'success', message: 'URL and anon key present' };
+    console.log('   ✅ Supabase URL and anon key configured');
   } else {
-    results.firebase = { status: 'error', message: 'No config files found' };
-    console.log('   ❌ Firebase config files not found');
-    console.log('   💡 Download from Firebase Console and place in correct locations');
+    results.supabase = { status: 'error', message: 'Invalid Supabase config' };
+    console.log('   ❌ Supabase configuration looks invalid');
   }
 }
 
@@ -149,7 +148,7 @@ function printSummary() {
     { name: 'Environment File', result: results.envFile },
     { name: 'Google Maps API', result: results.googleMaps },
     { name: 'Sentry DSN', result: results.sentry },
-    { name: 'Firebase Config', result: results.firebase },
+    { name: 'Supabase Config', result: results.supabase },
   ];
 
   tests.forEach(test => {
@@ -186,7 +185,7 @@ async function runTests() {
   testEnvFile();
   testGoogleMaps();
   testSentry();
-  testFirebase();
+  testSupabase();
 
   // Wait a bit for async tests to complete
   setTimeout(() => {

@@ -30,24 +30,21 @@ const steps = [
     ],
   },
   {
-    title: 'Firebase Setup',
+    title: 'Supabase Setup (optional)',
     steps: [
-      '1. Go to https://console.firebase.google.com/',
-      '2. Create project: 241runners-mobile',
-      '3. Add iOS app (Bundle ID: org.runners241.app)',
-      '4. Download GoogleService-Info.plist → replace ios/GoogleService-Info.plist',
-      '5. Add Android app (Package: org.runners241.app)',
-      '6. Download google-services.json → replace android/app/google-services.json',
-      '7. Enable Cloud Messaging',
+      '1. Go to https://supabase.com/dashboard',
+      '2. Create project for 241runners-mobile',
+      '3. Copy Project URL → EXPO_PUBLIC_SUPABASE_URL',
+      '4. Copy anon/public key → EXPO_PUBLIC_SUPABASE_ANON_KEY',
+      '5. Add secrets to EAS: ./setup-eas-secrets.sh',
     ],
   },
   {
     title: 'Update Environment Variables',
     steps: [
-      '1. Copy your Google OAuth client IDs to .env file',
-      '2. Copy your Firebase config values to .env file',
-      '3. Update eas.json with production values',
-      '4. Test the configuration',
+      '1. Copy Supabase URL and anon key to .env file',
+      '2. Update eas.json with production values',
+      '3. Test the configuration',
     ],
   },
 ];
@@ -58,9 +55,8 @@ function displayStep(stepIndex) {
     console.log('\nNext steps:');
     console.log('1. Update your .env file with actual credentials');
     console.log('2. Update eas.json with production values');
-    console.log('3. Test Google OAuth login');
-    console.log('4. Test push notifications');
-    console.log('5. Test maps functionality');
+    console.log('3. Test push notifications');
+    console.log('4. Test maps functionality');
     rl.close();
     return;
   }

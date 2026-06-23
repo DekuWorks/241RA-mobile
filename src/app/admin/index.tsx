@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { AdminService } from '../../services/admin';
-import { FirebaseTestPanel } from '../../components/FirebaseTestPanel';
+import { IntegrationTestPanel } from '../../components/IntegrationTestPanel';
 
 interface DashboardStats {
   totalCases: number;
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showFirebaseTests, setShowFirebaseTests] = useState(false);
+  const [showIntegrationTests, setShowIntegrationTests] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -156,9 +156,9 @@ export default function AdminDashboard() {
             onPress={() => router.push('/admin/logs')}
           />
           <QuickActionButton
-            title="Firebase Tests"
-            icon="🔥"
-            onPress={() => setShowFirebaseTests(!showFirebaseTests)}
+            title="Integration Tests"
+            icon="🧪"
+            onPress={() => setShowIntegrationTests(!showIntegrationTests)}
           />
         </View>
       </View>
@@ -192,10 +192,9 @@ export default function AdminDashboard() {
         )}
       </View>
 
-      {/* Firebase Test Panel */}
-      {showFirebaseTests && (
+      {showIntegrationTests && (
         <View style={styles.section}>
-          <FirebaseTestPanel />
+          <IntegrationTestPanel />
         </View>
       )}
     </ScrollView>

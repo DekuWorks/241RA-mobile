@@ -64,8 +64,7 @@ echo ""
 echo "📋 You'll need the following values:"
 echo "   - Google Maps API Key (from Google Cloud Console)"
 echo "   - Sentry DSN (from Sentry.io)"
-echo "   - Google OAuth Client IDs (from Google Cloud Console)"
-echo "   - Firebase Configuration (from Firebase Console)"
+echo "   - Supabase URL and anon key (from supabase.com)"
 echo ""
 
 # Google Maps API Key
@@ -74,24 +73,15 @@ set_secret "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY" "Google Maps API Key for map functi
 # Sentry DSN
 set_secret "EXPO_PUBLIC_SENTRY_DSN" "Sentry DSN for error tracking"
 
-# Google OAuth Client IDs
-set_secret "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID" "Google OAuth Web Client ID"
-set_secret "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID" "Google OAuth iOS Client ID"
-set_secret "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID" "Google OAuth Android Client ID"
-
-# Firebase Configuration
-set_secret "EXPO_PUBLIC_FIREBASE_API_KEY" "Firebase API Key"
-set_secret "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN" "Firebase Auth Domain (project-id.firebaseapp.com)"
-set_secret "EXPO_PUBLIC_FIREBASE_PROJECT_ID" "Firebase Project ID"
-set_secret "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET" "Firebase Storage Bucket (project-id.appspot.com)"
-set_secret "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" "Firebase Messaging Sender ID"
-set_secret "EXPO_PUBLIC_FIREBASE_APP_ID" "Firebase App ID"
+# Supabase Configuration
+set_secret "EXPO_PUBLIC_SUPABASE_URL" "Supabase project URL (https://xxx.supabase.co)"
+set_secret "EXPO_PUBLIC_SUPABASE_ANON_KEY" "Supabase anon/public API key"
 
 echo ""
 echo "🎉 EAS Secrets setup complete!"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Set up Firebase Console with your app bundle IDs"
+echo "   1. Create a Supabase project and add URL + anon key to EAS secrets"
 echo "   2. Implement backend endpoints (see BACKEND_IMPLEMENTATION_GUIDE.md)"
 echo "   3. Test with preview builds"
 echo ""

@@ -1,39 +1,31 @@
-// Conditional Firebase import for builds
-let crashlytics: any = null;
-try {
-  crashlytics = require('@react-native-firebase/crashlytics').default;
-} catch (error) {
-  console.warn('Firebase Crashlytics not available in this build');
-}
+import * as Sentry from '@sentry/react-native';
+import { SentryService } from '../services/sentry';
 
 const ENABLED = String(process.env.EXPO_PUBLIC_ENABLE_CRASH).toLowerCase() === 'true';
 
 export function initCrashlytics(userId?: string) {
-  if (!crashlytics) return;
-  crashlytics().setCrashlyticsCollectionEnabled(ENABLED);
+  if (!ENABLED) return;
+
   if (userId) {
-    // Only use GUID, no PII
-    crashlytics().setUserId(userId);
+    SentryService.setUser({ id: userId });
   }
 }
 
 export function recordError(err: unknown) {
-  if (!ENABLED || !crashlytics) return;
+  if (!ENABLED) return;
 
   if (err instanceof Error) {
-    crashlytics().recordError(err);
+    SentryService.captureException(err);
   } else {
-    crashlytics().recordError(new Error(String(err)));
+    SentryService.captureException(new Error(String(err)));
   }
 }
 
 export function logEvent(name: string, data?: Record<string, unknown>) {
-  if (!ENABLED || !crashlytics) return;
+  if (!ENABLED) return;
 
-  // Log non-sensitive info only - never log PII/PHI
-  // Filter out sensitive data like names, emails, phone numbers, GPS coordinates
   const sanitizedData = data ? sanitizeLogData(data) : undefined;
-  crashlytics().log(`${name}${sanitizedData ? ' ' + JSON.stringify(sanitizedData) : ''}`);
+  SentryService.addBreadcrumb(name, 'app', sanitizedData);
 }
 
 function sanitizeLogData(data: Record<string, unknown>): Record<string, unknown> {
@@ -70,8 +62,7 @@ function sanitizeLogData(data: Record<string, unknown>): Record<string, unknown>
   return sanitized;
 }
 
-// Optional dev helper - only use in development builds
 export function forceTestCrash() {
-  if (!ENABLED) return;
-  crashlytics().crash();
+  if (!ENABLED || __DEV__) return;
+  Sentry.nativeCrash();
 }

@@ -14,7 +14,6 @@ import { router } from 'expo-router';
 import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
 import { AppleAuthService } from '../services/appleAuth';
-import { GoogleAuthService } from '../services/googleAuth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -146,40 +145,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    try {
-      console.log('[GOOGLE LOGIN] Starting Google Sign-In...');
-      const result = await GoogleAuthService.signIn();
-      console.log('[GOOGLE LOGIN] Result:', result);
-
-      if (result.success) {
-        if (result.user) {
-          console.log('[GOOGLE LOGIN] User role:', result.user.role);
-          if (
-            result.user.role === 'admin' ||
-            result.user.role === 'moderator' ||
-            result.user.role === 'super_admin'
-          ) {
-            router.replace('/portal');
-          } else {
-            router.replace('/profile');
-          }
-        } else {
-          router.replace('/profile');
-        }
-      } else {
-        console.error('[GOOGLE LOGIN] Failed:', result.error);
-        Alert.alert('Google Login Failed', result.error || 'Failed to sign in with Google');
-      }
-    } catch (error: any) {
-      console.error('[GOOGLE LOGIN] Error:', error);
-      Alert.alert('Google Login Failed', error.message || 'Failed to sign in with Google');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -266,23 +231,14 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.oauthSection}>
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{'OR'}</Text>
-            <View style={styles.dividerLine} />
-          </View>
+        {Platform.OS === 'ios' && (
+          <View style={styles.oauthSection}>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{'OR'}</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
-            onPress={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            <Text style={styles.googleIcon}>🔵</Text>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          {Platform.OS === 'ios' && (
             <TouchableOpacity
               style={[styles.appleButton, isLoading && styles.buttonDisabled]}
               onPress={handleAppleLogin}
@@ -291,8 +247,8 @@ export default function LoginScreen() {
               <Text style={styles.appleIcon}>🍎</Text>
               <Text style={styles.appleButtonText}>Continue with Apple</Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -422,31 +378,6 @@ const styles = StyleSheet.create({
   oauthSection: {
     marginTop: spacing.xl,
     width: '100%',
-  },
-  googleButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: radii.md,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: spacing.md,
-  },
-  googleIcon: {
-    fontSize: typography.sizes.lg,
-    marginRight: spacing.sm,
-  },
-  googleButtonText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.gray[900],
   },
   appleButton: {
     backgroundColor: '#000000',

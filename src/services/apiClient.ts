@@ -129,41 +129,43 @@ export class ApiClient {
       const axiosError = error as AxiosErrorResponse;
       
       if (axiosError.response) {
-        // Server responded with error status
         const status = axiosError.response.status;
         const message = axiosError.response.data?.message || axiosError.response.data?.error || 'Server error';
 
-      if (isProduction) {
-        // In production, provide generic error messages
-        switch (status) {
-          case 400:
-            return new Error('Invalid request');
-          case 401:
-            return new Error('Authentication required');
-          case 403:
-            return new Error('Access denied');
-          case 404:
-            return new Error('Resource not found');
-          case 500:
-            return new Error('Server error. Please try again later.');
-          default:
-            return new Error('Something went wrong. Please try again.');
+        if (isProduction) {
+          switch (status) {
+            case 400:
+              return new Error('Invalid request');
+            case 401:
+              return new Error('Authentication required');
+            case 403:
+              return new Error('Access denied');
+            case 404:
+              return new Error('Resource not found');
+            case 500:
+              return new Error('Server error. Please try again later.');
+            default:
+              return new Error('Something went wrong. Please try again.');
+          }
         }
-      } else {
-        // In development, provide detailed error messages
+
         return new Error(`${status}: ${message}`);
       }
-    } else if (error.request) {
-      // Network error
-      return new Error(
-        isProduction
-          ? 'Network error. Please check your connection.'
-          : 'Network error: ' + error.message
-      );
-    } else {
-      // Other error
+
+      if (axiosError.request) {
+        return new Error(
+          isProduction
+            ? 'Network error. Please check your connection.'
+            : 'Network error: ' + axiosError.message
+        );
+      }
+    }
+
+    if (error instanceof Error) {
       return new Error(isProduction ? 'Something went wrong.' : error.message);
     }
+
+    return new Error(isProduction ? 'Something went wrong.' : 'Unknown error');
   }
 
   /**

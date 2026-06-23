@@ -56,16 +56,6 @@ add_secret() {
     echo ""
 }
 
-# Function to encode file to base64
-encode_file() {
-    local file_path=$1
-    if [[ -f "$file_path" ]]; then
-        base64 -i "$file_path" | tr -d '\n'
-    else
-        echo ""
-    fi
-}
-
 echo "🚀 Starting API keys configuration..."
 echo ""
 
@@ -83,48 +73,14 @@ echo "   Go to your project settings > Client Keys (DSN)"
 echo ""
 add_secret "SENTRY_DSN" "Sentry DSN for error tracking"
 
-# 3. Firebase iOS Configuration
-echo "🔥 Firebase iOS Configuration"
-echo "   Download GoogleService-Info.plist from Firebase Console"
-echo "   Bundle ID should be: org.runners241.app"
+# 3. Supabase Configuration (optional)
+echo "⚡ Supabase Configuration"
+echo "   Get your project URL and anon key from: https://supabase.com/dashboard"
 echo ""
-read -p "   Enter path to GoogleService-Info.plist (or press Enter to skip): " firebase_ios_path
+add_secret "EXPO_PUBLIC_SUPABASE_URL" "Supabase project URL"
+add_secret "EXPO_PUBLIC_SUPABASE_ANON_KEY" "Supabase anon/public key"
 
-if [[ -n "$firebase_ios_path" && -f "$firebase_ios_path" ]]; then
-    echo "   🔄 Encoding GoogleService-Info.plist..."
-    encoded_plist=$(encode_file "$firebase_ios_path")
-    if [[ -n "$encoded_plist" ]]; then
-        echo "   🔄 Adding Firebase iOS config to EAS..."
-        if eas secret:create --scope project --name "GOOGLE_SERVICE_INFO_PLIST" --value "$encoded_plist" --force; then
-            echo "   ✅ Firebase iOS config added successfully"
-        else
-            echo "   ❌ Failed to add Firebase iOS config"
-        fi
-    else
-        echo "   ❌ Failed to encode GoogleService-Info.plist"
-    fi
-else
-    echo "   ⏭️  Skipping Firebase iOS config"
-fi
-echo ""
-
-# 4. Firebase Android Configuration
-echo "🤖 Firebase Android Configuration"
-echo "   Download google-services.json from Firebase Console"
-echo "   Package name should be: org.runners241.app"
-echo ""
-read -p "   Enter path to google-services.json (or press Enter to skip): " firebase_android_path
-
-if [[ -n "$firebase_android_path" && -f "$firebase_android_path" ]]; then
-    echo "   📁 Copying google-services.json to android/app/..."
-    cp "$firebase_android_path" "android/app/google-services.json"
-    echo "   ✅ Firebase Android config copied successfully"
-else
-    echo "   ⏭️  Skipping Firebase Android config"
-fi
-echo ""
-
-# 5. Create local .env file
+# 4. Create local .env file
 echo "📄 Creating local .env file for development..."
 cat > .env << EOF
 # 241RA Mobile - Local Development Environment Variables
@@ -133,6 +89,8 @@ cat > .env << EOF
 EXPO_PUBLIC_API_URL=https://241runners-api-v2.azurewebsites.net
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 EXPO_PUBLIC_SENTRY_DSN=your_sentry_dsn_here
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url_here
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 EOF
 
 echo "   ✅ Created .env file template"
@@ -150,12 +108,6 @@ echo ""
 
 # Check if required files exist
 echo "📁 Checking required files:"
-if [[ -f "android/app/google-services.json" ]]; then
-    echo "   ✅ android/app/google-services.json exists"
-else
-    echo "   ⚠️  android/app/google-services.json missing"
-fi
-
 if [[ -f ".env" ]]; then
     echo "   ✅ .env file exists"
 else
