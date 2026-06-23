@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
 import { AuthService } from '../services/auth';
 import { colors, spacing, typography } from '../theme/tokens';
@@ -48,8 +48,14 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary[600]} style={styles.spinner} />
-      <Text style={styles.title}>241 Runners</Text>
+      <Image
+        source={require('../../assets/241-logo-new.jpg')}
+        style={styles.logo}
+        resizeMode="contain"
+        accessibilityLabel="241 Runners Awareness logo"
+      />
+      <ActivityIndicator size="large" color={colors.white} style={styles.spinner} />
+      <Text style={styles.title}>241 Runners Awareness</Text>
       <Text style={styles.subtitle}>{loadingText}</Text>
     </View>
   );
@@ -62,6 +68,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.bg,
     padding: spacing.lg,
+  },
+  logo: {
+    width: 200,
+    height: 149,
+    borderRadius: 8,
+    marginBottom: spacing.xl,
   },
   spinner: {
     marginBottom: spacing.xl,

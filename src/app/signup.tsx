@@ -176,8 +176,9 @@ export default function SignupScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Image
-            source={require('../../assets/241-logo.jpg')}
+            source={require('../../assets/241-logo-new.jpg')}
             style={styles.logo}
+            resizeMode="contain"
             accessibilityLabel="241 Runners Awareness logo"
           />
           <Text style={styles.title}>241 Runners Awareness</Text>
@@ -320,11 +321,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logo: {
-    width: 72,
-    height: 72,
+    width: 200,
+    height: 149,
     borderRadius: radii.md,
-    borderWidth: 2,
-    borderColor: colors.white,
     marginBottom: spacing.md,
   },
   title: {
