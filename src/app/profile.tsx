@@ -66,7 +66,6 @@ export default function ProfileScreen() {
 
   // Editing states
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
-  const [isEditingProfileImage, setIsEditingProfileImage] = useState(false);
   const [isEditingRunnerProfile, setIsEditingRunnerProfile] = useState(false);
   const [isEditingNotifications, setIsEditingNotifications] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -154,6 +153,13 @@ export default function ProfileScreen() {
     enabled: !!user,
   });
 
+  const { data: enhancedRunnerProfile } = useQuery({
+    queryKey: ['enhancedRunnerProfile'],
+    queryFn: EnhancedRunnerProfileService.getRunnerProfile,
+    enabled: !!user && !!runnerProfileExists,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (user) {
       console.log('[PROFILE] User data loaded:', {
@@ -201,6 +207,23 @@ export default function ProfileScreen() {
       setHasRunnerProfile(runnerProfileExists);
     }
   }, [runnerProfileExists]);
+
+  useEffect(() => {
+    if (enhancedRunnerProfile) {
+      setRunnerProfile(enhancedRunnerProfile);
+      setRunnerPhotos(enhancedRunnerProfile.photos);
+      setRunnerFormData({
+        firstName: enhancedRunnerProfile.firstName || '',
+        lastName: enhancedRunnerProfile.lastName || '',
+        dateOfBirth: enhancedRunnerProfile.dateOfBirth || '',
+        height: enhancedRunnerProfile.height || '',
+        weight: enhancedRunnerProfile.weight || '',
+        eyeColor: enhancedRunnerProfile.eyeColor || 'Brown',
+        medicalConditions: enhancedRunnerProfile.medicalConditions || [],
+        additionalNotes: enhancedRunnerProfile.additionalNotes || '',
+      });
+    }
+  }, [enhancedRunnerProfile]);
 
   useEffect(() => {
     if (!error || user) {
@@ -380,19 +403,74 @@ export default function ProfileScreen() {
     Alert.alert('Success', 'Two-factor authentication has been enabled successfully');
   };
 
-  const handleImagePicker = async () => {
+  const confirmAction = (title: string, message: string): Promise<boolean> =>
+    new Promise(resolve => {
+      Alert.alert(title, message, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Save', onPress: () => resolve(true) },
+      ]);
+    });
+
+  const hasPersonalInfoChanges = (): boolean => {
+    if (!userProfile) return false;
+    return (
+      formData.firstName.trim() !== (userProfile.firstName || '').trim() ||
+      formData.lastName.trim() !== (userProfile.lastName || '').trim() ||
+      formData.phoneNumber.trim() !== (userProfile.phoneNumber || '').trim()
+    );
+  };
+
+  const pickAndUploadProfileImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.85,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setProfileImage(result.assets[0].uri);
-        // Here you would typically upload the image to your server
-        console.log('Profile image selected:', result.assets[0].uri);
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const fileName = asset.fileName || asset.uri.split('/').pop() || 'profile.jpg';
+      const fileValidation = ValidationUtils.validateProfileImage(fileName, asset.fileSize);
+      if (!fileValidation.isValid) {
+        Alert.alert('Invalid Image', fileValidation.errors.join('\n'));
+        return;
+      }
+
+      const photoValidation = await PhotoManager.validateImage(asset.uri);
+      if (!photoValidation.isValid) {
+        Alert.alert('Invalid Image', photoValidation.errors.join('\n'));
+        return;
+      }
+
+      const confirmed = await confirmAction(
+        'Save Profile Image',
+        'Upload this image as your profile picture?'
+      );
+      if (!confirmed) return;
+
+      setIsSaving(true);
+      setSaveError(null);
+
+      try {
+        const uploadResult = await UserProfileService.uploadProfileImage(asset.uri);
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.message || 'Failed to upload image');
+        }
+
+        setProfileImage(uploadResult.imageUrl || asset.uri);
+        await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        Alert.alert('Success', 'Profile image updated successfully!');
+      } catch (error: any) {
+        console.error('Failed to upload profile image:', error);
+        setSaveError(error.message || 'Failed to save profile image');
+        Alert.alert('Error', error.message || 'Failed to save profile image');
+      } finally {
+        setIsSaving(false);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -449,6 +527,17 @@ export default function ProfileScreen() {
       return;
     }
 
+    if (!hasPersonalInfoChanges()) {
+      setIsEditingPersonalInfo(false);
+      return;
+    }
+
+    const confirmed = await confirmAction(
+      'Save Changes',
+      'Save your updated personal information?'
+    );
+    if (!confirmed) return;
+
     setIsSaving(true);
     setSaveError(null);
 
@@ -459,7 +548,6 @@ export default function ProfileScreen() {
         phoneNumber: formData.phoneNumber,
       });
 
-      // Refresh the profile data and user data
       await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['user'] });
 
@@ -474,38 +562,53 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSaveProfileImage = async () => {
-    if (!profileImage) {
-      Alert.alert('No Image', 'Please select an image first.');
+  const handleRemoveProfileImage = async () => {
+    if (!userProfile?.profileImageUrl && !profileImage) {
       return;
     }
 
-    setIsSaving(true);
-    setSaveError(null);
+    Alert.alert(
+      'Remove Profile Image',
+      'Are you sure you want to remove your profile image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsSaving(true);
+            setSaveError(null);
+            try {
+              await UserProfileService.deleteProfileImage();
+              await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+              setProfileImage(null);
+              Alert.alert('Success', 'Profile image removed successfully!');
+            } catch (error: any) {
+              setSaveError(error.message || 'Failed to remove profile image');
+              Alert.alert('Error', error.message || 'Failed to remove profile image');
+            } finally {
+              setIsSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
-    try {
-      const result = await UserProfileService.uploadProfileImage(profileImage);
-
-      if (result.success) {
-        // Refresh the profile data
-        await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-
-        setIsEditingProfileImage(false);
-        Alert.alert('Success', 'Profile image updated successfully!');
-      } else {
-        throw new Error(result.message || 'Failed to upload image');
-      }
-    } catch (error: any) {
-      console.error('Failed to save profile image:', error);
-      setSaveError(error.message || 'Failed to save profile image');
-      Alert.alert('Error', error.message || 'Failed to save profile image');
-    } finally {
-      setIsSaving(false);
+  const handleAvatarPress = () => {
+    if (profileImage || userProfile?.profileImageUrl) {
+      Alert.alert('Profile Photo', 'What would you like to do?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove Photo', style: 'destructive', onPress: handleRemoveProfileImage },
+        { text: 'Change Photo', onPress: pickAndUploadProfileImage },
+      ]);
+      return;
     }
+
+    pickAndUploadProfileImage();
   };
 
   const handleCancelEdit = () => {
-    // Reset form data to original values
     if (userProfile) {
       setFormData({
         firstName: userProfile.firstName || '',
@@ -516,7 +619,6 @@ export default function ProfileScreen() {
     }
     setValidationErrors({});
     setIsEditingPersonalInfo(false);
-    setIsEditingProfileImage(false);
     setSaveError(null);
   };
 
@@ -599,6 +701,14 @@ export default function ProfileScreen() {
       Alert.alert('Validation Error', 'Please fix the errors before saving.');
       return;
     }
+
+    const confirmed = await confirmAction(
+      'Save Runner Profile',
+      runnerProfile
+        ? 'Save your updated runner profile information?'
+        : 'Create your runner profile with this information?'
+    );
+    if (!confirmed) return;
 
     setIsSaving(true);
     setSaveError(null);
@@ -719,6 +829,12 @@ export default function ProfileScreen() {
   };
 
   const handleUpdateNotificationSettings = async () => {
+    const confirmed = await confirmAction(
+      'Save Notification Settings',
+      'Save your updated notification preferences?'
+    );
+    if (!confirmed) return;
+
     try {
       await EnhancedRunnerProfileService.updateNotificationSettings(notificationSettings);
       Alert.alert('Success', 'Notification settings updated successfully!');
@@ -796,7 +912,7 @@ export default function ProfileScreen() {
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
-      <TouchableOpacity style={styles.profileAvatar} onPress={handleImagePicker}>
+      <TouchableOpacity style={styles.profileAvatar} onPress={handleAvatarPress}>
         {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
@@ -916,63 +1032,6 @@ export default function ProfileScreen() {
         <Text style={styles.memberSinceValue}>
           {user?.createdAt ? formatDate(user.createdAt) : 'Unknown'}
         </Text>
-      </View>
-    </View>
-  );
-
-  const renderProfileImageSection = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Profile Image</Text>
-        {!isEditingProfileImage ? (
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => setIsEditingProfileImage(true)}
-          >
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.editActions}>
-            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveProfileImage}
-              disabled={isSaving || !profileImage}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {saveError && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{saveError}</Text>
-        </View>
-      )}
-
-      <View style={styles.profileImageContainer}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.profileImagePreview} />
-        ) : (
-          <View style={styles.profileImagePlaceholder}>
-            <Text style={styles.profileImageText}>No profile image uploaded</Text>
-          </View>
-        )}
-
-        {isEditingProfileImage && (
-          <TouchableOpacity style={styles.uploadButton} onPress={handleImagePicker}>
-            <Text style={styles.uploadButtonText}>
-              📷 {profileImage ? 'Change Image' : 'Upload Image'}
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
@@ -1852,35 +1911,6 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
   },
-  profileImageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  profileImagePlaceholder: {
-    flex: 1,
-    height: 80,
-    backgroundColor: colors.gray[200],
-    borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  profileImageText: {
-    fontSize: typography.sizes.sm,
-    color: colors.gray[600],
-  },
-  uploadButton: {
-    backgroundColor: colors.primary[600],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
-  },
-  uploadButtonText: {
-    color: colors.white,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2089,12 +2119,6 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: typography.sizes.sm,
     marginTop: spacing.xs,
-  },
-  profileImagePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: spacing.md,
   },
   profileHeader: {
     alignItems: 'center',

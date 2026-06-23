@@ -152,8 +152,9 @@ export class UserProfileService {
    */
   static async uploadProfileImage(imageUri: string): Promise<ProfileImageUploadResponse> {
     try {
+      const fileName = imageUri.split('/').pop() || 'profile.jpg';
       const { ImageUploadService } = await import('./imageUpload');
-      const uploaded = await ImageUploadService.uploadImage(imageUri, 'profile.jpg');
+      const uploaded = await ImageUploadService.uploadImage(imageUri, fileName);
       await this.updateProfile({ profileImageUrl: uploaded.url });
 
       return {

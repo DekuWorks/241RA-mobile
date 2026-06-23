@@ -30,8 +30,11 @@ export class ValidationUtils {
     };
   }
 
+  static readonly PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+  static readonly PROFILE_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+
   /**
-   * Validate phone number
+   * Validate US phone number (10 digits, optional leading 1)
    */
   static validatePhoneNumber(phoneNumber: string): ValidationResult {
     const errors: string[] = [];
@@ -41,21 +44,47 @@ export class ValidationUtils {
       return { isValid: false, errors };
     }
 
-    // Remove all non-digit characters for validation
     const digitsOnly = phoneNumber.replace(/\D/g, '');
 
-    if (digitsOnly.length < 10) {
-      errors.push('Phone number must be at least 10 digits');
-    }
-
-    if (digitsOnly.length > 15) {
-      errors.push('Phone number is too long');
+    if (digitsOnly.length === 11 && digitsOnly[0] === '1') {
+      if (!/^[2-9]\d{9}$/.test(digitsOnly.slice(1))) {
+        errors.push('Please enter a valid US phone number');
+      }
+    } else if (digitsOnly.length === 10) {
+      if (!/^[2-9]\d{9}$/.test(digitsOnly)) {
+        errors.push('Please enter a valid US phone number');
+      }
+    } else {
+      errors.push('Phone number must be 10 digits (US format)');
     }
 
     return {
       isValid: errors.length === 0,
       errors,
     };
+  }
+
+  /**
+   * Validate profile image file name and size before upload
+   */
+  static validateProfileImage(
+    fileName: string,
+    fileSizeBytes?: number
+  ): ValidationResult {
+    const errors: string[] = [];
+    const ext = fileName.includes('.')
+      ? fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
+      : '.jpg';
+
+    if (!this.PROFILE_IMAGE_EXTENSIONS.includes(ext)) {
+      errors.push('Image must be JPG, PNG, GIF, or WebP');
+    }
+
+    if (fileSizeBytes !== undefined && fileSizeBytes > this.PROFILE_IMAGE_MAX_BYTES) {
+      errors.push('Image must be smaller than 5MB');
+    }
+
+    return { isValid: errors.length === 0, errors };
   }
 
   /**
@@ -287,7 +316,7 @@ export class ValidationUtils {
       if (!last.isValid) errors.push(...last.errors);
     }
 
-    if (data.phoneNumber !== undefined && data.phoneNumber.trim()) {
+    if (data.phoneNumber !== undefined) {
       const phone = this.validatePhoneNumber(data.phoneNumber);
       if (!phone.isValid) errors.push(...phone.errors);
     }
