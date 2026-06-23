@@ -138,7 +138,9 @@ export class NotificationService {
 
   static async unregisterDevice(): Promise<void> {
     try {
-      console.log('Device unregistration not yet implemented');
+      await ApiClient.delete('/api/Devices/unregister', {
+        params: { platform: Platform.OS },
+      });
     } catch (error) {
       console.error('Error unregistering device:', error);
       recordError(error);

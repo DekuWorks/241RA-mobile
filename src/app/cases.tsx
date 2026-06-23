@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { CasesService, Case, CaseFilters } from '../services/cases';
 import { AuthService } from '../services/auth';
 import { NotificationService } from '../services/notifications';
@@ -144,7 +144,7 @@ export default function CasesScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary[600]} />
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
@@ -164,12 +164,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     paddingTop: spacing.xl,
-    backgroundColor: colors.gray[900],
+    backgroundColor: colors.header,
   },
   headerTitle: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.textOnHeader,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -177,42 +177,47 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   headerButton: {
-    backgroundColor: colors.gray[800],
-    padding: spacing.sm,
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.md,
   },
   headerButtonText: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.sm,
+    color: colors.white,
+    fontWeight: typography.weights.medium,
   },
   logoutText: {
     fontSize: typography.sizes.sm,
-    color: colors.primary,
+    color: colors.white,
     fontWeight: typography.weights.medium,
+    opacity: 0.9,
   },
   searchContainer: {
     padding: spacing.lg,
     paddingTop: spacing.md,
   },
   searchInput: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: colors.white,
     borderRadius: radii.md,
     padding: spacing.md,
     fontSize: typography.sizes.base,
     color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.gray[700],
+    borderWidth: 2,
+    borderColor: colors.border,
   },
   listContent: {
     padding: spacing.lg,
     paddingTop: 0,
   },
   caseItem: {
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: colors.border,
+    ...shadows.card,
   },
   caseHeader: {
     flexDirection: 'row',
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
   },
   caseDescription: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[300],
+    color: colors.textMuted,
     lineHeight: 20,
     marginBottom: spacing.md,
   },
@@ -250,11 +255,11 @@ const styles = StyleSheet.create({
   },
   caseLocation: {
     fontSize: typography.sizes.xs,
-    color: colors.gray[400],
+    color: colors.textMuted,
   },
   caseDate: {
     fontSize: typography.sizes.xs,
-    color: colors.gray[400],
+    color: colors.textMuted,
   },
   emptyState: {
     flex: 1,
@@ -265,12 +270,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.semibold,
-    color: colors.text,
+    color: colors.textOnPage,
     marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[400],
+    color: colors.textOnPage,
+    opacity: 0.9,
     textAlign: 'center',
   },
   errorContainer: {
@@ -286,7 +292,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.md,

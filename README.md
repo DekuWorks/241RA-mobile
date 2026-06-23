@@ -9,7 +9,7 @@ API (shared with web): https://241runners-api-v2.azurewebsites.net/swagger/index
 - **Framework:** Expo (React Native + TypeScript)
 - **Platforms:** iOS (App Store), Android (Google Play)
 - **Backend:** Azure App Service (.NET 8 Web API) — same DB & users as the static site
-- **Auth:** Email/Password, Apple Sign-In (iOS), 2FA (TOTP + backup codes) via .NET API (JWT)
+- **Auth:** Email/Password, 2FA (TOTP + backup codes) via .NET API (JWT)
 - **Dual Role System:** Supports users with multiple roles (e.g., Runner + Admin)
 - **Push:** Expo Notifications → `POST /api/Devices/register`
 - **Realtime:** SignalR (`/hubs/alerts`)

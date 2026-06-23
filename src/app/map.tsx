@@ -4,7 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { CasesService, Case } from '../services/cases';
 import { ENV } from '../config/env';
 
@@ -187,7 +187,7 @@ export default function MapScreen() {
               latitude: userLocation.coords.latitude,
               longitude: userLocation.coords.longitude,
             }}
-            pinColor={colors.primary}
+            pinColor={colors.primary[600]}
             title="Your Location"
           />
         )}
@@ -231,18 +231,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     paddingTop: spacing.xl,
-    backgroundColor: colors.gray[900],
+    backgroundColor: colors.header,
     zIndex: 1,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
-    color: colors.primary,
+    color: colors.white,
     fontWeight: typography.weights.medium,
   },
   headerTitle: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.semibold,
-    color: colors.text,
+    color: colors.textOnHeader,
   },
   locationButton: {
     fontSize: typography.sizes.lg,
@@ -256,11 +256,12 @@ const styles = StyleSheet.create({
     bottom: 120,
     left: spacing.lg,
     right: spacing.lg,
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: colors.border,
+    ...shadows.card,
   },
   caseInfoHeader: {
     flexDirection: 'row',
@@ -298,16 +299,16 @@ const styles = StyleSheet.create({
   },
   caseDate: {
     fontSize: typography.sizes.xs,
-    color: colors.gray[400],
+    color: colors.textMuted,
   },
   caseDescription: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[300],
+    color: colors.textMuted,
     lineHeight: 18,
     marginBottom: spacing.md,
   },
   viewCaseButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     padding: spacing.sm,
     borderRadius: radii.md,
     alignItems: 'center',
@@ -321,11 +322,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 100,
     right: spacing.lg,
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: colors.border,
+    ...shadows.card,
   },
   legendTitle: {
     fontSize: typography.sizes.sm,
@@ -348,7 +350,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: typography.sizes.xs,
-    color: colors.gray[300],
+    color: colors.textSecondary,
   },
   errorContainer: {
     flex: 1,
@@ -370,7 +372,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.md,

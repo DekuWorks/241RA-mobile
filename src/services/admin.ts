@@ -1,4 +1,5 @@
 import { ApiClient } from './apiClient';
+import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
 import { AuthService } from './auth';
 import { RealtimeSyncService } from './realtimeSync';
 
@@ -164,15 +165,25 @@ export class AdminService {
   static async getAdminProfile(): Promise<AdminProfile> {
     try {
       this.validateAdminAccess();
-      // Use the existing /api/v1/auth/profile endpoint
-      const data = await ApiClient.get('/api/v1/auth/profile');
+      const data = await ApiClient.get('/api/v1/auth/me');
+      const user = unwrapApiUser(data);
+      const profile = mapApiUserToProfile(user);
 
-      // Validate response data structure
-      if (!data || !data.id || !data.email || !data.role) {
+      if (!profile.id || !profile.email || !profile.role) {
         throw new Error('Invalid admin profile data received');
       }
 
-      return data;
+      return {
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        role: profile.role,
+        phoneNumber: profile.phoneNumber,
+        profileImageUrl: profile.profileImageUrl,
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+      };
     } catch (error: any) {
       console.error('Failed to get admin profile:', error);
       throw error;
@@ -237,9 +248,17 @@ export class AdminService {
 
   static async updateAdminProfile(updates: Partial<AdminProfile>): Promise<AdminProfile> {
     try {
-      // Use the existing /api/v1/auth/profile endpoint
-      const data = await ApiClient.patch('/api/v1/auth/profile', updates);
-      return data;
+      const data = await ApiClient.put('/api/v1/auth/profile', updates);
+      const profile = mapApiUserToProfile(unwrapApiUser(data));
+      return {
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        role: profile.role,
+        phoneNumber: profile.phoneNumber,
+        profileImageUrl: profile.profileImageUrl,
+      };
     } catch (error) {
       console.error('Failed to update admin profile:', error);
       throw error;

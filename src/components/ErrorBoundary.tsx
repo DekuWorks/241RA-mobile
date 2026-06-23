@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { recordError } from '../lib/crash';
 
 interface Props {
@@ -77,12 +77,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   content: {
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     maxWidth: 400,
     width: '100%',
+    ...shadows.card,
   },
   title: {
     fontSize: typography.sizes.xl,
@@ -93,17 +96,19 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: typography.sizes.base,
-    color: colors.gray[300],
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.lg,
   },
   errorDetails: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: colors.gray[100],
     borderRadius: radii.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
     width: '100%',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   errorTitle: {
     fontSize: typography.sizes.sm,
@@ -118,7 +123,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.md,

@@ -11,7 +11,7 @@ const config: ExpoConfig = {
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#000000',
+    backgroundColor: '#ff0000',
   },
   userInterfaceStyle: 'automatic',
   owner: '241-runners-awareness',
@@ -43,7 +43,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'org.runners241.app',
-    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#000000' },
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#ff0000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
   },
   plugins: [
@@ -58,8 +58,13 @@ const config: ExpoConfig = {
     ],
     'expo-location',
     'expo-camera',
-    'expo-apple-authentication', // Apple Sign-In for iOS
-    'expo-tracking-transparency', // App Tracking Transparency
+    [
+      'expo-tracking-transparency',
+      {
+        userTrackingPermission:
+          'This app does not track users across other apps or websites.',
+      },
+    ],
     [
       'expo-image-picker',
       {

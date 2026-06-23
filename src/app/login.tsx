@@ -9,11 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
-import { AppleAuthService } from '../services/appleAuth';
+import { ApiRequestError } from '../types/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ export default function LoginScreen() {
       console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
 
       const credentials: LoginCredentials = {
-        email: email.toLowerCase().trim(),
+        email: email.trim(),
         password,
         ...(requiresTwoFactor && twoFactorCode && { twoFactorCode }),
       };
@@ -75,33 +76,29 @@ export default function LoginScreen() {
           router.replace('/profile');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[LOGIN] Login error:', error);
-      console.error('[LOGIN] Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-      });
 
       let errorMessage = 'Invalid email or password';
 
-      if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'Account is disabled or requires verification';
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many login attempts. Please try again later.';
-      } else if (error.response?.status === 422) {
-        errorMessage = 'Invalid credentials or account not found';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message?.includes('Network Error')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message?.includes('timeout')) {
-        errorMessage = 'Request timed out. Please try again.';
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (error instanceof ApiRequestError) {
+        if (error.status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.status === 403) {
+          errorMessage = 'Account is disabled or requires verification';
+        } else if (error.status === 429) {
+          errorMessage = 'Too many login attempts. Please try again later.';
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (error instanceof Error) {
+        if (error.message.includes('Network Error')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (!error.message.includes('[object Object]')) {
+          errorMessage = error.message;
+        }
       }
 
       Alert.alert('Login Failed', errorMessage);
@@ -116,35 +113,6 @@ export default function LoginScreen() {
     console.log('[LOGIN] Test credentials set');
   };
 
-  const handleAppleLogin = async () => {
-    setIsLoading(true);
-    try {
-      const result = await AppleAuthService.signIn();
-
-      if (result.success) {
-        if (result.user) {
-          if (
-            result.user.role === 'admin' ||
-            result.user.role === 'moderator' ||
-            result.user.role === 'super_admin'
-          ) {
-            router.replace('/portal');
-          } else {
-            router.replace('/profile');
-          }
-        } else {
-          router.replace('/profile');
-        }
-      } else {
-        Alert.alert('Apple Login Failed', result.error || 'Failed to sign in with Apple');
-      }
-    } catch (error: any) {
-      Alert.alert('Apple Login Failed', error.message || 'Failed to sign in with Apple');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -152,8 +120,13 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>241Runners</Text>
-          <Text style={styles.subtitle}>{'Sign in'}</Text>
+          <Image
+            source={require('../../assets/241-logo.jpg')}
+            style={styles.logo}
+            accessibilityLabel="241 Runners Awareness logo"
+          />
+          <Text style={styles.title}>241 Runners Awareness</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
 
         <View style={styles.form}>
@@ -222,33 +195,7 @@ export default function LoginScreen() {
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.adminLinkButton}
-            onPress={() => router.push('/admin-login')}
-          >
-            <Text style={styles.adminLinkText}>Admin Login</Text>
-          </TouchableOpacity>
         </View>
-
-        {Platform.OS === 'ios' && (
-          <View style={styles.oauthSection}>
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{'OR'}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.appleButton, isLoading && styles.buttonDisabled]}
-              onPress={handleAppleLogin}
-              disabled={isLoading}
-            >
-              <Text style={styles.appleIcon}>🍎</Text>
-              <Text style={styles.appleButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -268,57 +215,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: colors.white,
+    marginBottom: spacing.md,
+  },
   title: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.textOnPage,
     marginBottom: spacing.xs,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.sizes.base,
-    color: colors.text,
-    opacity: 0.9,
+    color: colors.textOnPage,
+    opacity: 0.95,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
     backgroundColor: colors.surface,
-    borderRadius: radii.xl,
+    borderRadius: radii.md,
     padding: spacing.xl,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   inputContainer: {
     marginBottom: spacing.lg,
   },
   label: {
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.text,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.gray[800],
-    borderWidth: 1,
-    borderColor: colors.gray[700],
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.border,
     borderRadius: radii.md,
     padding: spacing.md,
     fontSize: typography.sizes.base,
     color: colors.text,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
     marginTop: spacing.lg,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.button,
   },
   buttonDisabled: {
     backgroundColor: colors.gray[600],
@@ -334,7 +285,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: typography.sizes.sm,
-    color: colors.primary,
+    color: colors.primary[600],
   },
   signupSection: {
     alignItems: 'center',
@@ -342,64 +293,12 @@ const styles = StyleSheet.create({
   },
   signupText: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[400],
+    color: colors.textMuted,
     marginBottom: spacing.xs,
   },
   signupLink: {
     fontSize: typography.sizes.sm,
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.semibold,
-  },
-  adminLinkButton: {
-    alignItems: 'center',
-    marginTop: spacing.lg,
-  },
-  adminLinkText: {
-    fontSize: typography.sizes.sm,
-    color: '#DC2626',
-    fontWeight: typography.weights.semibold,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.3,
-  },
-  dividerText: {
-    fontSize: typography.sizes.sm,
-    color: '#FFFFFF',
-    marginHorizontal: spacing.md,
-  },
-  oauthSection: {
-    marginTop: spacing.xl,
-    width: '100%',
-  },
-  appleButton: {
-    backgroundColor: '#000000',
-    borderRadius: radii.md,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  appleIcon: {
-    fontSize: typography.sizes.lg,
-    marginRight: spacing.sm,
-    color: colors.white,
-  },
-  appleButtonText: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
-    color: colors.white,
   },
 });

@@ -1,4 +1,6 @@
 import { ApiClient } from './apiClient';
+import { ImageUploadService } from './imageUpload';
+import { ValidationUtils } from '../utils/validation';
 
 export interface Case {
   id: string;
@@ -36,7 +38,7 @@ export interface CaseFilters {
   location?: {
     latitude: number;
     longitude: number;
-    radius: number; // in miles
+    radius: number;
   };
   search?: string;
   page?: number;
@@ -75,7 +77,7 @@ export class CasesService {
       params.append('page', filters.page.toString());
     }
     if (filters?.limit) {
-      params.append('limit', filters.limit.toString());
+      params.append('pageSize', filters.limit.toString());
     }
     if (filters?.location) {
       params.append('latitude', filters.location.latitude.toString());
@@ -88,7 +90,8 @@ export class CasesService {
   }
 
   static async getCase(id: string): Promise<Case> {
-    const data = await ApiClient.get(`/api/v1/cases/${id}`);
+    const normalizedId = id.startsWith('case_') ? id : `case_${id}`;
+    const data = await ApiClient.get(`/api/v1/cases/${normalizedId}`);
     return data;
   }
 
@@ -98,16 +101,53 @@ export class CasesService {
   }
 
   static async updateCase(id: string, updates: Partial<Case>): Promise<Case> {
-    const data = await ApiClient.put(`/api/v1/cases/${id}`, updates);
+    const normalizedId = id.startsWith('case_') ? id : `case_${id}`;
+    const data = await ApiClient.put(`/api/v1/cases/${normalizedId}`, updates);
     return data;
   }
 
   static async deleteCase(id: string): Promise<void> {
-    await ApiClient.delete(`/api/v1/cases/${id}`);
+    const normalizedId = id.startsWith('case_') ? id : `case_${id}`;
+    await ApiClient.delete(`/api/v1/cases/${normalizedId}`);
   }
 
+  /**
+   * Report a sighting — persisted to the case record in the shared database
+   */
   static async reportSighting(sightingData: CreateSightingData): Promise<void> {
-    await ApiClient.post('/api/v1/sightings', sightingData);
+    const validation = ValidationUtils.validateSighting({
+      caseId: sightingData.caseId,
+      description: sightingData.description,
+      latitude: sightingData.location.latitude,
+      longitude: sightingData.location.longitude,
+      confidence: sightingData.confidence,
+    });
+
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('\n'));
+    }
+
+    const caseId = sightingData.caseId.startsWith('case_')
+      ? sightingData.caseId
+      : `case_${sightingData.caseId}`;
+
+    let imageUrls: string[] = [];
+    if (sightingData.images?.length) {
+      const uploads = await ImageUploadService.uploadImages(sightingData.images);
+      imageUrls = uploads.map(u => u.url);
+    }
+
+    await ApiClient.post(`/api/v1/cases/${caseId}/sightings`, {
+      description: ValidationUtils.sanitizeInput(sightingData.description.trim()),
+      latitude: sightingData.location.latitude,
+      longitude: sightingData.location.longitude,
+      address: sightingData.location.address
+        ? ValidationUtils.sanitizeInput(sightingData.location.address)
+        : undefined,
+      images: imageUrls,
+      confidence: sightingData.confidence ?? 'medium',
+      reportedAt: sightingData.reportedAt,
+    });
   }
 
   static async getNearbyCases(
@@ -121,25 +161,16 @@ export class CasesService {
     return data;
   }
 
-  static async getCaseSightings(caseId: string): Promise<any[]> {
-    const data = await ApiClient.get(`/api/v1/cases/${caseId}/sightings`);
-    return data;
+  static async getCaseSightings(caseId: string): Promise<unknown[]> {
+    const normalizedId = caseId.startsWith('case_') ? caseId : `case_${caseId}`;
+    const data = await ApiClient.get<{ sightings?: unknown[] }>(
+      `/api/v1/cases/${normalizedId}/sightings`
+    );
+    return data.sightings ?? [];
   }
 
   static async uploadImage(imageUri: string): Promise<string> {
-    const formData = new FormData();
-    formData.append('image', {
-      uri: imageUri,
-      type: 'image/jpeg',
-      name: 'image.jpg',
-    } as any);
-
-    const data = await ApiClient.post('/api/v1/ImageUpload/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return data.url;
+    const uploaded = await ImageUploadService.uploadImage(imageUri);
+    return uploaded.url;
   }
 }

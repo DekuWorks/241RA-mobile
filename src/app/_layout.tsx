@@ -18,7 +18,6 @@ import { OfflineIndicator } from '../components/OfflineIndicator';
 import { signalRService } from '../services/signalR';
 import { SentryService } from '../services/sentry';
 import { getSupabase } from '../lib/supabase';
-import { TrackingTransparencyService } from '../services/trackingTransparency';
 import { PlatformServiceFactory } from '../platform/shared/platformFactory';
 
 const qc = new QueryClient({
@@ -61,12 +60,6 @@ export default function Root() {
           await NotificationService.requestPermissions();
         } catch (notificationError) {
           console.warn('Notification initialization failed:', notificationError);
-        }
-
-        try {
-          await TrackingTransparencyService.requestWithExplanation();
-        } catch (trackingError) {
-          console.warn('Tracking transparency request failed:', trackingError);
         }
 
         try {

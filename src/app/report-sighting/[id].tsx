@@ -17,6 +17,7 @@ import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { CasesService, CreateSightingData } from '../../services/cases';
 import { AuthService } from '../../services/auth';
 import { CameraService } from '../../services/camera';
+import { ValidationUtils } from '../../utils/validation';
 
 export default function ReportSightingScreen() {
   const { id: caseId } = useLocalSearchParams<{ id: string }>();
@@ -86,8 +87,21 @@ export default function ReportSightingScreen() {
   };
 
   const handleSubmitSighting = async () => {
-    if (!description.trim()) {
-      Alert.alert('Error', 'Please provide a description of the sighting.');
+    if (!caseId) {
+      Alert.alert('Error', 'Invalid case. Please go back and try again.');
+      return;
+    }
+
+    const validation = ValidationUtils.validateSighting({
+      caseId,
+      description,
+      latitude: location?.coords.latitude ?? NaN,
+      longitude: location?.coords.longitude ?? NaN,
+      confidence,
+    });
+
+    if (!validation.isValid) {
+      Alert.alert('Validation Error', validation.errors.join('\n'));
       return;
     }
 
@@ -280,20 +294,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     paddingTop: spacing.xl,
+    backgroundColor: colors.header,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
-    color: colors.primary,
+    color: colors.white,
     fontWeight: typography.weights.medium,
   },
   headerTitle: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.semibold,
-    color: colors.text,
+    color: colors.textOnHeader,
     marginLeft: spacing.lg,
   },
   content: {
     padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    flex: 1,
   },
   section: {
     marginBottom: spacing.xl,
@@ -305,10 +324,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   textArea: {
-    backgroundColor: colors.gray[900],
-    borderWidth: 1,
-    borderColor: colors.gray[700],
-    borderRadius: radii.lg,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     padding: spacing.md,
     fontSize: typography.sizes.base,
     color: colors.text,
@@ -344,11 +363,11 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   addImageButton: {
-    backgroundColor: colors.gray[900],
+    backgroundColor: colors.gray[50],
     borderWidth: 2,
-    borderColor: colors.gray[700],
+    borderColor: colors.border,
     borderStyle: 'dashed',
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     padding: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -358,33 +377,35 @@ const styles = StyleSheet.create({
     color: colors.gray[400],
   },
   addMoreButton: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: colors.gray[100],
     width: 100,
     height: 100,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.gray[700],
+    borderColor: colors.border,
   },
   addMoreText: {
     fontSize: typography.sizes['2xl'],
     color: colors.gray[400],
   },
   locationContainer: {
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.gray[50],
+    borderRadius: radii.md,
     padding: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   locationInfo: {
     flex: 1,
   },
   locationLabel: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[400],
+    color: colors.textMuted,
     fontWeight: typography.weights.medium,
     marginBottom: spacing.xs,
   },
@@ -394,7 +415,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   refreshLocationButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     padding: spacing.md,
     borderRadius: radii.md,
     marginLeft: spacing.md,
@@ -409,27 +430,27 @@ const styles = StyleSheet.create({
   },
   confidenceButton: {
     flex: 1,
-    backgroundColor: colors.gray[900],
-    borderWidth: 1,
-    borderColor: colors.gray[700],
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.border,
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
   },
   confidenceButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.primary[600],
+    borderColor: colors.primary[600],
   },
   confidenceButtonText: {
     fontSize: typography.sizes.base,
-    color: colors.gray[300],
+    color: colors.textSecondary,
     fontWeight: typography.weights.medium,
   },
   confidenceButtonTextActive: {
     color: colors.white,
   },
   submitButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     margin: spacing.lg,
     padding: spacing.lg,
     borderRadius: radii.lg,

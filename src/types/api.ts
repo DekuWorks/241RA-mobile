@@ -47,18 +47,59 @@ export interface RequestConfig {
 }
 
 // Axios error type guard
+export interface ApiErrorBody {
+  message?: string;
+  error?: string | { code?: string; message?: string };
+  code?: string;
+}
+
 export interface AxiosErrorResponse {
   response?: {
     status: number;
-    data?: {
-      message?: string;
-      error?: string;
-      code?: string;
-    };
+    data?: ApiErrorBody;
   };
   message?: string;
   config?: unknown;
   request?: unknown;
+}
+
+/** Extract a human-readable message from API error JSON */
+export function extractApiErrorMessage(data: unknown, fallback = 'Server error'): string {
+  if (!data || typeof data !== 'object') return fallback;
+
+  const body = data as ApiErrorBody;
+
+  if (typeof body.message === 'string' && body.message.trim()) {
+    return body.message;
+  }
+
+  if (body.error && typeof body.error === 'object') {
+    const nested = body.error;
+    if (typeof nested.message === 'string' && nested.message.trim()) {
+      return nested.message;
+    }
+    if (typeof nested.code === 'string') {
+      return nested.code.replace(/_/g, ' ').toLowerCase();
+    }
+  }
+
+  if (typeof body.error === 'string' && body.error.trim()) {
+    return body.error;
+  }
+
+  return fallback;
+}
+
+export class ApiRequestError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.code = code;
+  }
 }
 
 // Type guard function

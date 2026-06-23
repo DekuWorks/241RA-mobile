@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../../theme/tokens';
 import { CasesService } from '../../services/cases';
 
 const { width } = Dimensions.get('window');
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: typography.sizes.lg,
-    color: colors.text,
+    color: colors.textOnPage,
   },
   errorContainer: {
     flex: 1,
@@ -253,13 +253,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     paddingTop: spacing.xl,
+    backgroundColor: colors.header,
   },
   backButton: {
     padding: spacing.sm,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.medium,
   },
   statusBadge: {
@@ -300,6 +301,11 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    marginTop: -spacing.md,
+    flex: 1,
   },
   title: {
     fontSize: typography.sizes['2xl'],
@@ -308,10 +314,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   metaInfo: {
-    backgroundColor: colors.gray[900],
-    borderRadius: radii.lg,
+    backgroundColor: colors.gray[50],
+    borderRadius: radii.md,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   metaItem: {
     flexDirection: 'row',
@@ -320,7 +328,7 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: typography.sizes.sm,
-    color: colors.gray[400],
+    color: colors.textMuted,
     fontWeight: typography.weights.medium,
   },
   metaValue: {
@@ -338,7 +346,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: typography.sizes.base,
-    color: colors.gray[300],
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   tagsContainer: {
@@ -347,17 +355,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   tag: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: colors.gray[100],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tagText: {
     fontSize: typography.sizes.sm,
-    color: colors.primary,
+    color: colors.primary[600],
   },
   reportButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     margin: spacing.lg,
     padding: spacing.lg,
     borderRadius: radii.lg,

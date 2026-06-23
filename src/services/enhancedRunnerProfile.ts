@@ -1,4 +1,7 @@
 import { ApiClient } from './apiClient';
+import { SecureTokenService } from './secureTokens';
+import { RunnerValidationUtils } from '../utils/runnerValidation';
+import { ValidationUtils } from '../utils/validation';
 import {
   EnhancedRunnerProfile,
   CreateEnhancedRunnerProfileData,
@@ -11,140 +14,299 @@ import {
   PhotoUpdateReminder,
   RunnerProfileStats,
   PhotoAnalytics,
-  ApiResponse,
-  ValidationError,
   PhotoUploadOptions,
   DEFAULT_PHOTO_OPTIONS,
 } from '../types/enhancedRunnerProfile';
 
-/**
- * Enhanced Runner Profile Service
- * Handles all API interactions for the enhanced runner profile system
- */
-export class EnhancedRunnerProfileService {
-  /**
-   * Get the current user's enhanced runner profile
-   */
-  static async getRunnerProfile(): Promise<EnhancedRunnerProfile | null> {
+type ApiRunner = {
+  id: number;
+  userId?: number;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  dateOfBirth?: string;
+  age?: number;
+  gender?: string;
+  height?: string;
+  weight?: string;
+  eyeColor?: string;
+  medicalConditions?: string;
+  additionalNotes?: string;
+  profileImageUrl?: string;
+  additionalImageUrls?: string;
+  lastPhotoUpdate?: string;
+  photoUpdateReminderCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  isActive?: boolean;
+};
+
+let cachedRunnerId: number | null = null;
+
+function parseMedicalConditions(value?: string): string[] {
+  if (!value?.trim()) return [];
+  return value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function mapRunnerToProfile(runner: ApiRunner): EnhancedRunnerProfile {
+  const photos: EnhancedRunnerPhoto[] = [];
+  if (runner.additionalImageUrls) {
     try {
-      const data = await ApiClient.get('/api/v1/runner-profile');
-      return data;
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        return null; // No runner profile exists
-      }
-      console.error('Failed to get enhanced runner profile:', error);
-      throw new Error(error.message || 'Failed to load runner profile');
+      const urls: string[] = JSON.parse(runner.additionalImageUrls);
+      urls.forEach((url, index) => {
+        photos.push({
+          id: `${runner.id}-${index}`,
+          runnerProfileId: String(runner.id),
+          fileName: url.split('/').pop() || `photo-${index}`,
+          fileUrl: url,
+          fileSize: 0,
+          mimeType: 'image/jpeg',
+          uploadedAt: runner.lastPhotoUpdate || runner.updatedAt || new Date().toISOString(),
+          isPrimary: runner.profileImageUrl === url,
+        });
+      });
+    } catch {
+      // ignore malformed JSON
     }
   }
 
-  /**
-   * Check if the current user has a runner profile
-   */
+  const dob = runner.dateOfBirth
+    ? new Date(runner.dateOfBirth).toISOString().split('T')[0]
+    : '';
+
+  return {
+    id: String(runner.id),
+    userId: String(runner.userId ?? ''),
+    firstName: runner.firstName || runner.name?.split(' ')[0] || '',
+    lastName: runner.lastName || runner.name?.split(' ').slice(1).join(' ') || '',
+    dateOfBirth: dob,
+    age: runner.age ?? (dob ? EnhancedRunnerProfileService.calculateAge(dob) : 0),
+    height: runner.height || '',
+    weight: runner.weight || '',
+    eyeColor: runner.eyeColor || '',
+    medicalConditions: parseMedicalConditions(runner.medicalConditions),
+    additionalNotes: runner.additionalNotes || '',
+    photos,
+    lastPhotoUpdate: runner.lastPhotoUpdate || runner.updatedAt || runner.createdAt || '',
+    reminderCount: runner.photoUpdateReminderCount ?? 0,
+    createdAt: runner.createdAt || new Date().toISOString(),
+    updatedAt: runner.updatedAt || runner.createdAt || new Date().toISOString(),
+    isActive: runner.isActive ?? true,
+  };
+}
+
+function buildApiPayload(
+  data: CreateEnhancedRunnerProfileData | UpdateEnhancedRunnerProfileData,
+  userId: number,
+  gender = 'Prefer not to say'
+) {
+  return {
+    userId,
+    firstName: ValidationUtils.sanitizeInput(data.firstName || ''),
+    lastName: ValidationUtils.sanitizeInput(data.lastName || ''),
+    dateOfBirth: data.dateOfBirth,
+    gender,
+    height: data.height?.trim(),
+    weight: data.weight?.trim(),
+    eyeColor: data.eyeColor?.trim(),
+    medicalConditions: data.medicalConditions?.length
+      ? data.medicalConditions.map(c => ValidationUtils.sanitizeInput(c)).join(', ')
+      : undefined,
+    additionalNotes: data.additionalNotes
+      ? ValidationUtils.sanitizeInput(data.additionalNotes).slice(0, 1000)
+      : undefined,
+  };
+}
+
+async function getPrimaryRunnerId(): Promise<number | null> {
+  if (cachedRunnerId) return cachedRunnerId;
+  const data = await ApiClient.get<{ runners?: ApiRunner[] }>('/api/v1/runner?page=1&pageSize=1');
+  const id = data.runners?.[0]?.id;
+  if (id) cachedRunnerId = id;
+  return id ?? null;
+}
+
+async function fetchPrimaryRunner(): Promise<ApiRunner | null> {
+  const data = await ApiClient.get<{ runners?: ApiRunner[] }>('/api/v1/runner?page=1&pageSize=1');
+  const runner = data.runners?.[0] ?? null;
+  if (runner?.id) cachedRunnerId = runner.id;
+  return runner;
+}
+
+/**
+ * Enhanced Runner Profile Service — aligned with /api/v1/enhanced-runner and /api/v1/runner
+ */
+export class EnhancedRunnerProfileService {
+  static async getRunnerProfile(): Promise<EnhancedRunnerProfile | null> {
+    try {
+      const runner = await fetchPrimaryRunner();
+      if (!runner) return null;
+
+      try {
+        const detail = await ApiClient.get<{ runner?: ApiRunner }>(
+          `/api/v1/enhanced-runner/${runner.id}`
+        );
+        if (detail.runner) return mapRunnerToProfile(detail.runner);
+      } catch {
+        // fall back to list payload
+      }
+
+      return mapRunnerToProfile(runner);
+    } catch (error: unknown) {
+      console.error('Failed to get enhanced runner profile:', error);
+      const message = error instanceof Error ? error.message : 'Failed to load runner profile';
+      throw new Error(message);
+    }
+  }
+
   static async hasRunnerProfile(): Promise<boolean> {
     try {
-      const data = await ApiClient.get('/api/v1/runner-profile/exists');
-      return data.exists;
-    } catch (error: any) {
-      console.error('Failed to check runner profile existence:', error);
+      const runner = await fetchPrimaryRunner();
+      return Boolean(runner);
+    } catch {
       return false;
     }
   }
 
-  /**
-   * Create a new enhanced runner profile
-   */
   static async createRunnerProfile(
     profileData: CreateEnhancedRunnerProfileData
   ): Promise<EnhancedRunnerProfile> {
-    try {
-      const data = await ApiClient.post('/api/v1/runner-profile', profileData);
-      return data;
-    } catch (error: any) {
-      console.error('Failed to create enhanced runner profile:', error);
-      throw new Error(error.message || 'Failed to create runner profile');
+    const validation = RunnerValidationUtils.validateRunnerProfile(profileData);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.map(e => e.message).join('\n'));
     }
+
+    const userId = parseInt((await SecureTokenService.getUserId()) || '0', 10);
+    if (!userId) {
+      throw new Error('You must be signed in to create a runner profile');
+    }
+
+    const payload = buildApiPayload(profileData, userId);
+    const data = await ApiClient.post<{ runner?: ApiRunner; message?: string }>(
+      '/api/v1/enhanced-runner',
+      payload
+    );
+
+    if (!data.runner) {
+      throw new Error('Runner profile was not created');
+    }
+
+    cachedRunnerId = data.runner.id;
+    return mapRunnerToProfile(data.runner);
   }
 
-  /**
-   * Update existing enhanced runner profile
-   */
   static async updateRunnerProfile(
     profileData: UpdateEnhancedRunnerProfileData
   ): Promise<EnhancedRunnerProfile> {
-    try {
-      const data = await ApiClient.put('/api/v1/runner-profile', profileData);
-      return data;
-    } catch (error: any) {
-      console.error('Failed to update enhanced runner profile:', error);
-      throw new Error(error.message || 'Failed to update runner profile');
+    const validation = RunnerValidationUtils.validateRunnerProfile(profileData);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.map(e => e.message).join('\n'));
     }
+
+    const runnerId = await getPrimaryRunnerId();
+    if (!runnerId) {
+      throw new Error('No runner profile found to update');
+    }
+
+    const existing = await this.getRunnerProfile();
+    const userId = parseInt((await SecureTokenService.getUserId()) || '0', 10);
+    const payload = buildApiPayload(
+      {
+        firstName: profileData.firstName ?? existing?.firstName ?? '',
+        lastName: profileData.lastName ?? existing?.lastName ?? '',
+        dateOfBirth: profileData.dateOfBirth ?? existing?.dateOfBirth ?? '',
+        height: profileData.height ?? existing?.height ?? '',
+        weight: profileData.weight ?? existing?.weight ?? '',
+        eyeColor: profileData.eyeColor ?? existing?.eyeColor ?? '',
+        medicalConditions: profileData.medicalConditions ?? existing?.medicalConditions ?? [],
+        additionalNotes: profileData.additionalNotes ?? existing?.additionalNotes ?? '',
+      },
+      userId
+    );
+
+    const data = await ApiClient.put<{ runner?: ApiRunner }>(
+      `/api/v1/enhanced-runner/${runnerId}`,
+      payload
+    );
+
+    if (!data.runner) {
+      throw new Error('Runner profile was not updated');
+    }
+
+    return mapRunnerToProfile(data.runner);
   }
 
-  /**
-   * Delete the current user's runner profile
-   */
   static async deleteRunnerProfile(): Promise<void> {
-    try {
-      await ApiClient.delete('/api/v1/runner-profile');
-    } catch (error: any) {
-      console.error('Failed to delete enhanced runner profile:', error);
-      throw new Error(error.message || 'Failed to delete runner profile');
+    const runnerId = await getPrimaryRunnerId();
+    if (!runnerId) {
+      throw new Error('No runner profile found to delete');
     }
+    await ApiClient.delete(`/api/v1/runner/${runnerId}`);
+    cachedRunnerId = null;
   }
 
-  /**
-   * Get all photos for the current user's runner profile
-   */
   static async getPhotos(): Promise<EnhancedRunnerPhoto[]> {
-    try {
-      const data = await ApiClient.get('/api/v1/runner-profile/photos');
-      return data;
-    } catch (error: any) {
-      console.error('Failed to get photos:', error);
-      throw new Error(error.message || 'Failed to load photos');
-    }
+    const profile = await this.getRunnerProfile();
+    return profile?.photos ?? [];
   }
 
-  /**
-   * Upload a single photo
-   */
   static async uploadPhoto(
     photoUri: string,
     onProgress?: (progress: number) => void
   ): Promise<PhotoUploadResponse> {
+    const validation = this.validatePhoto(photoUri);
+    if (!validation.isValid) {
+      return { success: false, error: validation.errors.join(', ') };
+    }
+
+    const runnerId = await getPrimaryRunnerId();
+    if (!runnerId) {
+      return { success: false, error: 'Create a runner profile before uploading photos' };
+    }
+
     try {
       const formData = new FormData();
-      formData.append('photo', {
+      formData.append('photos', {
         uri: photoUri,
         type: 'image/jpeg',
         name: `runner_photo_${Date.now()}.jpg`,
-      } as any);
+      } as unknown as Blob);
 
-      const data = await ApiClient.uploadFile(
-        '/api/v1/runner-profile/photos',
-        formData,
-        onProgress
-          ? progressEvent => {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              onProgress(progress);
-            }
-          : undefined
-      );
+      const data = await ApiClient.uploadFile<{
+        success?: boolean;
+        uploadedUrls?: string[];
+        message?: string;
+      }>(`/api/v1/enhanced-runner/${runnerId}/photos?photoType=Additional`, formData, onProgress
+        ? progressEvent => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(progress);
+          }
+        : undefined);
 
-      return { success: true, photo: data };
-    } catch (error: any) {
-      console.error('Failed to upload photo:', error);
+      const url = data.uploadedUrls?.[0];
+      if (!url) {
+        return { success: false, error: data.message || 'Photo upload failed' };
+      }
+
       return {
-        success: false,
-        error: error.message || 'Failed to upload photo',
+        success: true,
+        photo: {
+          id: `${runnerId}-${Date.now()}`,
+          runnerProfileId: String(runnerId),
+          fileName: url.split('/').pop() || 'photo.jpg',
+          fileUrl: url,
+          fileSize: 0,
+          mimeType: 'image/jpeg',
+          uploadedAt: new Date().toISOString(),
+          isPrimary: false,
+        },
       };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload photo';
+      return { success: false, error: message };
     }
   }
 
-  /**
-   * Upload multiple photos with progress tracking
-   */
   static async uploadMultiplePhotos(
     photoUris: string[],
     onProgress?: (progress: PhotoUploadProgress) => void
@@ -158,96 +320,53 @@ export class EnhancedRunnerProfileService {
     };
 
     for (let i = 0; i < photoUris.length; i++) {
-      const uri = photoUris[i];
       const fileName = `photo_${i + 1}_${Date.now()}`;
+      onProgress?.({ fileName, progress: 0, status: 'uploading' });
 
-      // Report progress start
-      if (onProgress) {
-        onProgress({
+      const result = await this.uploadPhoto(photoUris[i], progress => {
+        onProgress?.({
           fileName,
-          progress: 0,
-          status: 'uploading',
+          progress,
+          status: progress === 100 ? 'completed' : 'uploading',
         });
-      }
+      });
 
-      try {
-        const result = await this.uploadPhoto(uri, progress => {
-          if (onProgress) {
-            onProgress({
-              fileName,
-              progress,
-              status: progress === 100 ? 'completed' : 'uploading',
-            });
-          }
-        });
-
-        if (result.success && result.photo) {
-          response.uploadedPhotos.push(result.photo);
-          response.successfulUploads++;
-        } else {
-          response.failedUploads++;
-          response.errors.push(`Failed to upload ${fileName}: ${result.error}`);
-        }
-
-        if (onProgress) {
-          onProgress({
-            fileName,
-            progress: 100,
-            status: result.success ? 'completed' : 'error',
-            error: result.error,
-          });
-        }
-      } catch (error: any) {
+      if (result.success && result.photo) {
+        response.uploadedPhotos.push(result.photo);
+        response.successfulUploads++;
+      } else {
         response.failedUploads++;
-        response.errors.push(`Failed to upload ${fileName}: ${error.message}`);
-
-        if (onProgress) {
-          onProgress({
-            fileName,
-            progress: 0,
-            status: 'error',
-            error: error.message,
-          });
-        }
+        response.errors.push(result.error || `Failed to upload ${fileName}`);
       }
     }
 
     return response;
   }
 
-  /**
-   * Delete a specific photo
-   */
-  static async deletePhoto(photoId: string): Promise<void> {
-    try {
-      await ApiClient.delete(`/api/v1/runner-profile/photos/${photoId}`);
-    } catch (error: any) {
-      console.error('Failed to delete photo:', error);
-      throw new Error(error.message || 'Failed to delete photo');
-    }
+  static async deletePhoto(_photoId: string): Promise<void> {
+    throw new Error('Photo deletion is not yet supported by the API. Contact support to remove a photo.');
   }
 
-  /**
-   * Set a photo as the primary photo
-   */
-  static async setPrimaryPhoto(photoId: string): Promise<void> {
-    try {
-      await ApiClient.put(`/api/v1/runner-profile/photos/${photoId}/primary`);
-    } catch (error: any) {
-      console.error('Failed to set primary photo:', error);
-      throw new Error(error.message || 'Failed to set primary photo');
-    }
+  static async setPrimaryPhoto(_photoId: string): Promise<void> {
+    throw new Error(
+      'To set a primary photo, upload a new profile photo from the runner photos section.'
+    );
   }
 
-  /**
-   * Get notification settings for the current user
-   */
   static async getNotificationSettings(): Promise<NotificationSettings> {
     try {
-      const data = await ApiClient.get('/api/v1/runner-profile/notification-settings');
-      return data;
-    } catch (error: any) {
-      console.error('Failed to get notification settings:', error);
+      const data = await ApiClient.get<{
+        caseUpdates?: boolean;
+        profileUpdates?: boolean;
+        pushEnabled?: boolean;
+      }>('/api/notifications/preferences');
+
+      return {
+        emailNotifications: data.profileUpdates ?? true,
+        pushNotifications: data.pushEnabled ?? true,
+        reminderFrequency: 'weekly',
+      };
+    } catch {
       return {
         emailNotifications: true,
         pushNotifications: true,
@@ -256,206 +375,102 @@ export class EnhancedRunnerProfileService {
     }
   }
 
-  /**
-   * Update notification settings for the current user
-   */
   static async updateNotificationSettings(
     settings: NotificationSettings
   ): Promise<NotificationSettings> {
-    try {
-      const data = await ApiClient.put('/api/v1/runner-profile/notification-settings', settings);
-      return data;
-    } catch (error: any) {
-      console.error('Failed to update notification settings:', error);
-      throw new Error(error.message || 'Failed to update notification settings');
-    }
+    await ApiClient.post('/api/notifications/preferences', {
+      caseUpdates: settings.emailNotifications,
+      profileUpdates: settings.emailNotifications,
+      safetyChecks: true,
+      weatherAlerts: true,
+      system: true,
+      pushEnabled: settings.pushNotifications,
+    });
+    return settings;
   }
 
-  /**
-   * Get photo update reminders for the current user
-   */
   static async getPhotoReminders(): Promise<PhotoUpdateReminder[]> {
     try {
-      const data = await ApiClient.get('/api/v1/runner-profile/photo-reminders');
-      return data;
-    } catch (error: any) {
-      console.error('Failed to get photo reminders:', error);
+      const data = await ApiClient.get<{ reminders?: PhotoUpdateReminder[] }>(
+        '/api/v1/enhanced-runner/photo-reminders'
+      );
+      return data.reminders ?? [];
+    } catch {
       return [];
     }
   }
 
-  /**
-   * Dismiss a photo update reminder
-   */
-  static async dismissPhotoReminder(reminderId: string): Promise<void> {
-    try {
-      await ApiClient.put(`/api/v1/runner-profile/photo-reminders/${reminderId}/dismiss`);
-    } catch (error: any) {
-      console.error('Failed to dismiss photo reminder:', error);
-      throw new Error(error.message || 'Failed to dismiss reminder');
-    }
+  static async dismissPhotoReminder(_reminderId: string): Promise<void> {
+    const runnerId = await getPrimaryRunnerId();
+    if (!runnerId) return;
+    await ApiClient.put(`/api/v1/enhanced-runner/${runnerId}/photo-reminder-sent`);
   }
 
-  /**
-   * Calculate age from date of birth
-   */
   static calculateAge(dateOfBirth: string): number {
     const birthDate = new Date(dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
     return age;
   }
 
-  /**
-   * Check if photos need updating (older than 6 months)
-   */
   static needsPhotoUpdate(lastPhotoUpdate: string): boolean {
     const lastUpdate = new Date(lastPhotoUpdate);
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
     return lastUpdate < sixMonthsAgo;
   }
 
-  /**
-   * Get days since last photo update
-   */
   static getDaysSinceLastPhotoUpdate(lastPhotoUpdate: string): number {
-    const lastUpdate = new Date(lastPhotoUpdate);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - lastUpdate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays;
+    const diffTime = Math.abs(Date.now() - new Date(lastPhotoUpdate).getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  /**
-   * Validate photo before upload
-   */
   static validatePhoto(
     photoUri: string,
-    options: PhotoUploadOptions = DEFAULT_PHOTO_OPTIONS
-  ): {
-    isValid: boolean;
-    errors: string[];
-  } {
+    _options: PhotoUploadOptions = DEFAULT_PHOTO_OPTIONS
+  ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
+    if (!photoUri?.trim()) errors.push('Photo is required');
+    return { isValid: errors.length === 0, errors };
+  }
 
-    // This is a basic validation - in a real app, you'd check file size, type, etc.
-    if (!photoUri) {
-      errors.push('Photo URI is required');
+  static async getProfileStats(): Promise<RunnerProfileStats> {
+    const profile = await this.getRunnerProfile();
+    const photos = profile?.photos ?? [];
+    if (!profile) {
+      return {
+        totalPhotos: 0,
+        primaryPhotoSet: false,
+        daysSinceLastUpdate: 0,
+        reminderCount: 0,
+        profileCompleteness: 0,
+        lastActivity: new Date().toISOString(),
+      };
     }
-
+    const primaryPhoto = photos.find(p => p.isPrimary);
     return {
-      isValid: errors.length === 0,
-      errors,
+      totalPhotos: photos.length,
+      primaryPhotoSet: !!primaryPhoto,
+      daysSinceLastUpdate: profile.lastPhotoUpdate
+        ? this.getDaysSinceLastPhotoUpdate(profile.lastPhotoUpdate)
+        : 0,
+      reminderCount: profile.reminderCount,
+      profileCompleteness: 0,
+      lastActivity: profile.updatedAt,
     };
   }
 
-  /**
-   * Get runner profile statistics
-   */
-  static async getProfileStats(): Promise<RunnerProfileStats> {
-    try {
-      const profile = await this.getRunnerProfile();
-      const photos = await this.getPhotos();
-
-      if (!profile) {
-        return {
-          totalPhotos: 0,
-          primaryPhotoSet: false,
-          daysSinceLastUpdate: 0,
-          reminderCount: 0,
-          profileCompleteness: 0,
-          lastActivity: new Date().toISOString(),
-        };
-      }
-
-      const primaryPhoto = photos.find(p => p.isPrimary);
-      const daysSinceLastUpdate = profile.lastPhotoUpdate
-        ? this.getDaysSinceLastPhotoUpdate(profile.lastPhotoUpdate)
-        : 0;
-
-      // Calculate profile completeness
-      let completeness = 0;
-      if (profile.firstName) completeness += 10;
-      if (profile.lastName) completeness += 10;
-      if (profile.dateOfBirth) completeness += 10;
-      if (profile.height) completeness += 10;
-      if (profile.weight) completeness += 10;
-      if (profile.eyeColor) completeness += 10;
-      if (profile.medicalConditions.length > 0) completeness += 10;
-      if (profile.additionalNotes) completeness += 10;
-      if (photos.length > 0) completeness += 10;
-      if (primaryPhoto) completeness += 10;
-
-      return {
-        totalPhotos: photos.length,
-        primaryPhotoSet: !!primaryPhoto,
-        daysSinceLastUpdate,
-        reminderCount: profile.reminderCount,
-        profileCompleteness: completeness,
-        lastActivity: profile.updatedAt,
-      };
-    } catch (error: any) {
-      console.error('Failed to get profile stats:', error);
-      throw new Error(error.message || 'Failed to get profile statistics');
-    }
-  }
-
-  /**
-   * Get photo analytics
-   */
   static async getPhotoAnalytics(): Promise<PhotoAnalytics> {
-    try {
-      const photos = await this.getPhotos();
-
-      if (photos.length === 0) {
-        return {
-          totalUploads: 0,
-          successfulUploads: 0,
-          failedUploads: 0,
-          averageFileSize: 0,
-          mostCommonMimeType: '',
-          uploadFrequency: 'rarely',
-        };
-      }
-
-      const totalFileSize = photos.reduce((sum, photo) => sum + photo.fileSize, 0);
-      const mimeTypes = photos.map(p => p.mimeType);
-      const mostCommonMimeType = mimeTypes.reduce((a, b, i, arr) =>
-        arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-      );
-
-      // Calculate upload frequency based on upload dates
-      const uploadDates = photos.map(p => new Date(p.uploadedAt));
-      const now = new Date();
-      const recentUploads = uploadDates.filter(
-        date => (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24) <= 30
-      ).length;
-
-      let uploadFrequency: PhotoAnalytics['uploadFrequency'] = 'rarely';
-      if (recentUploads >= 10) uploadFrequency = 'daily';
-      else if (recentUploads >= 4) uploadFrequency = 'weekly';
-      else if (recentUploads >= 1) uploadFrequency = 'monthly';
-
-      return {
-        totalUploads: photos.length,
-        successfulUploads: photos.length,
-        failedUploads: 0,
-        averageFileSize: totalFileSize / photos.length,
-        mostCommonMimeType,
-        uploadFrequency,
-      };
-    } catch (error: any) {
-      console.error('Failed to get photo analytics:', error);
-      throw new Error(error.message || 'Failed to get photo analytics');
-    }
+    const photos = await this.getPhotos();
+    return {
+      totalUploads: photos.length,
+      successfulUploads: photos.length,
+      failedUploads: 0,
+      averageFileSize: 0,
+      mostCommonMimeType: 'image/jpeg',
+      uploadFrequency: 'rarely',
+    };
   }
 }

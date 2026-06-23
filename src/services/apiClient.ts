@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ENV } from '../config/env';
 import { SecureTokenService } from './secureTokens';
-import { isAxiosError, AxiosErrorResponse } from '../types/api';
+import { isAxiosError, AxiosErrorResponse, extractApiErrorMessage, ApiRequestError } from '../types/api';
 
 /**
  * Centralized API Client
@@ -130,26 +130,29 @@ export class ApiClient {
       
       if (axiosError.response) {
         const status = axiosError.response.status;
-        const message = axiosError.response.data?.message || axiosError.response.data?.error || 'Server error';
+        const data = axiosError.response.data;
+        const message = extractApiErrorMessage(data, 'Server error');
+        const code =
+          data?.error && typeof data.error === 'object' ? data.error.code : data?.code;
 
         if (isProduction) {
           switch (status) {
             case 400:
-              return new Error('Invalid request');
+              return new ApiRequestError(status, 'Invalid request', code);
             case 401:
-              return new Error('Authentication required');
+              return new ApiRequestError(status, 'Invalid email or password', code);
             case 403:
-              return new Error('Access denied');
+              return new ApiRequestError(status, 'Access denied', code);
             case 404:
-              return new Error('Resource not found');
+              return new ApiRequestError(status, 'Resource not found', code);
             case 500:
-              return new Error('Server error. Please try again later.');
+              return new ApiRequestError(status, 'Server error. Please try again later.', code);
             default:
-              return new Error('Something went wrong. Please try again.');
+              return new ApiRequestError(status, 'Something went wrong. Please try again.', code);
           }
         }
 
-        return new Error(`${status}: ${message}`);
+        return new ApiRequestError(status, message, code);
       }
 
       if (axiosError.request) {

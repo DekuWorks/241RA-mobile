@@ -1,4 +1,6 @@
 import { ApiClient } from './apiClient';
+import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
+import { ValidationUtils } from '../utils/validation';
 
 export interface UserProfile {
   id: string;
@@ -39,6 +41,7 @@ export interface ProfileUpdateData {
     zipCode?: string;
     country?: string;
   };
+  profileImageUrl?: string | null;
 }
 
 export interface ProfileImageUploadResponse {
@@ -49,15 +52,16 @@ export interface ProfileImageUploadResponse {
 
 export class UserProfileService {
   /**
-   * Get current user's full profile
+   * Get current user's full profile (same database as 241runnersawareness.org)
    */
   static async getProfile(): Promise<UserProfile> {
     try {
-      const data = await ApiClient.get('/api/v1/auth/profile');
-      return data;
-    } catch (error: any) {
+      const data = await ApiClient.get('/api/v1/auth/me');
+      return mapApiUserToProfile(unwrapApiUser(data));
+    } catch (error: unknown) {
       console.error('Failed to get user profile:', error);
-      throw new Error(error.message || 'Failed to load profile');
+      const message = error instanceof Error ? error.message : 'Failed to load profile';
+      throw new Error(message);
     }
   }
 
@@ -66,31 +70,57 @@ export class UserProfileService {
    */
   static async updateProfile(updateData: ProfileUpdateData): Promise<UserProfile> {
     try {
-      const data = await ApiClient.put('/api/v1/auth/profile', updateData);
-      return data;
-    } catch (error: any) {
+      const validation = ValidationUtils.validateProfileUpdate({
+        firstName: updateData.firstName,
+        lastName: updateData.lastName,
+        phoneNumber: updateData.phoneNumber,
+      });
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join('\n'));
+      }
+
+      const payload: Record<string, string | null | undefined> = {
+        firstName: updateData.firstName
+          ? ValidationUtils.sanitizeInput(updateData.firstName)
+          : undefined,
+        lastName: updateData.lastName
+          ? ValidationUtils.sanitizeInput(updateData.lastName)
+          : undefined,
+        phoneNumber: updateData.phoneNumber?.trim(),
+        address: updateData.address?.street,
+        city: updateData.address?.city,
+        state: updateData.address?.state,
+        zipCode: updateData.address?.zipCode,
+        profileImageUrl: updateData.profileImageUrl,
+      };
+
+      const data = await ApiClient.put('/api/v1/auth/profile', payload);
+      return mapApiUserToProfile(unwrapApiUser(data));
+    } catch (error: unknown) {
       console.error('Failed to update profile:', error);
-      throw new Error(error.message || 'Failed to update profile');
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      throw new Error(message);
     }
   }
 
   /**
-   * Upload profile image
+   * Upload profile image (matches site: ImageUpload then save URL on profile)
    */
   static async uploadProfileImage(imageUri: string): Promise<ProfileImageUploadResponse> {
     try {
-      const formData = new FormData();
-      formData.append('profileImage', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
-      } as any);
+      const { ImageUploadService } = await import('./imageUpload');
+      const uploaded = await ImageUploadService.uploadImage(imageUri, 'profile.jpg');
+      await this.updateProfile({ profileImageUrl: uploaded.url });
 
-      const data = await ApiClient.uploadFile('/api/v1/user/profile/image', formData);
-      return data;
-    } catch (error: any) {
+      return {
+        success: true,
+        imageUrl: uploaded.url,
+        message: 'Profile image uploaded successfully',
+      };
+    } catch (error: unknown) {
       console.error('Failed to upload profile image:', error);
-      throw new Error(error.message || 'Failed to upload profile image');
+      const message = error instanceof Error ? error.message : 'Failed to upload profile image';
+      throw new Error(message);
     }
   }
 
@@ -99,15 +129,16 @@ export class UserProfileService {
    */
   static async deleteProfileImage(): Promise<void> {
     try {
-      await ApiClient.delete('/api/v1/user/profile/image');
-    } catch (error: any) {
+      await this.updateProfile({ profileImageUrl: null });
+    } catch (error: unknown) {
       console.error('Failed to delete profile image:', error);
-      throw new Error(error.message || 'Failed to delete profile image');
+      const message = error instanceof Error ? error.message : 'Failed to delete profile image';
+      throw new Error(message);
     }
   }
 
   /**
-   * Update emergency contacts
+   * Update emergency contacts (stored as flat fields on user record)
    */
   static async updateEmergencyContacts(
     contacts: Array<{
@@ -119,16 +150,23 @@ export class UserProfileService {
     }>
   ): Promise<UserProfile> {
     try {
-      const data = await ApiClient.put('/api/v1/user/profile/emergency-contacts', { contacts });
-      return data;
-    } catch (error: any) {
+      const primary = contacts[0];
+      const data = await ApiClient.put('/api/v1/auth/profile', {
+        emergencyContactName: primary?.name,
+        emergencyContactPhone: primary?.phoneNumber,
+        emergencyContactRelationship: primary?.relationship,
+      });
+      return mapApiUserToProfile(unwrapApiUser(data));
+    } catch (error: unknown) {
       console.error('Failed to update emergency contacts:', error);
-      throw new Error(error.message || 'Failed to update emergency contacts');
+      const message =
+        error instanceof Error ? error.message : 'Failed to update emergency contacts';
+      throw new Error(message);
     }
   }
 
   /**
-   * Get user's case statistics
+   * Get user's case statistics from my-cases endpoint
    */
   static async getCaseStatistics(): Promise<{
     totalCases: number;
@@ -136,9 +174,23 @@ export class UserProfileService {
     resolvedCases: number;
   }> {
     try {
-      const data = await ApiClient.get('/api/v1/user/case-statistics');
-      return data;
-    } catch (error: any) {
+      const data = await ApiClient.get<{
+        cases?: Array<{ status?: string }>;
+        total?: number;
+      }>('/api/v1/cases/my-cases?page=1&pageSize=100');
+
+      const cases = data.cases ?? [];
+      const resolvedStatuses = new Set(['resolved', 'found', 'closed']);
+      const resolvedCases = cases.filter(c =>
+        resolvedStatuses.has((c.status ?? '').toLowerCase())
+      ).length;
+
+      return {
+        totalCases: data.total ?? cases.length,
+        activeCases: cases.length - resolvedCases,
+        resolvedCases,
+      };
+    } catch (error: unknown) {
       console.error('Failed to get case statistics:', error);
       return {
         totalCases: 0,
@@ -149,13 +201,21 @@ export class UserProfileService {
   }
 
   /**
-   * Check if user has a runner profile
+   * Check if user has a runner profile (same as site profile page)
    */
   static async hasRunnerProfile(): Promise<boolean> {
     try {
-      const data = await ApiClient.get('/api/v1/user/runner-profile/exists');
-      return data.exists;
-    } catch (error: any) {
+      const data = await ApiClient.get<{
+        runners?: unknown[];
+        hasProfile?: boolean;
+      }>('/api/v1/runner?page=1&pageSize=1');
+
+      if (Array.isArray(data.runners)) {
+        return data.runners.length > 0;
+      }
+
+      return Boolean(data.hasProfile);
+    } catch (error: unknown) {
       console.error('Failed to check runner profile:', error);
       return false;
     }

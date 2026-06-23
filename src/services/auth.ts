@@ -4,6 +4,8 @@ import { initCrashlytics } from '../lib/crash';
 import { NotificationService } from './notifications';
 import { signalRService } from './signalR';
 import { TopicService } from './topics';
+import { mapApiUserToAuthUser, unwrapApiUser } from './apiUserMapper';
+import { ValidationUtils } from '../utils/validation';
 
 export interface LoginCredentials {
   email: string;
@@ -53,7 +55,7 @@ export class AuthService {
 
     const normalizedCredentials = {
       ...credentials,
-      email: credentials.email.toLowerCase().trim(),
+      email: credentials.email.trim(),
     };
 
     if (__DEV__) {
@@ -68,18 +70,6 @@ export class AuthService {
     }
 
     const data = await ApiClient.post('/api/v1/auth/login', normalizedCredentials);
-
-    if (data.accessToken) {
-      await this.persistSession(data);
-    }
-
-    return data;
-  }
-
-  static async loginWithApple(appleToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/apple', {
-      token: appleToken,
-    });
 
     if (data.accessToken) {
       await this.persistSession(data);
@@ -147,15 +137,7 @@ export class AuthService {
   static async getCurrentUser(): Promise<User | null> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
-
-      const userData: User = {
-        ...data,
-        allRoles: data.allRoles || [data.role || 'user'],
-        primaryUserRole: data.primaryUserRole || data.role || 'user',
-        isAdminUser: data.isAdminUser || false,
-      };
-
-      return userData;
+      return mapApiUserToAuthUser(unwrapApiUser(data));
     } catch (error: any) {
       if (error?.response?.status === 401) {
         await SecureTokenService.clearAll();
@@ -201,7 +183,25 @@ export class AuthService {
     error?: string;
   }> {
     try {
-      const data = await ApiClient.post('/api/v1/auth/register', signupData);
+      const passwordCheck = ValidationUtils.validatePassword(signupData.password);
+      if (!passwordCheck.isValid) {
+        return {
+          success: false,
+          message: passwordCheck.errors.join('\n'),
+          error: passwordCheck.errors[0],
+        };
+      }
+
+      const data = await ApiClient.post('/api/v1/auth/register', {
+        email: signupData.email.toLowerCase().trim(),
+        password: signupData.password,
+        firstName: ValidationUtils.sanitizeInput(signupData.firstName),
+        lastName: ValidationUtils.sanitizeInput(signupData.lastName),
+        role: signupData.role,
+        phoneNumber: signupData.phoneNumber.trim(),
+        organization: signupData.organization ?? null,
+        title: signupData.title ?? null,
+      });
 
       if (data.success) {
         return {

@@ -48,7 +48,7 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+      <ActivityIndicator size="large" color={colors.primary[600]} style={styles.spinner} />
       <Text style={styles.title}>241 Runners</Text>
       <Text style={styles.subtitle}>{loadingText}</Text>
     </View>
@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.textOnPage,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.sizes.base,
-    color: colors.text,
-    opacity: 0.9,
+    color: colors.textOnPage,
+    opacity: 0.95,
     textAlign: 'center',
   },
 });

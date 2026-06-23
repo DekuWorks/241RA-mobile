@@ -9,9 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService } from '../services/auth';
 
 interface SignupFormData {
@@ -174,7 +175,12 @@ export default function SignupScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>241Runners</Text>
+          <Image
+            source={require('../../assets/241-logo.jpg')}
+            style={styles.logo}
+            accessibilityLabel="241 Runners Awareness logo"
+          />
+          <Text style={styles.title}>241 Runners Awareness</Text>
           <Text style={styles.subtitle}>Create your account</Text>
         </View>
 
@@ -307,37 +313,55 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: spacing.lg,
+    paddingVertical: spacing.xxl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: colors.white,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: typography.sizes['3xl'],
+    fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.textOnPage,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.sizes.lg,
-    color: colors.gray[400],
+    color: colors.textOnPage,
+    opacity: 0.95,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   inputContainer: {
     marginBottom: spacing.lg,
   },
   label: {
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.text,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: colors.gray[800],
-    borderWidth: 1,
-    borderColor: colors.gray[700],
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.border,
     borderRadius: radii.md,
     padding: spacing.md,
     fontSize: typography.sizes.base,
@@ -355,31 +379,32 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   roleButton: {
-    backgroundColor: colors.gray[800],
-    borderWidth: 1,
-    borderColor: colors.gray[700],
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.border,
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
   },
   roleButtonSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.primary[600],
+    borderColor: colors.primary[600],
   },
   roleButtonText: {
     fontSize: typography.sizes.base,
-    color: colors.text,
+    color: colors.textSecondary,
     fontWeight: typography.weights.medium,
   },
   roleButtonTextSelected: {
     color: colors.white,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
     marginTop: spacing.lg,
+    ...shadows.button,
   },
   buttonDisabled: {
     backgroundColor: colors.gray[600],
@@ -395,12 +420,12 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: typography.sizes.base,
-    color: colors.gray[400],
+    color: colors.textOnPage,
     marginBottom: spacing.sm,
   },
   loginLink: {
     fontSize: typography.sizes.base,
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.semibold,
   },
 });

@@ -948,7 +948,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomColor: colors.primary[600],
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.primary[600][50],
   },
   tabIcon: {
     fontSize: 16,
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.gray[200],
   },
   modalOptionSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
   },
   modalOptionText: {
     fontSize: typography.sizes.base,

@@ -194,7 +194,104 @@ export class ValidationUtils {
    */
   static sanitizeInput(input: string): string {
     return input
-      .replace(/[<>]/g, '') // Remove potential HTML tags
+      .replace(/[<>]/g, '')
       .trim();
+  }
+
+  /**
+   * Validate password (matches API auth/register rules)
+   */
+  static validatePassword(password: string): ValidationResult {
+    const errors: string[] = [];
+
+    if (!password) {
+      errors.push('Password is required');
+      return { isValid: false, errors };
+    }
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters');
+    }
+    if (password.length > 128) {
+      errors.push('Password is too long (max 128 characters)');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/\d/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate sighting report before API submission
+   */
+  static validateSighting(data: {
+    caseId?: string;
+    description: string;
+    latitude: number;
+    longitude: number;
+    confidence?: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+
+    if (!data.caseId?.trim()) {
+      errors.push('Case ID is required');
+    }
+
+    const description = data.description?.trim() ?? '';
+    if (!description) {
+      errors.push('Description is required');
+    } else if (description.length < 10) {
+      errors.push('Description must be at least 10 characters');
+    } else if (description.length > 2000) {
+      errors.push('Description cannot exceed 2000 characters');
+    }
+
+    if (Number.isNaN(data.latitude) || data.latitude < -90 || data.latitude > 90) {
+      errors.push('Valid latitude is required');
+    }
+
+    if (Number.isNaN(data.longitude) || data.longitude < -180 || data.longitude > 180) {
+      errors.push('Valid longitude is required');
+    }
+
+    if (data.confidence && !['low', 'medium', 'high'].includes(data.confidence)) {
+      errors.push('Confidence must be low, medium, or high');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate profile update payload before API submission
+   */
+  static validateProfileUpdate(data: {
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+
+    if (data.firstName !== undefined) {
+      const first = this.validateName(data.firstName, 'First name');
+      if (!first.isValid) errors.push(...first.errors);
+    }
+
+    if (data.lastName !== undefined) {
+      const last = this.validateName(data.lastName, 'Last name');
+      if (!last.isValid) errors.push(...last.errors);
+    }
+
+    if (data.phoneNumber !== undefined && data.phoneNumber.trim()) {
+      const phone = this.validatePhoneNumber(data.phoneNumber);
+      if (!phone.isValid) errors.push(...phone.errors);
+    }
+
+    return { isValid: errors.length === 0, errors };
   }
 }

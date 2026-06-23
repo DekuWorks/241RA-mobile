@@ -76,7 +76,7 @@ export default function PortalHub() {
 
       if (!isAuthenticated) {
         console.log('[PORTAL] Not authenticated, redirecting to login...');
-        router.replace('/admin-login');
+        router.replace('/login');
         return;
       }
 
@@ -90,7 +90,7 @@ export default function PortalHub() {
         // If no user data, redirect to login
         if (!userData) {
           console.log('[PORTAL] No user data found, redirecting to login...');
-          router.replace('/admin-login');
+          router.replace('/login');
           return;
         }
 
@@ -104,12 +104,12 @@ export default function PortalHub() {
 
         if (!hasAdminRole) {
           console.log('[PORTAL] User does not have admin privileges, redirecting to login...');
-          router.replace('/admin-login');
+          router.replace('/login');
           return;
         }
       } catch (userError) {
         console.log('[PORTAL] User data error, redirecting to login:', userError);
-        router.replace('/admin-login');
+        router.replace('/login');
         return;
       }
 

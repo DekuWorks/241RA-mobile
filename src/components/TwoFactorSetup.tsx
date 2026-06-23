@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     fontSize: typography.sizes.base,
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.medium,
   },
   headerTitle: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',

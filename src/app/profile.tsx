@@ -710,29 +710,12 @@ export default function ProfileScreen() {
   const handleRoleUpdate = async () => {
     if (!selectedRole || !user) return;
 
-    try {
-      // Update user role locally first for immediate feedback
-      // Update the user data in the query cache
-      queryClient.setQueryData(['user'], (oldUser: User | undefined) => {
-        if (!oldUser) return oldUser;
-        return {
-          ...oldUser,
-          primaryUserRole: selectedRole,
-          role: selectedRole,
-        };
-      });
-
-      setIsEditingRole(false);
-
-      // TODO: Update role in backend when API endpoint is available
-      // For now, we'll update the local state
-      console.log('Role updated to:', selectedRole);
-
-      Alert.alert('Success', 'Role updated successfully.');
-    } catch (error: any) {
-      console.error('Failed to update role:', error);
-      Alert.alert('Error', error.message || 'Failed to update role.');
-    }
+    Alert.alert(
+      'Role Changes',
+      'Account roles are managed by 241 Runners Awareness administrators. Contact support if you need your role updated.',
+      [{ text: 'OK', onPress: () => setIsEditingRole(false) }]
+    );
+    setSelectedRole('');
   };
 
   const handleCancelRoleEdit = () => {
@@ -751,9 +734,9 @@ export default function ProfileScreen() {
       case 'runner':
         return colors.success[600];
       case 'parent':
-        return colors.primary;
+        return colors.primary[600];
       case 'adoptive_parent':
-        return colors.primary;
+        return colors.primary[600];
       case 'therapist':
         return colors.info[500];
       case 'guardian':
@@ -1447,7 +1430,7 @@ export default function ProfileScreen() {
         <Switch
           value={twoFactorEnabled}
           onValueChange={handleToggleTwoFactor}
-          trackColor={{ false: colors.gray[600], true: colors.primary }}
+          trackColor={{ false: colors.gray[600], true: colors.primary[600] }}
           thumbColor={colors.white}
         />
       </View>
@@ -1475,7 +1458,7 @@ export default function ProfileScreen() {
         <Switch
           value={notificationsEnabled}
           onValueChange={handleToggleNotifications}
-          trackColor={{ false: colors.gray[600], true: colors.primary }}
+          trackColor={{ false: colors.gray[600], true: colors.primary[600] }}
           thumbColor={colors.white}
         />
       </View>
@@ -1700,7 +1683,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DC2626', // Red background like static site
+    backgroundColor: colors.pageBg,
   },
   scrollContainer: {
     flex: 1,
@@ -1819,7 +1802,7 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
   },
   uploadButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.md,
@@ -1836,7 +1819,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   editButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.sm,
@@ -1929,13 +1912,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   createRunnerButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radii.lg,
   },
   createRunnerButtonCentered: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radii.lg,
@@ -1948,7 +1931,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
   viewAllButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.sm,
@@ -2005,7 +1988,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   saveButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.sm,
@@ -2069,7 +2052,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
     borderWidth: 4,
-    borderColor: colors.primary[100],
+    borderColor: colors.primary[600][100],
     position: 'relative',
   },
   avatarText: {
@@ -2848,8 +2831,8 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   selectedRoleOption: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary[50],
+    borderColor: colors.primary[600],
+    backgroundColor: colors.primary[600][50],
     borderWidth: 2,
   },
   roleOptionText: {
@@ -2858,12 +2841,12 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   selectedRoleOptionText: {
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.bold,
   },
   checkmark: {
     fontSize: typography.sizes.lg,
-    color: colors.primary,
+    color: colors.primary[600],
     fontWeight: typography.weights.bold,
   },
   modalActions: {
@@ -2888,7 +2871,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary[600],
     alignItems: 'center',
   },
   disabledButton: {

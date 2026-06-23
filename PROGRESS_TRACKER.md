@@ -38,11 +38,11 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 |------|--------|-------|
 | Email/password login | ✅ | JWT via .NET API |
 | Two-factor authentication (TOTP) | ✅ | Setup flow in profile |
-| Apple Sign-In (iOS) | ✅ | `expo-apple-authentication` |
 | Google SSO | ✅ | **Removed** (June 2026) |
+| Apple Sign-In | ✅ | **Removed** (June 2026) |
 | Secure token storage | ✅ | `expo-secure-store` |
 | Dual role system | ✅ | Multiple roles per user |
-| Admin portal routing | ✅ | Via profile / admin-login |
+| Admin portal routing | ✅ | Via profile after standard login |
 
 ---
 
@@ -107,7 +107,6 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 - [ ] Map shows case pins (with Maps API key)
 - [ ] Report a sighting submits successfully
 - [ ] Push notification delivers and deep-links to a case
-- [ ] Apple Sign-In works on physical iOS device
 
 ---
 
@@ -115,7 +114,7 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 
 ### June 2026
 - Removed Firebase; added optional Supabase client
-- Removed Google SSO; kept Apple Sign-In
+- Removed Google SSO and Apple Sign-In
 - Fixed iOS keychain / push entitlements for simulator
 - Configured Apple Developer signing (team KR52VK4ZKR)
 - Connected Supabase project to `.env` and EAS secrets
@@ -131,6 +130,25 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 4. **Store assets** — 1024px icon, 6–8 screenshots
 5. **Fix CI** dependency update workflow
 6. **Android prebuild** and Play Store prep
+
+---
+
+## Troubleshooting
+
+### `Global was not installed` / `AppRegistryBinding::startSurface failed`
+
+Usually caused by a **native/JS mismatch** after dependency updates. Fix:
+
+```bash
+# Terminal 1 — start Metro for dev client
+npm start
+
+# Terminal 2 — sync native pods and rebuild
+cd ios && pod update RNSentry Sentry/HybridSDK && cd ..
+npm run ios
+```
+
+Always use `npm start` (dev client) before launching the simulator — not a stale Metro instance.
 
 ---
 
