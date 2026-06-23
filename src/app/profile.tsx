@@ -166,11 +166,25 @@ export default function ProfileScreen() {
   });
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    void UserProfileService.fetchProfileFromNetwork().catch(error => {
+      if (__DEV__ && !isTimeoutError(error)) {
+        console.warn('[PROFILE] Background profile refresh failed:', error);
+      }
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
     if (user) {
       console.log('[PROFILE] User data loaded:', {
         id: user?.id || '',
         email: user?.email || '',
         name: user?.name || '',
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
         role: user?.role || 'user',
         allRoles: user?.allRoles || [],
         primaryUserRole: user?.primaryUserRole || '',
@@ -547,14 +561,13 @@ export default function ProfileScreen() {
     setSaveError(null);
 
     try {
-      await UserProfileService.updateProfile({
+      const updatedProfile = await UserProfileService.updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber,
       });
 
-      await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.setQueryData(['userProfile'], updatedProfile);
 
       setIsEditingPersonalInfo(false);
       Alert.alert('Success', 'Personal information updated successfully!');
@@ -916,9 +929,17 @@ export default function ProfileScreen() {
   const availableRoles = ['user', 'parent', 'adoptive_parent', 'therapist', 'guardian'];
 
   const profileNameFields = {
-    firstName: userProfile?.firstName ?? user?.firstName,
-    lastName: userProfile?.lastName ?? user?.lastName,
-    fullName: userProfile?.name ?? user?.name,
+    firstName:
+      userProfile?.firstName ||
+      user?.firstName ||
+      formData.firstName ||
+      enhancedRunnerProfile?.firstName,
+    lastName:
+      userProfile?.lastName ||
+      user?.lastName ||
+      formData.lastName ||
+      enhancedRunnerProfile?.lastName,
+    fullName: userProfile?.name || user?.name,
     email: userProfile?.email ?? user?.email,
   };
   const resolvedProfileName = resolveUserNameFields(profileNameFields);

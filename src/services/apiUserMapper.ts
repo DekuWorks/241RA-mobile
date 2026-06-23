@@ -152,7 +152,7 @@ export function mapApiUserToProfile(user: ApiUserPayload): UserProfile {
 export function mapApiUserToAuthUser(user: ApiUserPayload): User {
   const role = user.role || 'user';
   const isAdmin = user.isAdminUser ?? role.toLowerCase() === 'admin';
-  const { fullName } = resolveUserNameFields({
+  const { firstName, lastName, fullName } = resolveUserNameFields({
     firstName: user.firstName,
     lastName: user.lastName,
     fullName: user.fullName,
@@ -162,8 +162,8 @@ export function mapApiUserToAuthUser(user: ApiUserPayload): User {
   return {
     id: String(user.id),
     email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    firstName,
+    lastName,
     name: fullName,
     createdAt: user.createdAt,
     role,

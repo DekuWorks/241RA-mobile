@@ -10,6 +10,7 @@ import {
   ApiUserPayload,
   mapApiUserToAuthUser,
   mapApiUserToProfile,
+  normalizeApiUserPayload,
   unwrapApiUser,
 } from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
@@ -152,11 +153,24 @@ export class AuthService {
   }
 
   private static authResponseToApiUser(data: AuthResponse): ApiUserPayload {
-    const user = data.user as (User & ApiUserPayload) | undefined;
+    const user = data.user as (User & ApiUserPayload & Record<string, unknown>) | undefined;
+    const email = user?.email ?? data.email;
+
+    if (user && email) {
+      try {
+        return normalizeApiUserPayload({
+          ...user,
+          id: user.id ?? data.userId,
+          email,
+        });
+      } catch {
+        // Fall through to minimal payload if login user object is incomplete.
+      }
+    }
 
     return {
       id: user?.id ?? data.userId,
-      email: user?.email ?? data.email,
+      email: email ?? '',
       firstName: user?.firstName,
       lastName: user?.lastName,
       fullName: user?.fullName ?? user?.name,
@@ -177,6 +191,12 @@ export class AuthService {
     authQueryClient?.setQueryData(['userProfile'], mapApiUserToProfile(payload));
   }
 
+  /** Persist API user to local storage and push into React Query caches. */
+  static async applyRemoteUserPayload(payload: ApiUserPayload): Promise<void> {
+    await UserDataService.setStoredApiUser(payload);
+    this.syncProfileQueries(payload);
+  }
+
   private static async persistSession(data: AuthResponse): Promise<void> {
     await SecureTokenService.setAccessToken(String(data.accessToken));
 
@@ -189,8 +209,7 @@ export class AuthService {
     initCrashlytics(userId);
 
     const apiUser = this.authResponseToApiUser(data);
-    await UserDataService.setStoredApiUser(apiUser);
-    this.syncProfileQueries(apiUser);
+    await this.applyRemoteUserPayload(apiUser);
 
     this.runPostLoginBackground(data);
   }
@@ -236,10 +255,8 @@ export class AuthService {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
       const payload = unwrapApiUser(data);
-      await UserDataService.setStoredApiUser(payload);
-      const user = mapApiUserToAuthUser(payload);
-      this.syncProfileQueries(payload);
-      return user;
+      await this.applyRemoteUserPayload(payload);
+      return mapApiUserToAuthUser(payload);
     } catch (error: unknown) {
       if (
         error &&

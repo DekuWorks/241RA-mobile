@@ -1,6 +1,6 @@
 import { ApiClient } from './apiClient';
 import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
-import { UserDataService } from './userData';
+import { AuthService } from './auth';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
 import { resolveLocalApiUser, refreshRemoteUserInBackground } from './localUserSession';
@@ -23,7 +23,7 @@ async function fetchProfileWithRetry(): Promise<UserProfile> {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
       const payload = unwrapApiUser(data);
-      await UserDataService.setStoredApiUser(payload);
+      await AuthService.applyRemoteUserPayload(payload);
       return mapApiUserToProfile(payload);
     } catch (error: unknown) {
       lastError = error;
@@ -90,6 +90,13 @@ export interface ProfileImageUploadResponse {
 
 export class UserProfileService {
   /**
+   * Always fetch profile from /auth/me (updates local cache and React Query).
+   */
+  static async fetchProfileFromNetwork(): Promise<UserProfile> {
+    return fetchProfileWithRetry();
+  }
+
+  /**
    * Get current user's full profile (same database as 241runnersawareness.org)
    */
   static async getProfile(): Promise<UserProfile> {
@@ -139,7 +146,9 @@ export class UserProfileService {
       };
 
       const data = await ApiClient.put('/api/v1/auth/profile', payload);
-      return mapApiUserToProfile(unwrapApiUser(data));
+      const apiUser = unwrapApiUser(data);
+      await AuthService.applyRemoteUserPayload(apiUser);
+      return mapApiUserToProfile(apiUser);
     } catch (error: unknown) {
       console.error('Failed to update profile:', error);
       const message = error instanceof Error ? error.message : 'Failed to update profile';
@@ -201,7 +210,9 @@ export class UserProfileService {
         emergencyContactPhone: primary?.phoneNumber,
         emergencyContactRelationship: primary?.relationship,
       });
-      return mapApiUserToProfile(unwrapApiUser(data));
+      const apiUser = unwrapApiUser(data);
+      await AuthService.applyRemoteUserPayload(apiUser);
+      return mapApiUserToProfile(apiUser);
     } catch (error: unknown) {
       console.error('Failed to update emergency contacts:', error);
       const message =
