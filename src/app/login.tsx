@@ -10,10 +10,12 @@ import {
   Platform,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
+import { isSecureStorageError } from '../services/secureTokens';
 import { getLoginErrorMessage, isRetryableLoginError } from '../types/api';
 
 export default function LoginScreen() {
@@ -31,7 +33,7 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
-    setLoadingMessage('Signing In...');
+    setLoadingMessage('Connecting...');
     try {
       console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
 
@@ -43,7 +45,9 @@ export default function LoginScreen() {
 
       console.log('[LOGIN] Sending credentials to AuthService...');
       const response = await AuthService.login(credentials, {
+        onConnecting: () => setLoadingMessage('Connecting...'),
         onRetrying: () => setLoadingMessage('Server waking up, retrying...'),
+        onPersisting: () => setLoadingMessage('Saving session...'),
       });
       console.log('[LOGIN] AuthService response:', response);
 
@@ -85,10 +89,18 @@ export default function LoginScreen() {
         console.warn('[LOGIN] Login error:', error);
       }
 
-      Alert.alert('Login Failed', getLoginErrorMessage(error));
+      if (isSecureStorageError(error)) {
+        Alert.alert(
+          'Session Storage Unavailable',
+          'Your sign-in succeeded but this build cannot save your session securely. Rebuild the dev client with native modules included:\n\nnpx expo run:ios',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Login Failed', getLoginErrorMessage(error));
+      }
     } finally {
       setIsLoading(false);
-      setLoadingMessage('Signing In...');
+      setLoadingMessage('Sign In');
     }
   };
 
@@ -162,7 +174,14 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>{isLoading ? loadingMessage : 'Sign In'}</Text>
+            {isLoading ? (
+              <View style={styles.buttonContent}>
+                <ActivityIndicator color={colors.white} size="small" />
+                <Text style={styles.buttonText}>{loadingMessage}</Text>
+              </View>
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -258,6 +277,11 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: colors.gray[600],
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   buttonText: {
     fontSize: typography.sizes.base,

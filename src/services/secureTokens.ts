@@ -1,4 +1,126 @@
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const SECURE_STORE_TIMEOUT_MS = 5000;
+const FALLBACK_KEY_SUFFIX = '_async_fallback';
+
+/** Thrown when tokens cannot be stored securely (missing native module, timeout, etc.) */
+export class SecureStorageError extends Error {
+  readonly suggestRebuild = true;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'SecureStorageError';
+  }
+}
+
+export function isSecureStorageError(error: unknown): boolean {
+  if (error instanceof SecureStorageError) {
+    return true;
+  }
+  if (error instanceof Error) {
+    return (
+      error.message.includes('Failed to store') && error.message.includes('securely')
+    );
+  }
+  return false;
+}
+
+async function withSecureStoreTimeout<T>(
+  operation: Promise<T>,
+  label: string
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () =>
+        reject(
+          new SecureStorageError(
+            `Secure storage timed out (${label}). The secure storage native module may be missing from this build.`
+          )
+        ),
+      SECURE_STORE_TIMEOUT_MS
+    );
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+async function writeSecureValue(key: string, value: string): Promise<void> {
+  try {
+    await withSecureStoreTimeout(SecureStore.setItemAsync(key, value), `write ${key}`);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn(`SecureStore write failed for ${key}, using AsyncStorage fallback:`, error);
+      try {
+        await AsyncStorage.setItem(`${key}${FALLBACK_KEY_SUFFIX}`, value);
+        return;
+      } catch (fallbackError) {
+        console.warn('AsyncStorage fallback write failed:', fallbackError);
+      }
+    }
+
+    if (error instanceof SecureStorageError) {
+      throw error;
+    }
+
+    throw new SecureStorageError(
+      error instanceof Error ? error.message : 'Failed to store value securely'
+    );
+  }
+}
+
+async function readSecureValue(key: string): Promise<string | null> {
+  try {
+    const value = await withSecureStoreTimeout(
+      SecureStore.getItemAsync(key),
+      `read ${key}`
+    );
+    if (value !== null) {
+      return value;
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.warn(`SecureStore read failed for ${key}, trying AsyncStorage fallback:`, error);
+    } else {
+      console.error(`Failed to retrieve secure value for ${key}:`, error);
+      return null;
+    }
+  }
+
+  if (__DEV__) {
+    try {
+      return await AsyncStorage.getItem(`${key}${FALLBACK_KEY_SUFFIX}`);
+    } catch (fallbackError) {
+      console.warn('AsyncStorage fallback read failed:', fallbackError);
+    }
+  }
+
+  return null;
+}
+
+async function deleteSecureValue(key: string): Promise<void> {
+  try {
+    await withSecureStoreTimeout(SecureStore.deleteItemAsync(key), `delete ${key}`);
+  } catch (error) {
+    console.error(`Failed to remove secure value for ${key}:`, error);
+  }
+
+  if (__DEV__) {
+    try {
+      await AsyncStorage.removeItem(`${key}${FALLBACK_KEY_SUFFIX}`);
+    } catch (fallbackError) {
+      console.warn('AsyncStorage fallback delete failed:', fallbackError);
+    }
+  }
+}
 
 /**
  * Secure token storage service wrapping Expo SecureStore
@@ -9,131 +131,46 @@ export class SecureTokenService {
   private static readonly REFRESH_TOKEN_KEY = '241runners_refresh_token';
   private static readonly USER_ID_KEY = '241runners_user_id';
 
-  /**
-   * Store access token securely
-   */
   static async setAccessToken(token: string): Promise<void> {
-    try {
-      await SecureStore.setItemAsync(this.ACCESS_TOKEN_KEY, token);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn('Failed to store access token:', error);
-      }
-      throw new Error('Failed to store access token securely');
-    }
+    await writeSecureValue(this.ACCESS_TOKEN_KEY, token);
   }
 
-  /**
-   * Retrieve access token
-   */
   static async getAccessToken(): Promise<string | null> {
-    try {
-      return await SecureStore.getItemAsync(this.ACCESS_TOKEN_KEY);
-    } catch (error) {
-      console.error('Failed to retrieve access token:', error);
-      return null;
-    }
+    return readSecureValue(this.ACCESS_TOKEN_KEY);
   }
 
-  /**
-   * Store refresh token securely
-   */
   static async setRefreshToken(token: string): Promise<void> {
-    try {
-      await SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, token);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn('Failed to store refresh token:', error);
-      }
-      throw new Error('Failed to store refresh token securely');
-    }
+    await writeSecureValue(this.REFRESH_TOKEN_KEY, token);
   }
 
-  /**
-   * Retrieve refresh token
-   */
   static async getRefreshToken(): Promise<string | null> {
-    try {
-      return await SecureStore.getItemAsync(this.REFRESH_TOKEN_KEY);
-    } catch (error) {
-      console.error('Failed to retrieve refresh token:', error);
-      return null;
-    }
+    return readSecureValue(this.REFRESH_TOKEN_KEY);
   }
 
-  /**
-   * Store user ID securely
-   */
   static async setUserId(userId: string): Promise<void> {
-    try {
-      await SecureStore.setItemAsync(this.USER_ID_KEY, userId);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn('Failed to store user ID:', error);
-      }
-      throw new Error('Failed to store user ID securely');
-    }
+    await writeSecureValue(this.USER_ID_KEY, userId);
   }
 
-  /**
-   * Retrieve user ID
-   */
   static async getUserId(): Promise<string | null> {
-    try {
-      return await SecureStore.getItemAsync(this.USER_ID_KEY);
-    } catch (error) {
-      console.error('Failed to retrieve user ID:', error);
-      return null;
-    }
+    return readSecureValue(this.USER_ID_KEY);
   }
 
-  /**
-   * Remove access token
-   */
   static async removeAccessToken(): Promise<void> {
-    try {
-      await SecureStore.deleteItemAsync(this.ACCESS_TOKEN_KEY);
-    } catch (error) {
-      console.error('Failed to remove access token:', error);
-    }
+    await deleteSecureValue(this.ACCESS_TOKEN_KEY);
   }
 
-  /**
-   * Remove refresh token
-   */
   static async removeRefreshToken(): Promise<void> {
-    try {
-      await SecureStore.deleteItemAsync(this.REFRESH_TOKEN_KEY);
-    } catch (error) {
-      console.error('Failed to remove refresh token:', error);
-    }
+    await deleteSecureValue(this.REFRESH_TOKEN_KEY);
   }
 
-  /**
-   * Remove user ID
-   */
   static async removeUserId(): Promise<void> {
-    try {
-      await SecureStore.deleteItemAsync(this.USER_ID_KEY);
-    } catch (error) {
-      console.error('Failed to remove user ID:', error);
-    }
+    await deleteSecureValue(this.USER_ID_KEY);
   }
 
-  /**
-   * Clear all stored tokens and user data
-   */
   static async clearAll(): Promise<void> {
-    try {
-      await Promise.all([this.removeAccessToken(), this.removeRefreshToken(), this.removeUserId()]);
-    } catch (error) {
-      console.error('Failed to clear all tokens:', error);
-    }
+    await Promise.all([this.removeAccessToken(), this.removeRefreshToken(), this.removeUserId()]);
   }
 
-  /**
-   * Check if user is authenticated (has access token)
-   */
   static async isAuthenticated(): Promise<boolean> {
     try {
       const token = await this.getAccessToken();

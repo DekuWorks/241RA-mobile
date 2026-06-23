@@ -59,8 +59,12 @@ export interface User {
  * - Role-based access control
  */
 export interface LoginOptions {
+  /** Called when the login request is about to be sent. */
+  onConnecting?: () => void;
   /** Called before a single automatic retry after a timeout (e.g. Azure cold start). */
   onRetrying?: () => void;
+  /** Called before persisting tokens and user session locally. */
+  onPersisting?: () => void;
 }
 
 type RawAuthResponse = AuthResponse & { token?: string };
@@ -97,20 +101,24 @@ export class AuthService {
     };
 
     const postLogin = async (): Promise<AuthResponse> => {
+      options?.onConnecting?.();
       const data = await ApiClient.post<RawAuthResponse>('/api/v1/auth/login', normalizedCredentials, {
         timeout: AUTH_REQUEST_TIMEOUT_MS,
       });
       return this.normalizeLoginResponse(data);
     };
 
-    try {
-      const data = await postLogin();
-
+    const completeLogin = async (data: AuthResponse): Promise<AuthResponse> => {
       if (data.accessToken) {
+        options?.onPersisting?.();
         await this.persistSession(data);
       }
-
       return data;
+    };
+
+    try {
+      const data = await postLogin();
+      return await completeLogin(data);
     } catch (error: unknown) {
       if (!isRetryableLoginError(error)) {
         throw error;
@@ -123,12 +131,7 @@ export class AuthService {
       options?.onRetrying?.();
 
       const data = await postLogin();
-
-      if (data.accessToken) {
-        await this.persistSession(data);
-      }
-
-      return data;
+      return await completeLogin(data);
     }
   }
 
@@ -181,13 +184,20 @@ export class AuthService {
     await UserDataService.setStoredApiUser(apiUser);
     this.syncProfileQueries(apiUser);
 
-    try {
-      await NotificationService.registerDevice();
-    } catch (error) {
-      console.warn('Failed to register device token:', error);
-    }
+    this.runPostLoginBackground(data);
+  }
 
-    await this.initializeRealtimeServices(data.user);
+  /** Non-blocking: push registration and SignalR can take 30s+ and must not block navigation. */
+  private static runPostLoginBackground(data: AuthResponse): void {
+    void (async () => {
+      try {
+        await NotificationService.registerDevice();
+      } catch (error) {
+        console.warn('Failed to register device token:', error);
+      }
+
+      await this.initializeRealtimeServices(data.user);
+    })();
   }
 
   static async logout(): Promise<void> {

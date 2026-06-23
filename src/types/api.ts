@@ -163,8 +163,14 @@ export function getLoginErrorMessage(error: unknown): string {
     if (isTimeoutError(error)) {
       return 'The server took too long to respond. Please check your connection and try again.';
     }
-    if (error.message.includes('Failed to store') && error.message.includes('securely')) {
-      return 'Could not save your session on this device. Try restarting the app and signing in again.';
+    if (
+      error.message.includes('Failed to store') &&
+      error.message.includes('securely')
+    ) {
+      return 'Could not save your session on this device. Rebuild the app with: npx expo run:ios';
+    }
+    if (error.message.includes('Secure storage timed out')) {
+      return 'Could not save your session on this device. Rebuild the app with: npx expo run:ios';
     }
     if (!error.message.includes('[object Object]')) {
       return error.message;
