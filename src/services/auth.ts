@@ -40,7 +40,10 @@ export interface AuthResponse {
 export interface User {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   name?: string;
+  createdAt?: string;
   role: string;
   allRoles: string[];
   primaryUserRole: string;
@@ -149,12 +152,17 @@ export class AuthService {
   }
 
   private static authResponseToApiUser(data: AuthResponse): ApiUserPayload {
-    const user = data.user;
+    const user = data.user as (User & ApiUserPayload) | undefined;
 
     return {
       id: user?.id ?? data.userId,
       email: user?.email ?? data.email,
-      fullName: user?.name,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      fullName: user?.fullName ?? user?.name,
+      phoneNumber: user?.phoneNumber,
+      profileImageUrl: user?.profileImageUrl,
+      createdAt: user?.createdAt,
       role: user?.role ?? 'user',
       allRoles: user?.allRoles,
       primaryUserRole: user?.primaryUserRole,

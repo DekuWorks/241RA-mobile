@@ -26,6 +26,8 @@ export async function resolveLocalApiUser(): Promise<ApiUserPayload | null> {
   const payload: ApiUserPayload = {
     id: fromJwt.id,
     email: fromJwt.email,
+    firstName: fromJwt.firstName,
+    lastName: fromJwt.lastName,
     fullName: fromJwt.fullName,
     role: fromJwt.role,
     allRoles: fromJwt.allRoles,

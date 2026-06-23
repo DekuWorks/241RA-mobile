@@ -29,6 +29,11 @@ import { ValidationUtils } from '../utils/validation';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
 import { isTimeoutError } from '../types/api';
 import {
+  getUserAvatarInitial,
+  getUserDisplayName,
+  resolveUserNameFields,
+} from '../utils/userDisplayName';
+import {
   EnhancedRunnerProfile,
   EnhancedRunnerPhoto,
   CreateEnhancedRunnerProfileData,
@@ -910,100 +915,32 @@ export default function ProfileScreen() {
 
   const availableRoles = ['user', 'parent', 'adoptive_parent', 'therapist', 'guardian'];
 
+  const profileNameFields = {
+    firstName: userProfile?.firstName ?? user?.firstName,
+    lastName: userProfile?.lastName ?? user?.lastName,
+    fullName: userProfile?.name ?? user?.name,
+    email: userProfile?.email ?? user?.email,
+  };
+  const resolvedProfileName = resolveUserNameFields(profileNameFields);
+  const displayName = getUserDisplayName(profileNameFields);
+  const avatarInitial = getUserAvatarInitial(profileNameFields);
+  const headerEmail = userProfile?.email ?? user?.email;
+  const memberSince = userProfile?.memberSince ?? user?.createdAt;
+
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
       <TouchableOpacity style={styles.profileAvatar} onPress={handleAvatarPress}>
         {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
-          <Text style={styles.avatarText}>
-            {(() => {
-              if (userProfile?.firstName) {
-                return userProfile.firstName.charAt(0).toUpperCase();
-              }
-              if (userProfile?.lastName) {
-                return userProfile.lastName.charAt(0).toUpperCase();
-              }
-              if (userProfile?.name) {
-                return userProfile.name.charAt(0).toUpperCase();
-              }
-              if (user?.name) {
-                return user.name.charAt(0).toUpperCase();
-              }
-
-              // Special handling for known test accounts
-              if (user?.email === 'lthomas3350@gmail.com') {
-                return 'L';
-              }
-
-              if (user?.email) {
-                const emailName = user.email.split('@')[0];
-                return emailName.charAt(0).toUpperCase();
-              }
-              return 'U';
-            })()}
-          </Text>
+          <Text style={styles.avatarText}>{avatarInitial}</Text>
         )}
         <View style={styles.avatarOverlay}>
           <Text style={styles.avatarOverlayText}>📷</Text>
         </View>
       </TouchableOpacity>
-      <Text style={styles.profileName}>
-        {(() => {
-          // Debug logging
-          console.log('[PROFILE] Name display debug:', {
-            userEmail: user?.email,
-            userProfileFirstName: userProfile?.firstName,
-            userProfileLastName: userProfile?.lastName,
-            userProfileName: userProfile?.name,
-            userName: user?.name,
-            userProfileExists: !!userProfile,
-          });
-
-          // Special handling for known test accounts - do this FIRST
-          if (user?.email === 'lthomas3350@gmail.com') {
-            console.log('[PROFILE] Using special Lisa Thomas handling');
-            return 'Lisa Thomas';
-          }
-
-          // Try userProfile first, then fall back to user data
-          if (userProfile?.firstName && userProfile?.lastName) {
-            console.log('[PROFILE] Using userProfile firstName + lastName');
-            return `${userProfile.firstName} ${userProfile.lastName}`;
-          }
-          if (userProfile?.firstName) {
-            console.log('[PROFILE] Using userProfile firstName');
-            return userProfile.firstName;
-          }
-          if (userProfile?.lastName) {
-            console.log('[PROFILE] Using userProfile lastName');
-            return userProfile.lastName;
-          }
-          if (userProfile?.name) {
-            console.log('[PROFILE] Using userProfile name');
-            return userProfile.name;
-          }
-          if (user?.name) {
-            console.log('[PROFILE] Using user name');
-            return user.name;
-          }
-
-          // Extract name from email as fallback
-          if (user?.email) {
-            const emailName = user.email.split('@')[0];
-            console.log('[PROFILE] Using email fallback:', emailName);
-            // Try to parse common email patterns like "lthomas3350" -> "L Thomas"
-            if (emailName.match(/^[a-z]+\d+$/)) {
-              const namePart = emailName.replace(/\d+$/, '');
-              return namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            }
-            return emailName.charAt(0).toUpperCase() + emailName.slice(1);
-          }
-          console.log('[PROFILE] Using default "User" fallback');
-          return 'User';
-        })()}
-      </Text>
-      <Text style={styles.profileEmail}>{user?.email}</Text>
+      <Text style={styles.profileName}>{displayName}</Text>
+      {headerEmail ? <Text style={styles.profileEmail}>{headerEmail}</Text> : null}
 
       {/* Role Display - Show primary user role with editing capability */}
       <View style={styles.roleContainer}>
@@ -1030,7 +967,7 @@ export default function ProfileScreen() {
       <View style={styles.memberSinceContainer}>
         <Text style={styles.memberSinceLabel}>MEMBER SINCE</Text>
         <Text style={styles.memberSinceValue}>
-          {user?.createdAt ? formatDate(user.createdAt) : 'Unknown'}
+          {memberSince ? formatDate(memberSince) : 'Unknown'}
         </Text>
       </View>
     </View>
@@ -1090,7 +1027,9 @@ export default function ProfileScreen() {
               )}
             </View>
           ) : (
-            <Text style={styles.infoValue}>{formData.firstName || 'Not provided'}</Text>
+            <Text style={styles.infoValue}>
+              {resolvedProfileName.firstName || formData.firstName || 'Not provided'}
+            </Text>
           )}
         </View>
 
@@ -1110,7 +1049,9 @@ export default function ProfileScreen() {
               )}
             </View>
           ) : (
-            <Text style={styles.infoValue}>{formData.lastName || 'Not provided'}</Text>
+            <Text style={styles.infoValue}>
+              {resolvedProfileName.lastName || formData.lastName || 'Not provided'}
+            </Text>
           )}
         </View>
 

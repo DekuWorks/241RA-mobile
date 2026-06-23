@@ -47,7 +47,7 @@ export class UserDataService {
         id: String(user.id),
         email: user.email,
         role: user.role || 'user',
-        name: fullName || user.email,
+        name: fullName || undefined,
         allRoles: user.allRoles,
         primaryUserRole: user.primaryUserRole,
         isAdminUser: user.isAdminUser,

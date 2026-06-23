@@ -73,6 +73,8 @@ function readRoles(payload: Record<string, unknown>): string[] {
 export function apiUserFromJwt(token: string): {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   fullName?: string;
   role: string;
   allRoles: string[];
@@ -113,10 +115,14 @@ export function apiUserFromJwt(token: string): {
     'fullName',
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
   );
+  const firstName = readClaim(payload, 'firstName', 'given_name', 'givenName');
+  const lastName = readClaim(payload, 'lastName', 'family_name', 'familyName');
 
   return {
     id: id ?? email ?? 'unknown',
     email: email ?? `${id}@local`,
+    firstName,
+    lastName,
     fullName,
     role,
     allRoles,
