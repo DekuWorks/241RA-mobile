@@ -81,6 +81,12 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
+    [
+      '@rnmapbox/maps',
+      {
+        RNMapboxMapsVersion: '11.20.1',
+      },
+    ],
   ],
   extra: {
     eas: {
@@ -90,7 +96,7 @@ const config: ExpoConfig = {
     EXPO_PUBLIC_ENABLE_CRASH: 'true',
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   },

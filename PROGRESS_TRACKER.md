@@ -51,7 +51,7 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 | Item | Status | Notes |
 |------|--------|-------|
 | Cases list & detail | ✅ | TanStack Query + API |
-| Map view | 🔄 | Needs `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` |
+| Map view | 🔄 | Needs `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`; rebuild dev client after `@rnmapbox/maps` install |
 | Report sighting (camera + location) | ✅ | Implemented |
 | User profile & settings | ✅ | Notifications toggle, 2FA |
 | Admin portal screens | ✅ | Dashboard, users, cases, analytics |
@@ -125,7 +125,7 @@ Track implementation status for the official [241RunnersAwareness.org](https://2
 ## Next Priorities
 
 1. **E2E smoke test** on simulator with real credentials
-2. **Set Google Maps API key** for map screen
+2. **Set Mapbox access token** (`EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`) for map screen; run `npx expo prebuild` and rebuild dev client
 3. **EAS preview build** to physical device
 4. **Store assets** — 1024px icon, 6–8 screenshots
 5. **Fix CI** dependency update workflow

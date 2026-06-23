@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import Mapbox, { Camera, MapView, LocationPuck, PointAnnotation } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -10,32 +10,41 @@ import { ENV } from '../config/env';
 
 const { width, height } = Dimensions.get('window');
 
+// Default center: Houston metro (matches website map)
+const DEFAULT_CENTER: [number, number] = [-95.3698, 29.7604];
+
+if (ENV.MAPBOX_ACCESS_TOKEN) {
+  Mapbox.setAccessToken(ENV.MAPBOX_ACCESS_TOKEN);
+}
+
 export default function MapScreen() {
-  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const cameraRef = useRef<Camera>(null);
+  const [userCoordinate, setUserCoordinate] = useState<[number, number] | null>(null);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
+  const [cameraCenter, setCameraCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [cameraZoom, setCameraZoom] = useState(10);
 
   const {
     data: casesData,
-    isLoading,
     error,
     refetch,
   } = useQuery({
     queryKey: ['cases', 'map'],
-    queryFn: () => CasesService.getCases({ limit: 100 }), // Get more cases for map view
-    enabled: !!userLocation,
+    queryFn: () => CasesService.getCases({ limit: 100 }),
+    enabled: !!userCoordinate,
   });
 
-  useEffect(() => {
-    getCurrentLocation();
+  const flyTo = useCallback((coordinate: [number, number], zoom = 12) => {
+    setCameraCenter(coordinate);
+    setCameraZoom(zoom);
+    cameraRef.current?.setCamera({
+      centerCoordinate: coordinate,
+      zoomLevel: zoom,
+      animationDuration: 600,
+    });
   }, []);
 
-  const getCurrentLocation = async () => {
+  const getCurrentLocation = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -50,17 +59,20 @@ export default function MapScreen() {
         accuracy: Location.Accuracy.High,
       });
 
-      setUserLocation(location);
-      setMapRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      });
-    } catch (error) {
-      console.error('Error getting location:', error);
+      const coordinate: [number, number] = [
+        location.coords.longitude,
+        location.coords.latitude,
+      ];
+      setUserCoordinate(coordinate);
+      flyTo(coordinate, 12);
+    } catch (locationError) {
+      console.error('Error getting location:', locationError);
     }
-  };
+  }, [flyTo]);
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
 
   const handleMarkerPress = (caseData: Case) => {
     setSelectedCase(caseData);
@@ -134,13 +146,13 @@ export default function MapScreen() {
     );
   }
 
-  // Check if Google Maps API key is available
-  if (!ENV.GOOGLE_MAPS_API_KEY) {
+  if (!ENV.MAPBOX_ACCESS_TOKEN) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Google Maps API key not configured</Text>
+        <Text style={styles.errorText}>Mapbox access token not configured</Text>
         <Text style={styles.errorSubtext}>
-          Please configure EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.
+          Set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in your environment variables (see .env.example).
+          Rebuild the dev client after adding @rnmapbox/maps native code.
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>Go Back</Text>
@@ -161,35 +173,33 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={mapRegion}
-        showsUserLocation={true}
-        showsMyLocationButton={false}
-        onRegionChangeComplete={setMapRegion}
-      >
+      <MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
+        <Camera
+          ref={cameraRef}
+          centerCoordinate={cameraCenter}
+          zoomLevel={cameraZoom}
+          animationMode="flyTo"
+          animationDuration={600}
+        />
+        <LocationPuck puckBearingEnabled />
+
         {casesData?.cases.map(caseData => (
-          <Marker
+          <PointAnnotation
             key={caseData.id}
-            coordinate={{
-              latitude: caseData.location.latitude,
-              longitude: caseData.location.longitude,
-            }}
-            pinColor={getStatusColor(caseData.status)}
-            onPress={() => handleMarkerPress(caseData)}
-          />
+            id={caseData.id}
+            coordinate={[caseData.location.longitude, caseData.location.latitude]}
+            onSelected={() => handleMarkerPress(caseData)}
+          >
+            <View
+              style={[styles.marker, { backgroundColor: getStatusColor(caseData.status) }]}
+            />
+          </PointAnnotation>
         ))}
 
-        {userLocation && (
-          <Marker
-            coordinate={{
-              latitude: userLocation.coords.latitude,
-              longitude: userLocation.coords.longitude,
-            }}
-            pinColor={colors.primary[600]}
-            title="Your Location"
-          />
+        {userCoordinate && (
+          <PointAnnotation id="user-location" coordinate={userCoordinate}>
+            <View style={[styles.marker, styles.userMarker]} />
+          </PointAnnotation>
         )}
       </MapView>
 
@@ -250,6 +260,19 @@ const styles = StyleSheet.create({
   map: {
     width: width,
     height: height - 200,
+  },
+  marker: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  userMarker: {
+    backgroundColor: colors.primary[600],
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
   caseInfo: {
     position: 'absolute',
