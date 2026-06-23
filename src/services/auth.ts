@@ -14,6 +14,7 @@ import {
 } from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
+import { resolveLocalApiUser } from './localUserSession';
 
 let authQueryClient: QueryClient | null = null;
 
@@ -207,19 +208,23 @@ export class AuthService {
   }
 
   static async getCurrentUser(): Promise<User | null> {
-    const cached = await UserDataService.getStoredApiUser();
-    if (cached) {
+    const local = await resolveLocalApiUser();
+    if (local) {
       this.refreshCurrentUserInBackground();
-      return mapApiUserToAuthUser(cached);
+      return mapApiUserToAuthUser(local);
+    }
+
+    const hasToken = await SecureTokenService.isAuthenticated();
+    if (!hasToken) {
+      return null;
     }
 
     try {
       return await this.fetchCurrentUserFromApi();
     } catch (error: unknown) {
-      if (isTimeoutError(error)) {
-        throw error;
+      if (__DEV__ && !isTimeoutError(error)) {
+        console.warn('[AUTH] Failed to fetch current user:', error);
       }
-
       return null;
     }
   }

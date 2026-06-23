@@ -14,6 +14,8 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { NotificationService, setPushQueryClient } from '../services/notifications';
 import { setAuthQueryClient } from '../services/auth';
+import { resolveLocalApiUser } from '../services/localUserSession';
+import { mapApiUserToAuthUser, mapApiUserToProfile } from '../services/apiUserMapper';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineIndicator } from '../components/OfflineIndicator';
 import { signalRService } from '../services/signalR';
@@ -72,6 +74,12 @@ export default function Root() {
         signalRService.setQueryClient(qc);
         setPushQueryClient(qc);
         setAuthQueryClient(qc);
+
+        const localUser = await resolveLocalApiUser();
+        if (localUser) {
+          qc.setQueryData(['user'], mapApiUserToAuthUser(localUser));
+          qc.setQueryData(['userProfile'], mapApiUserToProfile(localUser));
+        }
 
         setTimeout(() => SplashScreen.hideAsync(), 300);
       } catch (error) {

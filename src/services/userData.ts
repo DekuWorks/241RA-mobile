@@ -60,10 +60,24 @@ export class UserDataService {
   static async getStoredApiUser(): Promise<ApiUserPayload | null> {
     try {
       const raw = await AsyncStorage.getItem(API_USER_KEY);
-      if (!raw) {
+      if (raw) {
+        return JSON.parse(raw) as ApiUserPayload;
+      }
+
+      const legacy = await this.getUserData();
+      if (!legacy) {
         return null;
       }
-      return JSON.parse(raw) as ApiUserPayload;
+
+      return {
+        id: legacy.id,
+        email: legacy.email,
+        fullName: legacy.name,
+        role: legacy.role || 'user',
+        allRoles: legacy.allRoles,
+        primaryUserRole: legacy.primaryUserRole,
+        isAdminUser: legacy.isAdminUser,
+      };
     } catch (error) {
       console.error('Failed to retrieve API user:', error);
       return null;

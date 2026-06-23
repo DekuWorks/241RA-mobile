@@ -107,6 +107,7 @@ export default function ProfileScreen() {
   } = useQuery({
     queryKey: ['user'],
     queryFn: AuthService.getCurrentUser,
+    staleTime: 5 * 60 * 1000,
     retry: (failureCount, queryError: unknown) => {
       if (
         queryError &&
@@ -123,7 +124,7 @@ export default function ProfileScreen() {
         return false;
       }
 
-      return failureCount < 2;
+      return failureCount < 1;
     },
   });
 
@@ -136,6 +137,7 @@ export default function ProfileScreen() {
     queryKey: ['userProfile'],
     queryFn: UserProfileService.getProfile,
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
     retry: (failureCount, queryError: unknown) =>
       isTimeoutError(queryError) ? false : failureCount < 1,
   });
@@ -201,14 +203,16 @@ export default function ProfileScreen() {
   }, [runnerProfileExists]);
 
   useEffect(() => {
-    if (error && !user) {
-      if (isTimeoutError(error)) {
-        if (__DEV__) {
-          console.warn('[PROFILE] User refresh timed out with no cached profile data.');
-        }
-        return;
-      }
-      console.error('[PROFILE] Error loading user data:', error);
+    if (!error || user) {
+      return;
+    }
+
+    if (isTimeoutError(error)) {
+      return;
+    }
+
+    if (__DEV__) {
+      console.warn('[PROFILE] Error loading user data:', error);
     }
   }, [error, user]);
 
@@ -1615,7 +1619,7 @@ export default function ProfileScreen() {
   if (error && !user) {
     const timeoutMessage = isTimeoutError(error)
       ? 'Connection timed out while loading your account. Check your network and try again.'
-      : 'Failed to load profile';
+      : 'Unable to load your profile right now.';
 
     return (
       <View style={styles.errorContainer}>

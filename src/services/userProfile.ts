@@ -3,9 +3,10 @@ import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
 import { UserDataService } from './userData';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
+import { resolveLocalApiUser, refreshRemoteUserInBackground } from './localUserSession';
 
-const PROFILE_FETCH_ATTEMPTS = 3;
-const PROFILE_FETCH_RETRY_DELAY_MS = 2000;
+const PROFILE_FETCH_ATTEMPTS = 2;
+const PROFILE_FETCH_RETRY_DELAY_MS = 1500;
 
 function formatProfileError(error: unknown): string {
   if (isTimeoutError(error)) {
@@ -92,15 +93,18 @@ export class UserProfileService {
    * Get current user's full profile (same database as 241runnersawareness.org)
    */
   static async getProfile(): Promise<UserProfile> {
-    const cached = await UserDataService.getStoredApiUser();
-    if (cached) {
-      return mapApiUserToProfile(cached);
+    const local = await resolveLocalApiUser();
+    if (local) {
+      refreshRemoteUserInBackground();
+      return mapApiUserToProfile(local);
     }
 
     try {
       return await fetchProfileWithRetry();
     } catch (error: unknown) {
-      console.error('Failed to get user profile:', error);
+      if (__DEV__ && !isTimeoutError(error)) {
+        console.warn('Failed to get user profile:', error);
+      }
       throw new Error(formatProfileError(error));
     }
   }
