@@ -1,7 +1,28 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ENV } from '../config/env';
 import { SecureTokenService } from './secureTokens';
-import { isAxiosError, AxiosErrorResponse, extractApiErrorMessage, ApiRequestError } from '../types/api';
+import {
+  isAxiosError,
+  AxiosErrorResponse,
+  extractApiErrorMessage,
+  ApiRequestError,
+  isTimeoutError,
+} from '../types/api';
+
+/** Auth routes that must not attach tokens or trigger refresh on 401 */
+const PUBLIC_AUTH_PATHS = [
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/api/v1/auth/oauth/register',
+];
+
+function isPublicAuthPath(url?: string): boolean {
+  if (!url) return false;
+  return PUBLIC_AUTH_PATHS.some(path => url.includes(path));
+}
+
+/** Azure cold starts can exceed 20s on auth/DB paths */
+export const AUTH_REQUEST_TIMEOUT_MS = 45000;
 
 /**
  * Centralized API Client
@@ -31,7 +52,7 @@ export class ApiClient {
   private static createInstance(): AxiosInstance {
     const instance = axios.create({
       baseURL: ENV.API_URL,
-      timeout: 20000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -40,14 +61,15 @@ export class ApiClient {
     // Request interceptor to attach Bearer token
     instance.interceptors.request.use(
       async config => {
-        const token = await SecureTokenService.getAccessToken();
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
+        if (!isPublicAuthPath(config.url)) {
+          const token = await SecureTokenService.getAccessToken();
+          if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
         console.log('[API] Request:', {
           method: config.method?.toUpperCase(),
           url: config.url,
-          hasToken: !!token,
           baseURL: config.baseURL,
         });
         return config;
@@ -68,8 +90,12 @@ export class ApiClient {
       async error => {
         const originalRequest = error.config;
 
-        // Handle 401 errors with token refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Handle 401 errors with token refresh (skip for login/register)
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !isPublicAuthPath(originalRequest.url)
+        ) {
           originalRequest._retry = true;
 
           try {
@@ -77,7 +103,7 @@ export class ApiClient {
             if (refreshToken) {
               const response = await axios.post(`${ENV.API_URL}/api/v1/auth/refresh`, {
                 refreshToken: refreshToken,
-              }, { timeout: 20000 });
+              }, { timeout: AUTH_REQUEST_TIMEOUT_MS });
 
               if (response.data.accessToken) {
                 await SecureTokenService.setAccessToken(response.data.accessToken);
@@ -156,12 +182,30 @@ export class ApiClient {
       }
 
       if (axiosError.request) {
+        if (isTimeoutError(error)) {
+          return new Error(
+            isProduction
+              ? 'Request timed out. The server may be waking up — please try again.'
+              : axiosError.message || 'Request timed out'
+          );
+        }
+
         return new Error(
           isProduction
             ? 'Network error. Please check your connection.'
             : 'Network error: ' + axiosError.message
         );
       }
+    }
+
+    if (isTimeoutError(error)) {
+      const message =
+        error instanceof Error ? error.message : 'Request timed out';
+      return new Error(
+        isProduction
+          ? 'Request timed out. The server may be waking up — please try again.'
+          : message
+      );
     }
 
     if (error instanceof Error) {

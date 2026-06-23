@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { ApiClient } from './apiClient';
+import { ApiClient, AUTH_REQUEST_TIMEOUT_MS } from './apiClient';
 import { SecureTokenService } from './secureTokens';
 import { UserDataService } from './userData';
 import { initCrashlytics } from '../lib/crash';
@@ -58,8 +58,16 @@ export interface User {
  * - User session persistence
  * - Role-based access control
  */
+export interface LoginOptions {
+  /** Called before a single automatic retry after a timeout (e.g. Azure cold start). */
+  onRetrying?: () => void;
+}
+
 export class AuthService {
-  static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  static async login(
+    credentials: LoginCredentials,
+    options?: LoginOptions
+  ): Promise<AuthResponse> {
     if (__DEV__) {
       console.log('[AUTH] Attempting login with credentials:', {
         email: credentials.email,
@@ -73,24 +81,38 @@ export class AuthService {
       email: credentials.email.trim(),
     };
 
-    if (__DEV__) {
-      try {
-        const apiUrl =
-          process.env.EXPO_PUBLIC_API_URL || 'https://241runners-api-v2.azurewebsites.net';
-        const healthResponse = await fetch(`${apiUrl}/api/health`);
-        console.log('[AUTH] API health check:', healthResponse.status);
-      } catch (healthError) {
-        console.warn('[AUTH] API health check failed:', healthError);
+    const postLogin = () =>
+      ApiClient.post<AuthResponse>('/api/v1/auth/login', normalizedCredentials, {
+        timeout: AUTH_REQUEST_TIMEOUT_MS,
+      });
+
+    try {
+      const data = await postLogin();
+
+      if (data.accessToken) {
+        await this.persistSession(data);
       }
+
+      return data;
+    } catch (error: unknown) {
+      if (!isTimeoutError(error)) {
+        throw error;
+      }
+
+      if (__DEV__) {
+        console.warn('[AUTH] Login timed out, retrying once (server may be waking up)');
+      }
+
+      options?.onRetrying?.();
+
+      const data = await postLogin();
+
+      if (data.accessToken) {
+        await this.persistSession(data);
+      }
+
+      return data;
     }
-
-    const data = await ApiClient.post('/api/v1/auth/login', normalizedCredentials);
-
-    if (data.accessToken) {
-      await this.persistSession(data);
-    }
-
-    return data;
   }
 
   static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {

@@ -116,10 +116,16 @@ export function isTimeoutError(error: unknown): boolean {
 
 // Type guard function
 export function isAxiosError(error: unknown): error is AxiosErrorResponse {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'response' in error &&
-    typeof (error as any).response === 'object'
-  );
+  if (error === null || typeof error !== 'object') {
+    return false;
+  }
+
+  const axiosError = error as AxiosErrorResponse & { code?: string; request?: unknown };
+
+  if (axiosError.response && typeof axiosError.response === 'object') {
+    return true;
+  }
+
+  // Timeouts and network failures have a request but no response
+  return axiosError.request !== undefined || axiosError.code === 'ECONNABORTED';
 }

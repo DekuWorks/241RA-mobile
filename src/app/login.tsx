@@ -14,13 +14,14 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
-import { ApiRequestError } from '../types/api';
+import { ApiRequestError, isTimeoutError } from '../types/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Signing In...');
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
 
   const handleLogin = async () => {
@@ -30,6 +31,7 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+    setLoadingMessage('Signing In...');
     try {
       console.log('[LOGIN] Attempting login with:', { email, passwordLength: password.length });
 
@@ -40,7 +42,9 @@ export default function LoginScreen() {
       };
 
       console.log('[LOGIN] Sending credentials to AuthService...');
-      const response = await AuthService.login(credentials);
+      const response = await AuthService.login(credentials, {
+        onRetrying: () => setLoadingMessage('Server waking up, retrying...'),
+      });
       console.log('[LOGIN] AuthService response:', response);
 
       if (response.requiresTwoFactor && !requiresTwoFactor) {
@@ -77,7 +81,9 @@ export default function LoginScreen() {
         }
       }
     } catch (error: unknown) {
-      console.error('[LOGIN] Login error:', error);
+      if (__DEV__ && !isTimeoutError(error)) {
+        console.warn('[LOGIN] Login error:', error);
+      }
 
       let errorMessage = 'Invalid email or password';
 
@@ -94,8 +100,9 @@ export default function LoginScreen() {
       } else if (error instanceof Error) {
         if (error.message.includes('Network Error')) {
           errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (error.message.includes('timeout')) {
-          errorMessage = 'Request timed out. Please try again.';
+        } else if (isTimeoutError(error)) {
+          errorMessage =
+            'The server took too long to respond. Please check your connection and try again.';
         } else if (!error.message.includes('[object Object]')) {
           errorMessage = error.message;
         }
@@ -104,6 +111,7 @@ export default function LoginScreen() {
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoading(false);
+      setLoadingMessage('Signing In...');
     }
   };
 
@@ -177,7 +185,7 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
+            <Text style={styles.buttonText}>{isLoading ? loadingMessage : 'Sign In'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
