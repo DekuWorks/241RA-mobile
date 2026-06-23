@@ -929,6 +929,14 @@ export default function ProfileScreen() {
 
   const renderProfileHeader = () => (
     <View style={styles.profileHeader}>
+      <View style={styles.cardNav}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.cardNavBack}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.cardNavTitle}>My Profile</Text>
+        <View style={styles.cardNavSpacer} />
+      </View>
+
       <TouchableOpacity style={styles.profileAvatar} onPress={handleAvatarPress}>
         {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatarImage} />
@@ -1644,13 +1652,6 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Profile</Text>
-      </View>
-
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {profileError && !isProfileLoading ? (
@@ -1790,36 +1791,34 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: typography.weights.semibold,
   },
-  header: {
+  cardNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    minHeight: 60,
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
-    shadowColor: colors.gray[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  headerButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.sm,
+  cardNavBack: {
+    minWidth: 72,
+    paddingVertical: spacing.xs,
+  },
+  cardNavTitle: {
+    flex: 1,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.gray[900],
+    textAlign: 'center',
+  },
+  cardNavSpacer: {
+    minWidth: 72,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
     color: colors.primary[600],
     fontWeight: typography.weights.medium,
-  },
-  headerTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.gray[900],
   },
   logoutText: {
     fontSize: typography.sizes.sm,
@@ -1828,7 +1827,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
   },
   memberSinceContainer: {
