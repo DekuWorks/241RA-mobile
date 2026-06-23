@@ -6,6 +6,7 @@ import { signalRService } from './signalR';
 import { TopicService } from './topics';
 import { mapApiUserToAuthUser, unwrapApiUser } from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
+import { isTimeoutError } from '../types/api';
 
 export interface LoginCredentials {
   email: string;
@@ -138,10 +139,21 @@ export class AuthService {
     try {
       const data = await ApiClient.get('/api/v1/auth/me');
       return mapApiUserToAuthUser(unwrapApiUser(data));
-    } catch (error: any) {
-      if (error?.response?.status === 401) {
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        (error as { response?: { status?: number } }).response?.status === 401
+      ) {
         await SecureTokenService.clearAll();
+        return null;
       }
+
+      if (isTimeoutError(error)) {
+        throw error;
+      }
+
       return null;
     }
   }

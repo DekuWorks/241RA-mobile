@@ -27,6 +27,7 @@ import { EnhancedRunnerProfileService } from '../services/enhancedRunnerProfile'
 import { PhotoManager } from '../services/photoManager';
 import { ValidationUtils } from '../utils/validation';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
+import { isTimeoutError } from '../types/api';
 import {
   EnhancedRunnerProfile,
   EnhancedRunnerPhoto,
@@ -106,13 +107,22 @@ export default function ProfileScreen() {
   } = useQuery({
     queryKey: ['user'],
     queryFn: AuthService.getCurrentUser,
-    retry: (failureCount, error: any) => {
-      // Don't retry on 401 errors (authentication issues)
-      if (error?.response?.status === 401) {
+    retry: (failureCount, queryError: unknown) => {
+      if (
+        queryError &&
+        typeof queryError === 'object' &&
+        'response' in queryError &&
+        (queryError as { response?: { status?: number } }).response?.status === 401
+      ) {
         console.log('[PROFILE] Authentication failed, redirecting to login');
         router.replace('/login');
         return false;
       }
+
+      if (isTimeoutError(queryError)) {
+        return failureCount < 2;
+      }
+
       return failureCount < 3;
     },
   });
@@ -121,10 +131,13 @@ export default function ProfileScreen() {
     data: userProfile,
     isLoading: isProfileLoading,
     error: profileError,
+    refetch: refetchProfile,
   } = useQuery({
     queryKey: ['userProfile'],
     queryFn: UserProfileService.getProfile,
     enabled: !!user,
+    retry: (failureCount, queryError: unknown) =>
+      isTimeoutError(queryError) ? failureCount < 1 : failureCount < 2,
   });
 
   const { data: caseStatistics } = useQuery({
@@ -1593,12 +1606,27 @@ export default function ProfileScreen() {
     );
   }
 
-  if (error || !user) {
+  if (error && !user) {
+    const timeoutMessage = isTimeoutError(error)
+      ? 'Connection timed out while loading your account. Check your network and try again.'
+      : 'Failed to load profile';
+
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{timeoutMessage}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!user) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Failed to load profile</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.replace('/login')}>
+          <Text style={styles.retryButtonText}>Go to Login</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1615,6 +1643,18 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+          {profileError && !isProfileLoading ? (
+            <View style={styles.profileWarningBanner}>
+              <Text style={styles.profileWarningText}>
+                {profileError instanceof Error
+                  ? profileError.message
+                  : 'Some profile details could not be loaded.'}
+              </Text>
+              <TouchableOpacity onPress={() => refetchProfile()}>
+                <Text style={styles.profileWarningAction}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           {renderProfileHeader()}
           {renderPersonalInfoSection()}
           {renderAccountStatsSection()}
@@ -1697,6 +1737,25 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.sizes.lg,
     color: colors.gray[600],
+  },
+  profileWarningBanner: {
+    backgroundColor: colors.primary[50],
+    borderColor: colors.trafficLight.yellow,
+    borderWidth: 1,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  profileWarningText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  profileWarningAction: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary[600],
+    fontWeight: typography.weights.semibold,
   },
   errorContainer: {
     flex: 1,

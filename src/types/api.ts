@@ -102,6 +102,18 @@ export class ApiRequestError extends Error {
   }
 }
 
+export function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const message =
+    'message' in error && typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  const code = 'code' in error && typeof error.code === 'string' ? error.code : '';
+
+  return code === 'ECONNABORTED' || message.includes('timeout');
+}
+
 // Type guard function
 export function isAxiosError(error: unknown): error is AxiosErrorResponse {
   return (

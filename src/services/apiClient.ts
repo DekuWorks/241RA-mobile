@@ -31,7 +31,7 @@ export class ApiClient {
   private static createInstance(): AxiosInstance {
     const instance = axios.create({
       baseURL: ENV.API_URL,
-      timeout: 12000,
+      timeout: 20000,
       headers: {
         'Content-Type': 'application/json',
       },

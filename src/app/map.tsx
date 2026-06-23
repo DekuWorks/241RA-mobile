@@ -1,146 +1,62 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
-import Mapbox, { Camera, MapView, LocationPuck, PointAnnotation } from '@rnmapbox/maps';
-import * as Location from 'expo-location';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { CasesService, Case } from '../services/cases';
+import { colors, spacing, typography, radii } from '../theme/tokens';
 import { ENV } from '../config/env';
-
-const { width, height } = Dimensions.get('window');
-
-// Default center: Houston metro (matches website map)
-const DEFAULT_CENTER: [number, number] = [-95.3698, 29.7604];
-
-if (ENV.MAPBOX_ACCESS_TOKEN) {
-  Mapbox.setAccessToken(ENV.MAPBOX_ACCESS_TOKEN);
-}
+import { isMapboxNativeAvailable } from '../lib/mapboxAvailability';
 
 export default function MapScreen() {
-  const cameraRef = useRef<Camera>(null);
-  const [userCoordinate, setUserCoordinate] = useState<[number, number] | null>(null);
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [cameraCenter, setCameraCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [cameraZoom, setCameraZoom] = useState(10);
+  const [MapContent, setMapContent] = useState<React.ComponentType | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
 
-  const {
-    data: casesData,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['cases', 'map'],
-    queryFn: () => CasesService.getCases({ limit: 100 }),
-    enabled: !!userCoordinate,
-  });
-
-  const flyTo = useCallback((coordinate: [number, number], zoom = 12) => {
-    setCameraCenter(coordinate);
-    setCameraZoom(zoom);
-    cameraRef.current?.setCamera({
-      centerCoordinate: coordinate,
-      zoomLevel: zoom,
-      animationDuration: 600,
-    });
-  }, []);
-
-  const getCurrentLocation = useCallback(async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Permission Required',
-          'Please enable location access to view cases on the map.'
-        );
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const coordinate: [number, number] = [
-        location.coords.longitude,
-        location.coords.latitude,
-      ];
-      setUserCoordinate(coordinate);
-      flyTo(coordinate, 12);
-    } catch (locationError) {
-      console.error('Error getting location:', locationError);
-    }
-  }, [flyTo]);
+  const nativeAvailable = isMapboxNativeAvailable();
 
   useEffect(() => {
-    getCurrentLocation();
-  }, [getCurrentLocation]);
-
-  const handleMarkerPress = (caseData: Case) => {
-    setSelectedCase(caseData);
-  };
-
-  const handleCasePress = () => {
-    if (selectedCase) {
-      router.push(`/cases/${selectedCase.id}`);
+    if (!nativeAvailable || !ENV.MAPBOX_ACCESS_TOKEN) {
+      return;
     }
-  };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'missing':
-        return colors.status.missing;
-      case 'urgent':
-        return colors.status.urgent;
-      case 'resolved':
-        return colors.status.resolved;
-      case 'found':
-        return colors.status.found;
-      default:
-        return colors.gray[500];
-    }
-  };
+    let cancelled = false;
+    setIsLoadingMap(true);
 
-  const renderCaseInfo = () => {
-    if (!selectedCase) return null;
+    import('../components/MapboxMapContent')
+      .then(mod => {
+        if (!cancelled) {
+          setMapContent(() => mod.default);
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load map module';
+          setLoadError(message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingMap(false);
+        }
+      });
 
-    return (
-      <View style={styles.caseInfo}>
-        <View style={styles.caseInfoHeader}>
-          <Text style={styles.caseTitle} numberOfLines={2}>
-            {selectedCase.title}
-          </Text>
-          <TouchableOpacity onPress={() => setSelectedCase(null)}>
-            <Text style={styles.closeButton}>×</Text>
-          </TouchableOpacity>
-        </View>
+    return () => {
+      cancelled = true;
+    };
+  }, [nativeAvailable]);
 
-        <View style={styles.caseMeta}>
-          <View
-            style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedCase.status) }]}
-          >
-            <Text style={styles.statusText}>{selectedCase.status.toUpperCase()}</Text>
-          </View>
-          <Text style={styles.caseDate}>
-            {new Date(selectedCase.reportedAt).toLocaleDateString()}
-          </Text>
-        </View>
-
-        <Text style={styles.caseDescription} numberOfLines={3}>
-          {selectedCase.description}
-        </Text>
-
-        <TouchableOpacity style={styles.viewCaseButton} onPress={handleCasePress}>
-          <Text style={styles.viewCaseButtonText}>View Details</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  if (error) {
+  if (!nativeAvailable) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load cases</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+        <Text style={styles.errorText}>Map requires a custom dev client</Text>
+        <Text style={styles.errorSubtext}>
+          @rnmapbox/maps does not work in Expo Go. Rebuild the native app with Mapbox linked:
+          {'\n\n'}
+          npx expo prebuild{'\n'}
+          npx expo run:ios
+          {'\n\n'}
+          Then set EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in .env and rebuild again.
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -161,225 +77,37 @@ export default function MapScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cases Map</Text>
-        <TouchableOpacity onPress={getCurrentLocation}>
-          <Text style={styles.locationButton}>📍</Text>
+  if (loadError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Unable to load map</Text>
+        <Text style={styles.errorSubtext}>{loadError}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
 
-      <MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
-        <Camera
-          ref={cameraRef}
-          centerCoordinate={cameraCenter}
-          zoomLevel={cameraZoom}
-          animationMode="flyTo"
-          animationDuration={600}
-        />
-        <LocationPuck puckBearingEnabled />
-
-        {casesData?.cases.map(caseData => (
-          <PointAnnotation
-            key={caseData.id}
-            id={caseData.id}
-            coordinate={[caseData.location.longitude, caseData.location.latitude]}
-            onSelected={() => handleMarkerPress(caseData)}
-          >
-            <View
-              style={[styles.marker, { backgroundColor: getStatusColor(caseData.status) }]}
-            />
-          </PointAnnotation>
-        ))}
-
-        {userCoordinate && (
-          <PointAnnotation id="user-location" coordinate={userCoordinate}>
-            <View style={[styles.marker, styles.userMarker]} />
-          </PointAnnotation>
-        )}
-      </MapView>
-
-      {renderCaseInfo()}
-
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Status Legend:</Text>
-        <View style={styles.legendItems}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.missing }]} />
-            <Text style={styles.legendText}>Missing</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.urgent }]} />
-            <Text style={styles.legendText}>Urgent</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.resolved }]} />
-            <Text style={styles.legendText}>Resolved</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.found }]} />
-            <Text style={styles.legendText}>Found</Text>
-          </View>
-        </View>
+  if (isLoadingMap || !MapContent) {
+    return (
+      <View style={styles.errorContainer}>
+        <ActivityIndicator size="large" color={colors.primary[600]} />
+        <Text style={styles.loadingText}>Loading map...</Text>
       </View>
-    </View>
-  );
+    );
+  }
+
+  return <MapContent />;
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    backgroundColor: colors.header,
-    zIndex: 1,
-  },
-  backButtonText: {
-    fontSize: typography.sizes.base,
-    color: colors.white,
-    fontWeight: typography.weights.medium,
-  },
-  headerTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.semibold,
-    color: colors.textOnHeader,
-  },
-  locationButton: {
-    fontSize: typography.sizes.lg,
-  },
-  map: {
-    width: width,
-    height: height - 200,
-  },
-  marker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  userMarker: {
-    backgroundColor: colors.primary[600],
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-  },
-  caseInfo: {
-    position: 'absolute',
-    bottom: 120,
-    left: spacing.lg,
-    right: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-  },
-  caseInfoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  caseTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  closeButton: {
-    fontSize: typography.sizes.xl,
-    color: colors.gray[400],
-    fontWeight: typography.weights.bold,
-  },
-  caseMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.sm,
-  },
-  statusText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
-    color: colors.white,
-  },
-  caseDate: {
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-  },
-  caseDescription: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginBottom: spacing.md,
-  },
-  viewCaseButton: {
-    backgroundColor: colors.primary[600],
-    padding: spacing.sm,
-    borderRadius: radii.md,
-    alignItems: 'center',
-  },
-  viewCaseButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.white,
-  },
-  legend: {
-    position: 'absolute',
-    top: 100,
-    right: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-  },
-  legendTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  legendItems: {
-    gap: spacing.xs,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendText: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: colors.bg,
   },
   errorText: {
     fontSize: typography.sizes.lg,
@@ -393,6 +121,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingText: {
+    fontSize: typography.sizes.base,
+    color: colors.textMuted,
+    marginTop: spacing.md,
   },
   retryButton: {
     backgroundColor: colors.primary[600],

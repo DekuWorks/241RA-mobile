@@ -1,6 +1,40 @@
 import { ApiClient } from './apiClient';
 import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
 import { ValidationUtils } from '../utils/validation';
+import { isTimeoutError } from '../types/api';
+
+const PROFILE_FETCH_ATTEMPTS = 3;
+const PROFILE_FETCH_RETRY_DELAY_MS = 2000;
+
+function formatProfileError(error: unknown): string {
+  if (isTimeoutError(error)) {
+    return 'Profile request timed out. The server may be waking up — pull to refresh or try again.';
+  }
+
+  return error instanceof Error ? error.message : 'Failed to load profile';
+}
+
+async function fetchProfileWithRetry(): Promise<UserProfile> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= PROFILE_FETCH_ATTEMPTS; attempt++) {
+    try {
+      const data = await ApiClient.get('/api/v1/auth/me');
+      return mapApiUserToProfile(unwrapApiUser(data));
+    } catch (error: unknown) {
+      lastError = error;
+
+      if (isTimeoutError(error) && attempt < PROFILE_FETCH_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, PROFILE_FETCH_RETRY_DELAY_MS * attempt));
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError;
+}
 
 export interface UserProfile {
   id: string;
@@ -56,12 +90,10 @@ export class UserProfileService {
    */
   static async getProfile(): Promise<UserProfile> {
     try {
-      const data = await ApiClient.get('/api/v1/auth/me');
-      return mapApiUserToProfile(unwrapApiUser(data));
+      return await fetchProfileWithRetry();
     } catch (error: unknown) {
       console.error('Failed to get user profile:', error);
-      const message = error instanceof Error ? error.message : 'Failed to load profile';
-      throw new Error(message);
+      throw new Error(formatProfileError(error));
     }
   }
 
