@@ -33,6 +33,7 @@ import {
   getUserDisplayName,
   resolveUserNameFields,
 } from '../utils/userDisplayName';
+import { resolveImageDisplayUrl } from '../utils/imageUrl';
 import {
   EnhancedRunnerProfile,
   EnhancedRunnerPhoto,
@@ -49,6 +50,7 @@ export default function ProfileScreen() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [hasRunnerProfile, setHasRunnerProfile] = useState(false);
   const [caseStats, setCaseStats] = useState({
     totalCases: 0,
@@ -211,9 +213,13 @@ export default function ProfileScreen() {
         phoneNumber: userProfile.phoneNumber || '',
         email: userProfile.email || '',
       });
-      setProfileImage(userProfile.profileImageUrl || null);
+      setProfileImage(resolveImageDisplayUrl(userProfile.profileImageUrl));
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [profileImage]);
 
   useEffect(() => {
     if (caseStatistics) {
@@ -509,8 +515,9 @@ export default function ProfileScreen() {
           throw new Error(uploadResult.message || 'Failed to upload image');
         }
 
-        setProfileImage(uploadResult.imageUrl || assetUri);
-        await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        queryClient.setQueryData(['userProfile'], uploadResult.profile);
+        setProfileImage(uploadResult.displayUrl);
+        setAvatarLoadFailed(false);
         Alert.alert('Success', 'Profile image updated successfully!');
       } catch (error: any) {
         console.error('Failed to upload profile image:', error);
@@ -625,9 +632,10 @@ export default function ProfileScreen() {
             setIsSaving(true);
             setSaveError(null);
             try {
-              await UserProfileService.deleteProfileImage();
-              await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+              const updatedProfile = await UserProfileService.deleteProfileImage();
+              queryClient.setQueryData(['userProfile'], updatedProfile);
               setProfileImage(null);
+              setAvatarLoadFailed(false);
               Alert.alert('Success', 'Profile image removed successfully!');
             } catch (error: any) {
               setSaveError(error.message || 'Failed to remove profile image');
@@ -973,6 +981,8 @@ export default function ProfileScreen() {
   const resolvedProfileName = resolveUserNameFields(profileNameFields);
   const displayName = getUserDisplayName(profileNameFields);
   const avatarInitial = getUserAvatarInitial(profileNameFields);
+  const avatarUri = profileImage ?? resolveImageDisplayUrl(userProfile?.profileImageUrl);
+  const showAvatarImage = Boolean(avatarUri) && !avatarLoadFailed;
   const headerEmail = userProfile?.email ?? user?.email;
   const memberSince = userProfile?.memberSince ?? user?.createdAt;
 
@@ -987,8 +997,17 @@ export default function ProfileScreen() {
       </View>
 
       <TouchableOpacity style={styles.profileAvatar} onPress={handleAvatarPress}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+        {showAvatarImage ? (
+          <Image
+            source={{ uri: avatarUri! }}
+            style={styles.avatarImage}
+            onError={() => {
+              if (__DEV__) {
+                console.warn('[PROFILE] Avatar image failed to load:', avatarUri);
+              }
+              setAvatarLoadFailed(true);
+            }}
+          />
         ) : (
           <Text style={styles.avatarText}>{avatarInitial}</Text>
         )}

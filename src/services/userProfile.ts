@@ -4,6 +4,7 @@ import { AuthService } from './auth';
 import { ValidationUtils } from '../utils/validation';
 import { isTimeoutError } from '../types/api';
 import { resolveLocalApiUser, refreshRemoteUserInBackground } from './localUserSession';
+import { resolveImageDisplayUrl } from '../utils/imageUrl';
 
 const PROFILE_FETCH_ATTEMPTS = 2;
 const PROFILE_FETCH_RETRY_DELAY_MS = 1500;
@@ -84,7 +85,11 @@ export interface ProfileUpdateData {
 
 export interface ProfileImageUploadResponse {
   success: boolean;
+  /** Blob URL persisted on the user profile */
   imageUrl: string;
+  /** URI suitable for React Native Image (API proxy for private blobs) */
+  displayUrl: string;
+  profile: UserProfile;
   message?: string;
 }
 
@@ -164,11 +169,22 @@ export class UserProfileService {
       const fileName = imageUri.split('/').pop() || 'profile.jpg';
       const { ImageUploadService } = await import('./imageUpload');
       const uploaded = await ImageUploadService.uploadImage(imageUri, fileName);
-      await this.updateProfile({ profileImageUrl: uploaded.url });
+      const profile = await this.updateProfile({ profileImageUrl: uploaded.url });
+      const displayUrl = resolveImageDisplayUrl(uploaded.url) ?? uploaded.url;
+
+      if (__DEV__) {
+        console.log('[PROFILE] Avatar uploaded:', {
+          blobUrl: uploaded.url,
+          displayUrl,
+          savedOnProfile: profile.profileImageUrl,
+        });
+      }
 
       return {
         success: true,
         imageUrl: uploaded.url,
+        displayUrl,
+        profile,
         message: 'Profile image uploaded successfully',
       };
     } catch (error: unknown) {
@@ -181,9 +197,9 @@ export class UserProfileService {
   /**
    * Delete profile image
    */
-  static async deleteProfileImage(): Promise<void> {
+  static async deleteProfileImage(): Promise<UserProfile> {
     try {
-      await this.updateProfile({ profileImageUrl: null });
+      return await this.updateProfile({ profileImageUrl: null });
     } catch (error: unknown) {
       console.error('Failed to delete profile image:', error);
       const message = error instanceof Error ? error.message : 'Failed to delete profile image';

@@ -4,8 +4,10 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
 export interface UploadedImage {
+  /** Permanent blob URL saved on the user/runner profile */
   url: string;
-  fileName?: string;
+  /** Short blob file name (used for API image proxy / SAS) */
+  fileName: string;
   size?: number;
 }
 
@@ -34,7 +36,12 @@ export class ImageUploadService {
     }>('/api/ImageUpload/upload', formData);
 
     const file = result.files?.[0];
-    if (!file?.url) {
+    const fileUrl = file?.url?.trim();
+    const fileName =
+      file?.fileName?.trim() ||
+      (fileUrl ? fileUrl.split('/').pop()?.split('?')[0] : undefined);
+
+    if (!fileUrl || !fileName) {
       throw new Error(result.message || 'Upload succeeded but no image URL was returned');
     }
 
@@ -43,8 +50,8 @@ export class ImageUploadService {
     }
 
     return {
-      url: file.url,
-      fileName: file.fileName,
+      url: fileUrl,
+      fileName,
       size: file.size,
     };
   }
