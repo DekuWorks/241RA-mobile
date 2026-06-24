@@ -441,26 +441,54 @@ export default function ProfileScreen() {
 
   const pickAndUploadProfileImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.85,
+      const source = await new Promise<'camera' | 'gallery' | 'cancel'>(resolve => {
+        Alert.alert('Profile Photo', 'Choose a photo source', [
+          { text: 'Camera', onPress: () => resolve('camera') },
+          { text: 'Photo Library', onPress: () => resolve('gallery') },
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+        ]);
       });
 
-      if (result.canceled || !result.assets[0]) {
+      if (source === 'cancel') {
         return;
       }
 
-      const asset = result.assets[0];
-      const fileName = asset.fileName || asset.uri.split('/').pop() || 'profile.jpg';
-      const fileValidation = ValidationUtils.validateProfileImage(fileName, asset.fileSize);
+      let assetUri: string;
+      let fileName: string;
+      let fileSize: number | undefined;
+
+      if (source === 'camera') {
+        const uri = await PhotoManager.takePhoto();
+        if (!uri) {
+          return;
+        }
+        assetUri = uri;
+        fileName = uri.split('/').pop() || 'profile.jpg';
+      } else {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.85,
+        });
+
+        if (result.canceled || !result.assets[0]) {
+          return;
+        }
+
+        const asset = result.assets[0];
+        assetUri = asset.uri;
+        fileName = asset.fileName || asset.uri.split('/').pop() || 'profile.jpg';
+        fileSize = asset.fileSize;
+      }
+
+      const fileValidation = ValidationUtils.validateProfileImage(fileName, fileSize);
       if (!fileValidation.isValid) {
         Alert.alert('Invalid Image', fileValidation.errors.join('\n'));
         return;
       }
 
-      const photoValidation = await PhotoManager.validateImage(asset.uri);
+      const photoValidation = await PhotoManager.validateImage(assetUri);
       if (!photoValidation.isValid) {
         Alert.alert('Invalid Image', photoValidation.errors.join('\n'));
         return;
@@ -476,12 +504,12 @@ export default function ProfileScreen() {
       setSaveError(null);
 
       try {
-        const uploadResult = await UserProfileService.uploadProfileImage(asset.uri);
+        const uploadResult = await UserProfileService.uploadProfileImage(assetUri);
         if (!uploadResult.success) {
           throw new Error(uploadResult.message || 'Failed to upload image');
         }
 
-        setProfileImage(uploadResult.imageUrl || asset.uri);
+        setProfileImage(uploadResult.imageUrl || assetUri);
         await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         Alert.alert('Success', 'Profile image updated successfully!');
       } catch (error: any) {

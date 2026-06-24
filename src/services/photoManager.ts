@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Platform, Alert } from 'react-native';
+import { File } from 'expo-file-system';
+import { Alert } from 'react-native';
 import {
   EnhancedRunnerPhoto,
   PhotoUploadOptions,
@@ -184,6 +184,14 @@ export class PhotoManager {
     }
   }
 
+  private static getFileMetadata(imageUri: string): { exists: boolean; size: number } {
+    const file = new File(imageUri);
+    return {
+      exists: file.exists,
+      size: file.size ?? 0,
+    };
+  }
+
   /**
    * Validate an image file
    */
@@ -192,15 +200,14 @@ export class PhotoManager {
     const warnings: string[] = [];
 
     try {
-      // Check if file exists
-      const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      if (!fileInfo.exists) {
+      const { exists, size } = this.getFileMetadata(imageUri);
+      if (!exists) {
         errors.push('File does not exist');
         return { isValid: false, errors, warnings };
       }
 
       // Check file size
-      if (fileInfo.size && fileInfo.size > this.options.maxFileSize) {
+      if (size > this.options.maxFileSize) {
         errors.push(
           `File size exceeds limit of ${Math.round(this.options.maxFileSize / 1024 / 1024)}MB`
         );
@@ -247,7 +254,7 @@ export class PhotoManager {
   ): Promise<ProcessedPhoto> {
     try {
       const dimensions = await this.getImageDimensions(imageUri);
-      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      const { size } = this.getFileMetadata(imageUri);
 
       let processedUri = imageUri;
 
@@ -277,7 +284,7 @@ export class PhotoManager {
       return {
         uri: processedUri,
         fileName: `processed_${Date.now()}.jpg`,
-        fileSize: fileInfo.size || 0,
+        fileSize: size,
         mimeType: 'image/jpeg',
         dimensions: dimensions || { width: 0, height: 0 },
       };
