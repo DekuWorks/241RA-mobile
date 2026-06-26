@@ -3,6 +3,7 @@ import { SecureTokenService } from './secureTokens';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
 import { ValidationUtils } from '../utils/validation';
 import { logOptionalProfileFailure } from '../types/api';
+import { resolveImageDisplayUrl } from '../utils/imageUrl';
 import {
   EnhancedRunnerProfile,
   CreateEnhancedRunnerProfileData,
@@ -55,11 +56,12 @@ function mapRunnerToProfile(runner: ApiRunner): EnhancedRunnerProfile {
     try {
       const urls: string[] = JSON.parse(runner.additionalImageUrls);
       urls.forEach((url, index) => {
+        const displayUrl = resolveImageDisplayUrl(url) ?? url;
         photos.push({
           id: `${runner.id}-${index}`,
           runnerProfileId: String(runner.id),
-          fileName: url.split('/').pop() || `photo-${index}`,
-          fileUrl: url,
+          fileName: url.split('/').pop()?.split('?')[0] || `photo-${index}`,
+          fileUrl: displayUrl,
           fileSize: 0,
           mimeType: 'image/jpeg',
           uploadedAt: runner.lastPhotoUpdate || runner.updatedAt || new Date().toISOString(),
@@ -265,25 +267,25 @@ export class EnhancedRunnerProfileService {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('photos', {
-        uri: photoUri,
-        type: 'image/jpeg',
-        name: `runner_photo_${Date.now()}.jpg`,
-      } as unknown as Blob);
+      const fileName = `runner_photo_${Date.now()}.jpg`;
+      const { ImageUploadService } = await import('./imageUpload');
+      const uploaded = await ImageUploadService.uploadImage(photoUri, fileName);
 
-      const data = await ApiClient.uploadFile<{
+      onProgress?.(90);
+
+      const data = await ApiClient.post<{
         success?: boolean;
         uploadedUrls?: string[];
         message?: string;
-      }>(`/api/v1/enhanced-runner/${runnerId}/photos?photoType=Additional`, formData, onProgress
-        ? progressEvent => {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            onProgress(progress);
-          }
-        : undefined);
+      }>(`/api/v1/enhanced-runner/${runnerId}/photo-urls`, {
+        photoUrls: [uploaded.url],
+        photoType: 'Additional',
+      });
 
-      const url = data.uploadedUrls?.[0];
+      onProgress?.(100);
+
+      const url = data.uploadedUrls?.[0] ?? uploaded.url;
+      const displayUrl = resolveImageDisplayUrl(url) ?? url;
       if (!url) {
         return { success: false, error: data.message || 'Photo upload failed' };
       }
@@ -293,9 +295,9 @@ export class EnhancedRunnerProfileService {
         photo: {
           id: `${runnerId}-${Date.now()}`,
           runnerProfileId: String(runnerId),
-          fileName: url.split('/').pop() || 'photo.jpg',
-          fileUrl: url,
-          fileSize: 0,
+          fileName: uploaded.fileName || url.split('/').pop()?.split('?')[0] || 'photo.jpg',
+          fileUrl: displayUrl,
+          fileSize: uploaded.size ?? 0,
           mimeType: 'image/jpeg',
           uploadedAt: new Date().toISOString(),
           isPrimary: false,
