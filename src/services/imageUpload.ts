@@ -37,11 +37,11 @@ export class ImageUploadService {
 
     const file = result.files?.[0];
     const fileUrl = file?.url?.trim();
-    const fileName =
+    const uploadedFileName =
       file?.fileName?.trim() ||
       (fileUrl ? fileUrl.split('/').pop()?.split('?')[0] : undefined);
 
-    if (!fileUrl || !fileName) {
+    if (!fileUrl || !uploadedFileName) {
       throw new Error(result.message || 'Upload succeeded but no image URL was returned');
     }
 
@@ -51,7 +51,7 @@ export class ImageUploadService {
 
     return {
       url: fileUrl,
-      fileName,
+      fileName: uploadedFileName,
       size: file.size,
     };
   }
