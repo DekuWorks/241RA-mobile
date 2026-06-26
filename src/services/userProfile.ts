@@ -2,7 +2,7 @@ import { ApiClient } from './apiClient';
 import { mapApiUserToProfile, unwrapApiUser } from './apiUserMapper';
 import { AuthService } from './auth';
 import { ValidationUtils } from '../utils/validation';
-import { isTimeoutError } from '../types/api';
+import { isTimeoutError, logOptionalProfileFailure } from '../types/api';
 import { resolveLocalApiUser, refreshRemoteUserInBackground } from './localUserSession';
 import { resolveImageDisplayUrl } from '../utils/imageUrl';
 
@@ -263,7 +263,7 @@ export class UserProfileService {
         resolvedCases,
       };
     } catch (error: unknown) {
-      console.error('Failed to get case statistics:', error);
+      logOptionalProfileFailure('Case statistics unavailable', error);
       return {
         totalCases: 0,
         activeCases: 0,
@@ -288,7 +288,7 @@ export class UserProfileService {
 
       return Boolean(data.hasProfile);
     } catch (error: unknown) {
-      console.error('Failed to check runner profile:', error);
+      logOptionalProfileFailure('Runner profile check unavailable', error);
       return false;
     }
   }

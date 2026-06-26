@@ -114,6 +114,21 @@ export function isTimeoutError(error: unknown): boolean {
   return code === 'ECONNABORTED' || message.includes('timeout');
 }
 
+export function isServerError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.status >= 500;
+}
+
+/** Log optional profile enrichment failures without spamming LogBox in production. */
+export function logOptionalProfileFailure(context: string, error: unknown): void {
+  if (isTimeoutError(error)) {
+    return;
+  }
+
+  if (__DEV__) {
+    console.warn(`[PROFILE] ${context}:`, error);
+  }
+}
+
 /** Azure cold starts can surface as client timeouts or server 5xx after ~30s DB wake-up. */
 export function isRetryableLoginError(error: unknown): boolean {
   if (isTimeoutError(error)) {

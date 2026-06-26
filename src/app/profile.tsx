@@ -27,7 +27,7 @@ import { EnhancedRunnerProfileService } from '../services/enhancedRunnerProfile'
 import { PhotoManager } from '../services/photoManager';
 import { ValidationUtils } from '../utils/validation';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
-import { isTimeoutError } from '../types/api';
+import { isTimeoutError, isServerError } from '../types/api';
 import {
   getUserAvatarInitial,
   getUserDisplayName,
@@ -152,20 +152,37 @@ export default function ProfileScreen() {
     queryKey: ['caseStatistics'],
     queryFn: UserProfileService.getCaseStatistics,
     enabled: !!user,
+    retry: (failureCount, queryError) =>
+      !isServerError(queryError) && !isTimeoutError(queryError) && failureCount < 1,
   });
 
   const { data: runnerProfileExists } = useQuery({
     queryKey: ['runnerProfileExists'],
     queryFn: UserProfileService.hasRunnerProfile,
     enabled: !!user,
+    retry: (failureCount, queryError) =>
+      !isServerError(queryError) && !isTimeoutError(queryError) && failureCount < 1,
   });
 
-  const { data: enhancedRunnerProfile } = useQuery({
+  const {
+    data: enhancedRunnerProfile,
+    isFetched: isEnhancedRunnerFetched,
+    isFetching: isEnhancedRunnerFetching,
+  } = useQuery({
     queryKey: ['enhancedRunnerProfile'],
     queryFn: EnhancedRunnerProfileService.getRunnerProfile,
     enabled: !!user && !!runnerProfileExists,
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, queryError) =>
+      !isServerError(queryError) && !isTimeoutError(queryError) && failureCount < 1,
   });
+
+  const runnerProfileUnavailable =
+    !!runnerProfileExists &&
+    isEnhancedRunnerFetched &&
+    !isEnhancedRunnerFetching &&
+    !enhancedRunnerProfile &&
+    !runnerProfile;
 
   useEffect(() => {
     if (!user) {
@@ -1414,6 +1431,14 @@ export default function ProfileScreen() {
               </View>
             </View>
           )}
+        </View>
+      ) : runnerProfileUnavailable ? (
+        <View style={styles.noProfileContainer}>
+          <Text style={styles.noProfileText}>Runner profile details are temporarily unavailable.</Text>
+          <Text style={styles.noProfileDescription}>
+            Your account profile and photo are still saved. Try again later or contact support if this
+            continues.
+          </Text>
         </View>
       ) : (
         <View style={styles.noProfileContainer}>

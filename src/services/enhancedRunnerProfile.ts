@@ -2,6 +2,7 @@ import { ApiClient } from './apiClient';
 import { SecureTokenService } from './secureTokens';
 import { RunnerValidationUtils } from '../utils/runnerValidation';
 import { ValidationUtils } from '../utils/validation';
+import { logOptionalProfileFailure } from '../types/api';
 import {
   EnhancedRunnerProfile,
   CreateEnhancedRunnerProfileData,
@@ -153,9 +154,8 @@ export class EnhancedRunnerProfileService {
 
       return mapRunnerToProfile(runner);
     } catch (error: unknown) {
-      console.error('Failed to get enhanced runner profile:', error);
-      const message = error instanceof Error ? error.message : 'Failed to load runner profile';
-      throw new Error(message);
+      logOptionalProfileFailure('Enhanced runner profile unavailable', error);
+      return null;
     }
   }
 
