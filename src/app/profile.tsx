@@ -1646,7 +1646,11 @@ export default function ProfileScreen() {
         <Text style={styles.menuItemText}>Map View</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/report-sighting')}>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/report-case')}>
+        <Text style={styles.menuItemText}>Report Case</Text>
+        <Text style={styles.menuItemArrow}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cases')}>
         <Text style={styles.menuItemText}>Report Sighting</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>

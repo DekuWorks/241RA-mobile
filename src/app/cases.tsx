@@ -116,6 +116,9 @@ export default function CasesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Cases</Text>
         <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => router.push('/report-case')} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>Report</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/map')} style={styles.headerButton}>
             <Text style={styles.headerButtonText}>Map</Text>
           </TouchableOpacity>

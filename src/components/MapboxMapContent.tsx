@@ -29,7 +29,7 @@ export default function MapboxMapContent() {
     refetch,
   } = useQuery({
     queryKey: ['cases', 'map'],
-    queryFn: () => CasesService.getCases({ limit: 100 }),
+    queryFn: () => CasesService.getMapCases(),
     enabled: !!userCoordinate,
   });
 
@@ -167,7 +167,7 @@ export default function MapboxMapContent() {
         />
         <LocationPuck puckBearingEnabled />
 
-        {casesData?.cases.map(caseData => (
+        {casesData?.map(caseData => (
           <PointAnnotation
             key={caseData.id}
             id={caseData.id}

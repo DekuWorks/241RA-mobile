@@ -1,6 +1,9 @@
+import axios from 'axios';
 import { ApiClient } from './apiClient';
+import { ENV } from '../config/env';
 import { ImageUploadService } from './imageUpload';
 import { ValidationUtils } from '../utils/validation';
+import { AuthService } from './auth';
 
 export interface Case {
   id: string;
@@ -43,6 +46,29 @@ export interface CaseFilters {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface CreateCaseData {
+  individualId: string;
+  title: string;
+  description?: string;
+  lastSeenLocation: string;
+  latitude?: number;
+  longitude?: number;
+  status?: string;
+  additionalInfo?: string;
+}
+
+export interface PublicMapCase {
+  id: string | number;
+  publicDisplayName?: string;
+  displayName?: string;
+  status?: string;
+  latitude: number;
+  longitude: number;
+  lastSeenCity?: string;
+  lastSeenState?: string;
+  updatedAt?: string;
 }
 
 export interface CreateSightingData {
@@ -95,9 +121,83 @@ export class CasesService {
     return data;
   }
 
-  static async createCase(caseData: Partial<Case>): Promise<Case> {
-    const data = await ApiClient.post('/api/v1/cases', caseData);
+  static async createCase(caseData: CreateCaseData): Promise<Case> {
+    const validation = ValidationUtils.validateCase(caseData);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('\n'));
+    }
+
+    const payload = {
+      individualId: caseData.individualId.startsWith('ind_')
+        ? caseData.individualId
+        : `ind_${caseData.individualId}`,
+      title: ValidationUtils.sanitizeInput(caseData.title.trim()),
+      description: caseData.description
+        ? ValidationUtils.sanitizeInput(caseData.description.trim())
+        : undefined,
+      status: caseData.status ?? 'open',
+      lastSeenLocation: ValidationUtils.sanitizeInput(caseData.lastSeenLocation.trim()),
+      latitude: caseData.latitude,
+      longitude: caseData.longitude,
+      additionalInfo: caseData.additionalInfo
+        ? ValidationUtils.sanitizeInput(caseData.additionalInfo.trim())
+        : undefined,
+    };
+
+    const data = await ApiClient.post('/api/v1/cases', payload);
     return data;
+  }
+
+  static async getMyCases(
+    page = 1,
+    pageSize = 50
+  ): Promise<{ cases: Case[]; total: number }> {
+    const data = await ApiClient.get<{ cases?: Case[]; total?: number }>(
+      `/api/v1/cases/my-cases?page=${page}&pageSize=${pageSize}`
+    );
+    return { cases: data.cases ?? [], total: data.total ?? 0 };
+  }
+
+  /**
+   * Public missing cases for map — no auth required (matches website map)
+   */
+  static async getPublicMapCases(): Promise<Case[]> {
+    const response = await axios.get<PublicMapCase[]>(
+      `${ENV.API_URL}/api/public/map/missing`,
+      { timeout: 30000 }
+    );
+    const items = Array.isArray(response.data) ? response.data : [];
+
+    return items.map(item => ({
+      id: String(item.id),
+      title: item.publicDisplayName ?? item.displayName ?? `Case #${item.id}`,
+      description: '',
+      status: 'missing' as Case['status'],
+      priority: 'medium' as Case['priority'],
+      location: {
+        latitude: item.latitude,
+        longitude: item.longitude,
+        city: item.lastSeenCity,
+        state: item.lastSeenState,
+      },
+      reportedBy: { id: '', name: '', email: '' },
+      reportedAt: item.updatedAt ?? new Date().toISOString(),
+      isPublic: true,
+      updatedAt: item.updatedAt ?? new Date().toISOString(),
+    }));
+  }
+
+  static async getMapCases(): Promise<Case[]> {
+    const isAuthenticated = await AuthService.isAuthenticated();
+    if (isAuthenticated) {
+      try {
+        const data = await CasesService.getCases({ limit: 100 });
+        return data.cases;
+      } catch {
+        // Fall back to public data if authenticated request fails
+      }
+    }
+    return CasesService.getPublicMapCases();
   }
 
   static async updateCase(id: string, updates: Partial<Case>): Promise<Case> {

@@ -297,6 +297,55 @@ export class ValidationUtils {
   }
 
   /**
+   * Validate case report before API submission
+   */
+  static validateCase(data: {
+    individualId?: string;
+    title: string;
+    description?: string;
+    lastSeenLocation: string;
+    latitude?: number;
+    longitude?: number;
+  }): ValidationResult {
+    const errors: string[] = [];
+
+    if (!data.individualId?.trim()) {
+      errors.push('A runner profile is required. Please create one in your profile first.');
+    } else if (!/^ind_\d+$/.test(data.individualId.trim())) {
+      errors.push('Invalid runner profile ID');
+    }
+
+    const title = data.title?.trim() ?? '';
+    if (!title) {
+      errors.push('Title is required');
+    } else if (title.length > 200) {
+      errors.push('Title cannot exceed 200 characters');
+    }
+
+    const description = data.description?.trim() ?? '';
+    if (description.length > 2000) {
+      errors.push('Description cannot exceed 2000 characters');
+    }
+
+    const location = data.lastSeenLocation?.trim() ?? '';
+    if (!location) {
+      errors.push('Last seen location is required');
+    } else if (location.length > 500) {
+      errors.push('Location is too long (max 500 characters)');
+    }
+
+    if (data.latitude !== undefined && (Number.isNaN(data.latitude) || data.latitude < -90 || data.latitude > 90)) {
+      errors.push('Valid latitude is required');
+    }
+
+    if (data.longitude !== undefined && (Number.isNaN(data.longitude) || data.longitude < -180 || data.longitude > 180)) {
+      errors.push('Valid longitude is required');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
    * Validate profile update payload before API submission
    */
   static validateProfileUpdate(data: {
