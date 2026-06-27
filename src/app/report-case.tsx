@@ -121,7 +121,7 @@ export default function ReportCaseScreen() {
         lastSeenLocation: lastSeenLocation.trim(),
         latitude: location?.coords.latitude,
         longitude: location?.coords.longitude,
-        status: 'open',
+        status: 'Missing',
       };
 
       await CasesService.createCase(caseData);

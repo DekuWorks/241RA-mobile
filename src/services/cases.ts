@@ -135,7 +135,7 @@ export class CasesService {
       description: caseData.description
         ? ValidationUtils.sanitizeInput(caseData.description.trim())
         : undefined,
-      status: caseData.status ?? 'open',
+      status: caseData.status ?? 'Missing',
       lastSeenLocation: ValidationUtils.sanitizeInput(caseData.lastSeenLocation.trim()),
       latitude: caseData.latitude,
       longitude: caseData.longitude,
