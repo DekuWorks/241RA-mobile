@@ -1,37 +1,75 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import Mapbox, { Camera, MapView, LocationPuck, PointAnnotation } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { CasesService, Case } from '../services/cases';
+import { CasesService, PublicMapCase } from '../services/cases';
 import { ENV } from '../config/env';
+import { MAP_CONFIG, getMapStatusColor } from '../constants/mapConfig';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const DEFAULT_CENTER: [number, number] = [-95.3698, 29.7604];
+const DEFAULT_CENTER: [number, number] = [
+  MAP_CONFIG.DEFAULT_CENTER.lng,
+  MAP_CONFIG.DEFAULT_CENTER.lat,
+];
 
 if (ENV.MAPBOX_ACCESS_TOKEN) {
   Mapbox.setAccessToken(ENV.MAPBOX_ACCESS_TOKEN);
 }
 
+function formatLastSeen(dateStr: string | null): string {
+  if (!dateStr) return 'Unknown';
+  try {
+    return new Date(dateStr).toLocaleDateString();
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function MapboxMapContent() {
+  const { case: deepLinkCaseId } = useLocalSearchParams<{ case?: string }>();
   const cameraRef = useRef<Camera>(null);
-  const [userCoordinate, setUserCoordinate] = useState<[number, number] | null>(null);
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [selectedCase, setSelectedCase] = useState<PublicMapCase | null>(null);
   const [cameraCenter, setCameraCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [cameraZoom, setCameraZoom] = useState(10);
+  const [cameraZoom, setCameraZoom] = useState(MAP_CONFIG.DEFAULT_ZOOM);
 
   const {
-    data: casesData,
+    data: allCases = [],
     error,
     refetch,
+    isLoading,
+    isFetching,
   } = useQuery({
-    queryKey: ['cases', 'map'],
-    queryFn: () => CasesService.getMapCases(),
-    enabled: !!userCoordinate,
+    queryKey: ['publicMapCases'],
+    queryFn: () => CasesService.getPublicMapCases(),
   });
+
+  const filteredCases = allCases;
+
+  const stats = useMemo(() => {
+    const data = filteredCases;
+    const thirtyDaysAgo = Date.now() - 30 * 86400000;
+    return {
+      total: data.length,
+      missing: data.filter(c => c.status === 'missing').length,
+      found: data.filter(c => c.status === 'found').length,
+      safe: data.filter(c => c.status === 'safe').length,
+      urgent: data.filter(c => c.status === 'urgent').length,
+      recent: data.filter(c => c.updatedAt && new Date(c.updatedAt).getTime() >= thirtyDaysAgo)
+        .length,
+    };
+  }, [filteredCases]);
 
   const flyTo = useCallback((coordinate: [number, number], zoom = 12) => {
     setCameraCenter(coordinate);
@@ -43,92 +81,98 @@ export default function MapboxMapContent() {
     });
   }, []);
 
-  const getCurrentLocation = useCallback(async () => {
+  const focusHouston = useCallback(() => {
+    flyTo(DEFAULT_CENTER, MAP_CONFIG.DEFAULT_ZOOM);
+  }, [flyTo]);
+
+  const centerOnCases = useCallback(() => {
+    if (!filteredCases.length) return;
+    if (filteredCases.length === 1) {
+      const c = filteredCases[0];
+      flyTo([c.longitude, c.latitude], 14);
+      return;
+    }
+    const lngs = filteredCases.map(c => c.longitude);
+    const lats = filteredCases.map(c => c.latitude);
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const span = Math.max(lngSpan, latSpan);
+    const zoom = span > 2 ? 6 : span > 0.5 ? 8 : span > 0.1 ? 10 : 12;
+    flyTo([centerLng, centerLat], zoom);
+  }, [filteredCases, flyTo]);
+
+  const requestUserLocation = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Permission Required',
-          'Please enable location access to view cases on the map.'
-        );
-        return;
-      }
+      if (status !== 'granted') return;
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-
-      const coordinate: [number, number] = [
-        location.coords.longitude,
-        location.coords.latitude,
-      ];
-      setUserCoordinate(coordinate);
-      flyTo(coordinate, 12);
+      flyTo([location.coords.longitude, location.coords.latitude], 12);
     } catch (locationError) {
-      console.error('Error getting location:', locationError);
+      console.warn('Error getting location:', locationError);
     }
   }, [flyTo]);
 
   useEffect(() => {
-    getCurrentLocation();
-  }, [getCurrentLocation]);
+    requestUserLocation();
+  }, [requestUserLocation]);
 
-  const handleMarkerPress = (caseData: Case) => {
+  useEffect(() => {
+    if (!deepLinkCaseId || !allCases.length) return;
+    const match = allCases.find(c => c.id === deepLinkCaseId);
+    if (match) {
+      flyTo([match.longitude, match.latitude], 14);
+      setSelectedCase(match);
+    }
+  }, [deepLinkCaseId, allCases, flyTo]);
+
+  const handleMarkerPress = (caseData: PublicMapCase) => {
     setSelectedCase(caseData);
   };
 
-  const handleCasePress = () => {
+  const handleViewCase = () => {
     if (selectedCase) {
       router.push(`/cases/${selectedCase.id}`);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'missing':
-        return colors.status.missing;
-      case 'urgent':
-        return colors.status.urgent;
-      case 'resolved':
-        return colors.status.resolved;
-      case 'found':
-        return colors.status.found;
-      default:
-        return colors.gray[500];
     }
   };
 
   const renderCaseInfo = () => {
     if (!selectedCase) return null;
 
+    const statusColor = getMapStatusColor(selectedCase.status);
+
     return (
       <View style={styles.caseInfo}>
         <View style={styles.caseInfoHeader}>
           <Text style={styles.caseTitle} numberOfLines={2}>
-            {selectedCase.title}
+            {selectedCase.displayName}
           </Text>
-          <TouchableOpacity onPress={() => setSelectedCase(null)}>
+          <TouchableOpacity onPress={() => setSelectedCase(null)} hitSlop={8}>
             <Text style={styles.closeButton}>×</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.caseMeta}>
-          <View
-            style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedCase.status) }]}
-          >
+          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Text style={styles.statusText}>{selectedCase.status.toUpperCase()}</Text>
           </View>
-          <Text style={styles.caseDate}>
-            {new Date(selectedCase.reportedAt).toLocaleDateString()}
-          </Text>
         </View>
 
-        <Text style={styles.caseDescription} numberOfLines={3}>
-          {selectedCase.description}
+        <Text style={styles.caseDetailRow}>
+          <Text style={styles.caseDetailLabel}>Location: </Text>
+          {selectedCase.lastSeenCityState}
+        </Text>
+        <Text style={styles.caseDetailRow}>
+          <Text style={styles.caseDetailLabel}>Last seen: </Text>
+          {formatLastSeen(selectedCase.updatedAt)}
         </Text>
 
-        <TouchableOpacity style={styles.viewCaseButton} onPress={handleCasePress}>
-          <Text style={styles.viewCaseButtonText}>View Details</Text>
+        <TouchableOpacity style={styles.viewCaseButton} onPress={handleViewCase}>
+          <Text style={styles.viewCaseButtonText}>View case details</Text>
         </TouchableOpacity>
       </View>
     );
@@ -137,7 +181,8 @@ export default function MapboxMapContent() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load cases</Text>
+        <Text style={styles.errorText}>Failed to load map data</Text>
+        <Text style={styles.errorSubtext}>Please try again later.</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -151,64 +196,93 @@ export default function MapboxMapContent() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cases Map</Text>
-        <TouchableOpacity onPress={getCurrentLocation}>
+        <Text style={styles.headerTitle}>Missing Cases Map</Text>
+        <TouchableOpacity onPress={requestUserLocation}>
           <Text style={styles.locationButton}>📍</Text>
         </TouchableOpacity>
       </View>
 
-      <MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
-        <Camera
-          ref={cameraRef}
-          centerCoordinate={cameraCenter}
-          zoomLevel={cameraZoom}
-          animationMode="flyTo"
-          animationDuration={600}
-        />
-        <LocationPuck puckBearingEnabled />
+      <View style={styles.controls}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.controlsRow}>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => refetch()} disabled={isFetching}>
+            <Text style={styles.controlBtnText}>{isFetching ? '…' : '🔄 Refresh'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn} onPress={focusHouston}>
+            <Text style={styles.controlBtnText}>🏙️ Houston</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtnSecondary} onPress={centerOnCases}>
+            <Text style={styles.controlBtnText}>🎯 Center</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
-        {casesData?.map(caseData => (
-          <PointAnnotation
-            key={caseData.id}
-            id={caseData.id}
-            coordinate={[caseData.location.longitude, caseData.location.latitude]}
-            onSelected={() => handleMarkerPress(caseData)}
-          >
-            <View
-              style={[styles.marker, { backgroundColor: getStatusColor(caseData.status) }]}
-            />
-          </PointAnnotation>
-        ))}
-
-        {userCoordinate && (
-          <PointAnnotation id="user-location" coordinate={userCoordinate}>
-            <View style={[styles.marker, styles.userMarker]} />
-          </PointAnnotation>
+      <View style={styles.mapWrapper}>
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <Text style={styles.loadingText}>Loading map data…</Text>
+          </View>
         )}
-      </MapView>
+
+        <MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
+          <Camera
+            ref={cameraRef}
+            centerCoordinate={cameraCenter}
+            zoomLevel={cameraZoom}
+            animationMode="flyTo"
+            animationDuration={600}
+          />
+          <LocationPuck puckBearingEnabled />
+
+          {filteredCases.map(caseData => (
+            <PointAnnotation
+              key={caseData.id}
+              id={caseData.id}
+              coordinate={[caseData.longitude, caseData.latitude]}
+              onSelected={() => handleMarkerPress(caseData)}
+            >
+              <View
+                style={[
+                  styles.marker,
+                  { backgroundColor: getMapStatusColor(caseData.status) },
+                ]}
+              />
+            </PointAnnotation>
+          ))}
+        </MapView>
+
+        {!isLoading && filteredCases.length === 0 && (
+          <View style={styles.noDataBanner}>
+            <Text style={styles.noDataText}>No missing cases with map location available.</Text>
+          </View>
+        )}
+
+        {filteredCases.length > 0 && (
+          <View style={styles.approxBanner}>
+            <Text style={styles.approxBannerText}>
+              Map locations are approximate. Cases without a reported location are shown in the
+              general Houston area.
+            </Text>
+          </View>
+        )}
+      </View>
 
       {renderCaseInfo()}
 
+      <View style={styles.statsBar}>
+        <Text style={styles.statsText}>
+          {stats.total} cases · {stats.missing} missing · {stats.urgent} urgent
+        </Text>
+      </View>
+
       <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Status Legend:</Text>
-        <View style={styles.legendItems}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.missing }]} />
-            <Text style={styles.legendText}>Missing</Text>
+        <Text style={styles.legendTitle}>Status</Text>
+        {(['missing', 'found', 'safe', 'urgent'] as const).map(status => (
+          <View key={status} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: getMapStatusColor(status) }]} />
+            <Text style={styles.legendText}>{status.charAt(0).toUpperCase() + status.slice(1)}</Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.urgent }]} />
-            <Text style={styles.legendText}>Urgent</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.resolved }]} />
-            <Text style={styles.legendText}>Resolved</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.status.found }]} />
-            <Text style={styles.legendText}>Found</Text>
-          </View>
-        </View>
+        ))}
       </View>
     </View>
   );
@@ -234,33 +308,99 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   headerTitle: {
-    fontSize: typography.sizes.xl,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     color: colors.textOnHeader,
   },
   locationButton: {
     fontSize: typography.sizes.lg,
   },
+  controls: {
+    backgroundColor: colors.header,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  controlBtn: {
+    backgroundColor: colors.primary[600],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+  },
+  controlBtnSecondary: {
+    backgroundColor: colors.gray[700],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+  },
+  controlBtnText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+  },
+  mapWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
   map: {
-    width: width,
-    height: height - 200,
+    flex: 1,
+    width,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  loadingText: {
+    marginTop: spacing.sm,
+    color: colors.textMuted,
+    fontSize: typography.sizes.sm,
   },
   marker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: colors.white,
   },
-  userMarker: {
-    backgroundColor: colors.primary[600],
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  noDataBanner: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    left: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    ...shadows.card,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: colors.textMuted,
+    fontStyle: 'italic',
+  },
+  approxBanner: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: '#fef3c7',
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+  },
+  approxBannerText: {
+    fontSize: typography.sizes.xs,
+    color: '#92400e',
+    textAlign: 'center',
   },
   caseInfo: {
     position: 'absolute',
-    bottom: 120,
+    bottom: 48,
     left: spacing.lg,
     right: spacing.lg,
     backgroundColor: colors.surface,
@@ -279,7 +419,7 @@ const styles = StyleSheet.create({
   caseTitle: {
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
-    color: colors.text,
+    color: colors.primary[600],
     flex: 1,
     marginRight: spacing.sm,
   },
@@ -290,8 +430,6 @@ const styles = StyleSheet.create({
   },
   caseMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: spacing.sm,
   },
   statusBadge: {
@@ -304,30 +442,41 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.white,
   },
-  caseDate: {
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-  },
-  caseDescription: {
+  caseDetailRow: {
     fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginBottom: spacing.md,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  caseDetailLabel: {
+    fontWeight: typography.weights.semibold,
   },
   viewCaseButton: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: colors.info[500],
     padding: spacing.sm,
     borderRadius: radii.md,
     alignItems: 'center',
+    marginTop: spacing.sm,
   },
   viewCaseButtonText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
     color: colors.white,
   },
+  statsBar: {
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statsText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
   legend: {
     position: 'absolute',
-    top: 100,
+    top: 120,
     right: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
@@ -342,18 +491,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.sm,
   },
-  legendItems: {
-    gap: spacing.xs,
-  },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   legendDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.white,
   },
   legendText: {
     fontSize: typography.sizes.xs,
@@ -364,11 +513,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: colors.bg,
   },
   errorText: {
     fontSize: typography.sizes.lg,
     color: colors.error,
     marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   retryButton: {

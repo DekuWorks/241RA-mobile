@@ -3,8 +3,6 @@ import { ApiClient } from './apiClient';
 import { ENV } from '../config/env';
 import { ImageUploadService } from './imageUpload';
 import { ValidationUtils } from '../utils/validation';
-import { AuthService } from './auth';
-
 export interface Case {
   id: string;
   title: string;
@@ -59,16 +57,34 @@ export interface CreateCaseData {
   additionalInfo?: string;
 }
 
-export interface PublicMapCase {
+export interface PublicMapCaseRaw {
   id: string | number;
   publicDisplayName?: string;
   displayName?: string;
+  fullName?: string;
   status?: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  photoUrl?: string | null;
   lastSeenCity?: string;
   lastSeenState?: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
+}
+
+/** Normalized public map marker — matches website publicMapApi.normalizeMapItem */
+export interface PublicMapCase {
+  id: string;
+  displayName: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  photoUrl: string | null;
+  lastSeenCity: string;
+  lastSeenState: string;
+  lastSeenCityState: string;
+  updatedAt: string | null;
 }
 
 export interface CreateSightingData {
@@ -158,45 +174,51 @@ export class CasesService {
     return { cases: data.cases ?? [], total: data.total ?? 0 };
   }
 
+  /** Normalize raw API item — same logic as website js/publicMapApi.js */
+  static normalizePublicMapItem(item: PublicMapCaseRaw): PublicMapCase | null {
+    const lat = item.latitude ?? item.lat;
+    const lng = item.longitude ?? item.lng;
+    if (lat == null || lng == null) return null;
+
+    const displayName =
+      item.publicDisplayName ??
+      item.displayName ??
+      item.fullName ??
+      `Case #${item.id}`;
+
+    return {
+      id: String(item.id),
+      displayName,
+      status: (item.status || 'missing').toLowerCase(),
+      latitude: lat,
+      longitude: lng,
+      photoUrl: item.photoUrl || null,
+      lastSeenCity: item.lastSeenCity || '',
+      lastSeenState: item.lastSeenState || '',
+      lastSeenCityState:
+        [item.lastSeenCity, item.lastSeenState].filter(Boolean).join(', ') || 'Unknown',
+      updatedAt: item.updatedAt || null,
+    };
+  }
+
   /**
    * Public missing cases for map — no auth required (matches website map)
+   * GET /api/public/map/missing
    */
-  static async getPublicMapCases(): Promise<Case[]> {
-    const response = await axios.get<PublicMapCase[]>(
+  static async getPublicMapCases(): Promise<PublicMapCase[]> {
+    const response = await axios.get<PublicMapCaseRaw[]>(
       `${ENV.API_URL}/api/public/map/missing`,
       { timeout: 30000 }
     );
     const items = Array.isArray(response.data) ? response.data : [];
 
-    return items.map(item => ({
-      id: String(item.id),
-      title: item.publicDisplayName ?? item.displayName ?? `Case #${item.id}`,
-      description: '',
-      status: 'missing' as Case['status'],
-      priority: 'medium' as Case['priority'],
-      location: {
-        latitude: item.latitude,
-        longitude: item.longitude,
-        city: item.lastSeenCity,
-        state: item.lastSeenState,
-      },
-      reportedBy: { id: '', name: '', email: '' },
-      reportedAt: item.updatedAt ?? new Date().toISOString(),
-      isPublic: true,
-      updatedAt: item.updatedAt ?? new Date().toISOString(),
-    }));
+    return items
+      .map(item => CasesService.normalizePublicMapItem(item))
+      .filter((item): item is PublicMapCase => item != null);
   }
 
-  static async getMapCases(): Promise<Case[]> {
-    const isAuthenticated = await AuthService.isAuthenticated();
-    if (isAuthenticated) {
-      try {
-        const data = await CasesService.getCases({ limit: 100 });
-        return data.cases;
-      } catch {
-        // Fall back to public data if authenticated request fails
-      }
-    }
+  /** @deprecated Use getPublicMapCases — map always uses the public endpoint like the website */
+  static async getMapCases(): Promise<PublicMapCase[]> {
     return CasesService.getPublicMapCases();
   }
 

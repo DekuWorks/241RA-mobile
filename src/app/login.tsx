@@ -200,6 +200,10 @@ export default function LoginScreen() {
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={styles.guestMapButton} onPress={() => router.push('/map')}>
+            <Text style={styles.guestMapButtonText}>View Public Map (no login required)</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -307,6 +311,18 @@ const styles = StyleSheet.create({
   signupLink: {
     fontSize: typography.sizes.sm,
     color: colors.primary[600],
+    fontWeight: typography.weights.semibold,
+  },
+  guestMapButton: {
+    alignItems: 'center',
+    marginTop: spacing.xl,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  guestMapButtonText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
     fontWeight: typography.weights.semibold,
   },
 });
