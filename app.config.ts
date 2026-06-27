@@ -19,6 +19,9 @@ const config: ExpoConfig = {
     bundleIdentifier: 'org.runners241.app',
     appleTeamId: process.env.APPLE_TEAM_ID,
     supportsTablet: true,
+    config: {
+      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    },
     entitlements: {
       'aps-environment': 'development',
       'com.apple.developer.associated-domains': ['applinks:241runnersawareness.org'],
@@ -45,6 +48,11 @@ const config: ExpoConfig = {
     package: 'org.runners241.app',
     adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#ff0000' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+    config: {
+      googleMaps: {
+        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+      },
+    },
   },
   plugins: [
     'expo-router',
@@ -82,9 +90,9 @@ const config: ExpoConfig = {
       },
     ],
     [
-      '@rnmapbox/maps',
+      'react-native-maps',
       {
-        RNMapboxMapsVersion: '11.20.1',
+        googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
       },
     ],
   ],
@@ -96,7 +104,7 @@ const config: ExpoConfig = {
     EXPO_PUBLIC_ENABLE_CRASH: 'true',
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
+    googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   },

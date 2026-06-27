@@ -1,4 +1,4 @@
-/** Shared map settings — aligned with website mapbox-config.js */
+/** Shared map settings — aligned with website google-maps-config.js */
 export const MAP_CONFIG = {
   DEFAULT_CENTER: {
     lat: 29.7604,

@@ -8,24 +8,30 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import Mapbox, { Camera, MapView, LocationPuck, PointAnnotation } from '@rnmapbox/maps';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { CasesService, PublicMapCase } from '../services/cases';
-import { ENV } from '../config/env';
 import { MAP_CONFIG, getMapStatusColor } from '../constants/mapConfig';
 
 const { width } = Dimensions.get('window');
 
-const DEFAULT_CENTER: [number, number] = [
-  MAP_CONFIG.DEFAULT_CENTER.lng,
-  MAP_CONFIG.DEFAULT_CENTER.lat,
-];
+const DEFAULT_REGION: Region = {
+  latitude: MAP_CONFIG.DEFAULT_CENTER.lat,
+  longitude: MAP_CONFIG.DEFAULT_CENTER.lng,
+  latitudeDelta: 0.35,
+  longitudeDelta: 0.35,
+};
 
-if (ENV.MAPBOX_ACCESS_TOKEN) {
-  Mapbox.setAccessToken(ENV.MAPBOX_ACCESS_TOKEN);
+function zoomToDelta(zoom: number): number {
+  return 360 / Math.pow(2, zoom + 1);
+}
+
+function regionFromCenterZoom(lat: number, lng: number, zoom: number): Region {
+  const delta = zoomToDelta(zoom);
+  return { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta };
 }
 
 function formatLastSeen(dateStr: string | null): string {
@@ -37,12 +43,11 @@ function formatLastSeen(dateStr: string | null): string {
   }
 }
 
-export default function MapboxMapContent() {
+export default function GoogleMapsMapContent() {
   const { case: deepLinkCaseId } = useLocalSearchParams<{ case?: string }>();
-  const cameraRef = useRef<Camera>(null);
+  const mapRef = useRef<MapView>(null);
   const [selectedCase, setSelectedCase] = useState<PublicMapCase | null>(null);
-  const [cameraCenter, setCameraCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [cameraZoom, setCameraZoom] = useState(MAP_CONFIG.DEFAULT_ZOOM);
+  const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
 
   const {
     data: allCases = [],
@@ -71,36 +76,39 @@ export default function MapboxMapContent() {
     };
   }, [filteredCases]);
 
-  const flyTo = useCallback((coordinate: [number, number], zoom = 12) => {
-    setCameraCenter(coordinate);
-    setCameraZoom(zoom);
-    cameraRef.current?.setCamera({
-      centerCoordinate: coordinate,
-      zoomLevel: zoom,
-      animationDuration: 600,
-    });
+  const flyTo = useCallback((lat: number, lng: number, zoom = 12) => {
+    const region = regionFromCenterZoom(lat, lng, zoom);
+    setMapRegion(region);
+    mapRef.current?.animateToRegion(region, 600);
   }, []);
 
   const focusHouston = useCallback(() => {
-    flyTo(DEFAULT_CENTER, MAP_CONFIG.DEFAULT_ZOOM);
+    flyTo(MAP_CONFIG.DEFAULT_CENTER.lat, MAP_CONFIG.DEFAULT_CENTER.lng, MAP_CONFIG.DEFAULT_ZOOM);
   }, [flyTo]);
 
   const centerOnCases = useCallback(() => {
     if (!filteredCases.length) return;
     if (filteredCases.length === 1) {
       const c = filteredCases[0];
-      flyTo([c.longitude, c.latitude], 14);
+      flyTo(c.latitude, c.longitude, 14);
       return;
     }
-    const lngs = filteredCases.map(c => c.longitude);
     const lats = filteredCases.map(c => c.latitude);
-    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-    const latSpan = Math.max(...lats) - Math.min(...lats);
-    const span = Math.max(lngSpan, latSpan);
-    const zoom = span > 2 ? 6 : span > 0.5 ? 8 : span > 0.1 ? 10 : 12;
-    flyTo([centerLng, centerLat], zoom);
+    const lngs = filteredCases.map(c => c.longitude);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const latDelta = Math.max((maxLat - minLat) * 1.4, 0.02);
+    const lngDelta = Math.max((maxLng - minLng) * 1.4, 0.02);
+    const region: Region = {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: latDelta,
+      longitudeDelta: lngDelta,
+    };
+    setMapRegion(region);
+    mapRef.current?.animateToRegion(region, 600);
   }, [filteredCases, flyTo]);
 
   const requestUserLocation = useCallback(async () => {
@@ -111,7 +119,7 @@ export default function MapboxMapContent() {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      flyTo([location.coords.longitude, location.coords.latitude], 12);
+      flyTo(location.coords.latitude, location.coords.longitude, 12);
     } catch (locationError) {
       console.warn('Error getting location:', locationError);
     }
@@ -125,7 +133,7 @@ export default function MapboxMapContent() {
     if (!deepLinkCaseId || !allCases.length) return;
     const match = allCases.find(c => c.id === deepLinkCaseId);
     if (match) {
-      flyTo([match.longitude, match.latitude], 14);
+      flyTo(match.latitude, match.longitude, 14);
       setSelectedCase(match);
     }
   }, [deepLinkCaseId, allCases, flyTo]);
@@ -224,30 +232,25 @@ export default function MapboxMapContent() {
           </View>
         )}
 
-        <MapView style={styles.map} styleURL={Mapbox.StyleURL.Street}>
-          <Camera
-            ref={cameraRef}
-            centerCoordinate={cameraCenter}
-            zoomLevel={cameraZoom}
-            animationMode="flyTo"
-            animationDuration={600}
-          />
-          <LocationPuck puckBearingEnabled />
-
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={mapRegion}
+          onRegionChangeComplete={setMapRegion}
+          showsUserLocation
+          showsMyLocationButton={false}
+        >
           {filteredCases.map(caseData => (
-            <PointAnnotation
+            <Marker
               key={caseData.id}
-              id={caseData.id}
-              coordinate={[caseData.longitude, caseData.latitude]}
-              onSelected={() => handleMarkerPress(caseData)}
-            >
-              <View
-                style={[
-                  styles.marker,
-                  { backgroundColor: getMapStatusColor(caseData.status) },
-                ]}
-              />
-            </PointAnnotation>
+              coordinate={{
+                latitude: caseData.latitude,
+                longitude: caseData.longitude,
+              }}
+              pinColor={getMapStatusColor(caseData.status)}
+              onPress={() => handleMarkerPress(caseData)}
+            />
           ))}
         </MapView>
 
@@ -361,13 +364,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     color: colors.textMuted,
     fontSize: typography.sizes.sm,
-  },
-  marker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.white,
   },
   noDataBanner: {
     position: 'absolute',
