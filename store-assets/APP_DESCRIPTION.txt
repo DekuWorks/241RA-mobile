@@ -1,0 +1,13 @@
+241 Runners is a community-driven missing person awareness app that helps bring people home safely. View active missing person cases, report sightings with photos and location data, and receive real-time updates about cases in your area. Join our community of concerned citizens working together to help law enforcement and families find missing persons.
+
+Key Features:
+• View active missing person cases
+• Report sightings with photos and location data
+• Receive real-time case updates
+• Community-driven awareness platform
+• Secure email and password authentication
+• Create a runner profile to stay connected
+
+Help make a difference in your community by staying informed and reporting any relevant information to help bring missing persons home safely.
+
+IMPORTANT: For emergencies, always contact 911 or local law enforcement immediately.

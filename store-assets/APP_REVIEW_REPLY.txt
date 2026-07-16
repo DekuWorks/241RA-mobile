@@ -1,0 +1,25 @@
+Hello App Review Team,
+
+Thank you for the feedback on Submission ID 443eb6c7-b22a-4aff-9a12-a64c29d98231 (Version 1.0). We have addressed the Guideline 2.1 issues in a new build (Version 1.0.1).
+
+1) Continue with Apple / Continue with Google
+Apple Sign-In and Google Sign-In have been fully removed from the app. There are no Apple or Google login buttons on the Sign In or Create Account screens. Authentication is email and password only (with optional two-factor authentication when enabled on an account). Please use the demo account credentials provided in App Review Information.
+
+2) Create Runner Profile (general users)
+This is fixed for all account roles, including general “user” accounts.
+How to verify:
+• Sign in with a regular user account
+• Go to Profile
+• In the Runner Profile section, tap “Create Runner Profile”
+• Complete the form and save
+The profile is created via our enhanced-runner API, and the app shows success or error feedback.
+
+3) How users report safety incidents and sightings
+• Report a new safety case: Profile → “Report a Safety Case”, or Cases → “Report Case”
+• Report a sighting on an existing case: Cases → open a case → tap “Report a Sighting” (also reachable from Profile → “Report a Sighting”, which opens Cases; then open a case)
+• From the Map: tap a case marker → View Case → “Report a Sighting”
+
+4) Metadata updates in App Store Connect
+We are also updating App Store Connect separately: new screenshots (2.3.3), app description text (removing any test-credential wording from the public description), Age Rating Parental Controls / Age Assurance set to None (2.3.6), and the current 241 Runners Awareness traffic-light app icon.
+
+Please let us know if you need anything else.

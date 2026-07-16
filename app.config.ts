@@ -90,12 +90,8 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
-    [
-      'react-native-maps',
-      {
-        googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-      },
-    ],
+    // Google Maps API keys are set via ios.config.googleMapsApiKey /
+    // android.config.googleMaps.apiKey (react-native-maps has no Expo config plugin).
   ],
   extra: {
     eas: {

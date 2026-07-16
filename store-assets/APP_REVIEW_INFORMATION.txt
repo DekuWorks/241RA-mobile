@@ -1,0 +1,19 @@
+App Review Information — paste into App Store Connect → App Review Information
+(Do NOT put these credentials in the public App Description.)
+
+Contact
+- First name: Marcus
+- Last name: Brown
+- Phone: (add your phone in ASC)
+- Email: ghxstyyfps@gmail.com
+
+Demo account (email / password login only — no Apple or Google Sign-In)
+- Username / Email: [CREATE a dedicated reviewer account and paste here]
+- Password: [paste here]
+
+Notes for Reviewer
+- Sign in with email and password only. There are no Apple or Google login buttons.
+- After login, open Profile → “Create Runner Profile” to verify the runner profile flow.
+- Report a sighting: Cases → open any case → “Report a Sighting”.
+- Report a new case: Cases → “Report Case” or Profile → “Report a Safety Case”.
+- Version under review: 1.0.1 (build from commit 3eeee25 / subsequent EAS production build).

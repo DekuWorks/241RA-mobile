@@ -8,59 +8,28 @@ Missing Person Cases
 
 ## Description (4000 characters max)
 
-**Help save lives with 241 Runners - the community-driven platform for missing person cases and emergency alerts.**
+Copy from `store-assets/APP_DESCRIPTION.txt` into App Store Connect.
 
-**KEY FEATURES:**
+241 Runners is a community-driven missing person awareness app that helps bring people home safely. View active missing person cases, report sightings with photos and location data, and receive real-time updates about cases in your area. Join our community of concerned citizens working together to help law enforcement and families find missing persons.
 
-🔍 **Report Missing Person Cases**
-- Submit detailed missing person reports with photos and location data
-- Include physical descriptions, last known locations, and contact information
-- Upload evidence photos securely to help with investigations
+Key Features:
+• View active missing person cases
+• Report sightings with photos and location data
+• Receive real-time case updates
+• Community-driven awareness platform
+• Secure email and password authentication
+• Create a runner profile to stay connected
 
-🗺️ **Interactive Map & Sightings**
-- View active missing person cases on an interactive map
-- Report sightings with GPS-accurate location data
-- Real-time updates on case status and developments
+Help make a difference in your community by staying informed and reporting any relevant information to help bring missing persons home safely.
 
-🚨 **Emergency Alerts & Notifications**
-- Receive push notifications for new cases in your area
-- Get alerts for urgent missing person situations
-- Stay informed about case updates and resolutions
+IMPORTANT: For emergencies, always contact 911 or local law enforcement immediately.
 
-🍎 **Secure Authentication**
-- Sign in with Apple for privacy-focused login
-- Your email address remains private from third parties
-- No data collection for advertising purposes
+### Do NOT include in the public description
+- Test / demo account credentials
+- “Test account credentials provided above”
+- Reviewer-only notes about location or camera (those belong in privacy nutrition labels / review notes)
 
-📱 **Community Safety Network**
-- Connect with local volunteers and law enforcement
-- Share information safely within the community
-- Help reunite families with their missing loved ones
-
-**PRIVACY & SECURITY:**
-- All personal data is encrypted and securely stored
-- Location data is only used for case reporting and alerts
-- Photos are securely uploaded and used solely for investigation purposes
-- No tracking across other apps or websites
-- Full compliance with privacy regulations
-
-**HOW IT WORKS:**
-1. Download and sign in with Apple
-2. Enable location permissions for accurate reporting
-3. Browse active cases or report new missing persons
-4. Submit sightings with photos and location details
-5. Receive notifications for cases in your area
-
-**WHO WE HELP:**
-- Families searching for missing loved ones
-- Law enforcement agencies
-- Community volunteers
-- Anyone who wants to make their neighborhood safer
-
-**IMPORTANT:**
-This app is designed to assist in missing person cases and community safety. For emergency situations, always contact 911 or local law enforcement immediately.
-
-Download 241 Runners today and help build a safer community where no one goes missing unnoticed.
+Demo credentials belong only in **App Review Information** (`store-assets/APP_REVIEW_INFORMATION.txt`).
 
 ---
 
