@@ -139,19 +139,6 @@ export class AuthService {
     }
   }
 
-  static async loginWithMicrosoft(microsoftToken: string): Promise<AuthResponse> {
-    const data = await ApiClient.post('/api/v1/auth/oauth/register', {
-      provider: 'microsoft',
-      token: microsoftToken,
-    });
-
-    if (data.accessToken) {
-      await this.persistSession(data);
-    }
-
-    return data;
-  }
-
   private static authResponseToApiUser(data: AuthResponse): ApiUserPayload {
     const user = data.user as (User & ApiUserPayload & Record<string, unknown>) | undefined;
     const email = user?.email ?? data.email;

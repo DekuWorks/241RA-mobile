@@ -215,6 +215,9 @@ export default function CaseDetailScreen() {
       <TouchableOpacity style={styles.reportButton} onPress={handleReportSighting}>
         <Text style={styles.reportButtonText}>Report a Sighting</Text>
       </TouchableOpacity>
+      <Text style={styles.reportHint}>
+        Use this to submit a safety sighting or tip related to this case.
+      </Text>
     </ScrollView>
   );
 }
@@ -368,7 +371,8 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     backgroundColor: colors.primary[600],
-    margin: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
     padding: spacing.lg,
     borderRadius: radii.lg,
     alignItems: 'center',
@@ -377,5 +381,15 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     color: colors.white,
+  },
+  reportHint: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    fontSize: typography.sizes.sm,
+    color: colors.textOnPage,
+    opacity: 0.9,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

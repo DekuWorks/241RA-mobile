@@ -10,11 +10,7 @@ import {
 } from '../types/api';
 
 /** Auth routes that must not attach tokens or trigger refresh on 401 */
-const PUBLIC_AUTH_PATHS = [
-  '/api/v1/auth/login',
-  '/api/v1/auth/register',
-  '/api/v1/auth/oauth/register',
-];
+const PUBLIC_AUTH_PATHS = ['/api/v1/auth/login', '/api/v1/auth/register'];
 
 function isPublicAuthPath(url?: string): boolean {
   if (!url) return false;

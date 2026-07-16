@@ -5,7 +5,7 @@ const config: ExpoConfig = {
   name: '241 Runners',
   slug: '241runners',
   scheme: 'org.runners241.app',
-  version: '1.0.0',
+  version: '1.0.1',
   orientation: 'portrait',
   icon: './assets/icon.png',
   splash: {
@@ -18,6 +18,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'org.runners241.app',
     appleTeamId: process.env.APPLE_TEAM_ID,
+    buildNumber: '2',
     supportsTablet: true,
     config: {
       googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,

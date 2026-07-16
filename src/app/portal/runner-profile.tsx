@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -17,15 +17,18 @@ import {
   EnhancedRunnerProfile,
   CreateEnhancedRunnerProfileData,
   UpdateEnhancedRunnerProfileData,
-  EnhancedRunnerPhoto,
 } from '../../types/enhancedRunnerProfile';
 import RunnerProfileForm from '../../components/RunnerProfileForm';
 import PhotoUpload from '../../components/PhotoUpload';
+import {
+  CreateRunnerProfileData,
+  UpdateRunnerProfileData,
+  EyeColor,
+} from '../../types/runnerProfile';
 
 export default function RunnerProfileScreen() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -37,25 +40,30 @@ export default function RunnerProfileScreen() {
     queryFn: EnhancedRunnerProfileService.getRunnerProfile,
   });
 
-  const { data: hasProfile } = useQuery({
+  const { data: hasProfile, isLoading: isHasProfileLoading } = useQuery({
     queryKey: ['hasRunnerProfile'],
     queryFn: EnhancedRunnerProfileService.hasRunnerProfile,
   });
 
-  useEffect(() => {
-    if (hasProfile === false) {
-      setIsCreating(true);
-    }
-  }, [hasProfile]);
-
-  const handleCreateProfile = async (data: CreateEnhancedRunnerProfileData) => {
+  const handleCreateProfile = async (
+    data: CreateEnhancedRunnerProfileData | CreateRunnerProfileData | UpdateRunnerProfileData
+  ) => {
     setIsLoading(true);
     try {
-      await EnhancedRunnerProfileService.createRunnerProfile(data);
+      await EnhancedRunnerProfileService.createRunnerProfile({
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        dateOfBirth: data.dateOfBirth || '',
+        height: data.height || '',
+        weight: data.weight || '',
+        eyeColor: data.eyeColor || 'Brown',
+        medicalConditions: data.medicalConditions || [],
+        additionalNotes: data.additionalNotes || '',
+      });
       await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['runnerProfileExists'] });
       await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      setIsCreating(false);
       Alert.alert('Success', 'Runner profile created successfully!');
       router.back();
     } catch (error: any) {
@@ -66,10 +74,21 @@ export default function RunnerProfileScreen() {
     }
   };
 
-  const handleUpdateProfile = async (data: UpdateEnhancedRunnerProfileData) => {
+  const handleUpdateProfile = async (
+    data: CreateEnhancedRunnerProfileData | CreateRunnerProfileData | UpdateRunnerProfileData
+  ) => {
     setIsLoading(true);
     try {
-      await EnhancedRunnerProfileService.updateRunnerProfile(data);
+      await EnhancedRunnerProfileService.updateRunnerProfile({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dateOfBirth: data.dateOfBirth,
+        height: data.height,
+        weight: data.weight,
+        eyeColor: data.eyeColor,
+        medicalConditions: data.medicalConditions,
+        additionalNotes: data.additionalNotes,
+      });
       await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
       setIsEditing(false);
       Alert.alert('Success', 'Runner profile updated successfully!');
@@ -97,7 +116,6 @@ export default function RunnerProfileScreen() {
               await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
               await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
               await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-              setIsCreating(true);
               Alert.alert('Success', 'Runner profile deleted successfully!');
               router.back();
             } catch (error: any) {
@@ -239,7 +257,7 @@ export default function RunnerProfileScreen() {
     </ScrollView>
   );
 
-  if (isProfileLoading) {
+  if (isProfileLoading || isHasProfileLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary[600]} />
@@ -248,33 +266,14 @@ export default function RunnerProfileScreen() {
     );
   }
 
-  if (profileError) {
+  // Existing profile load failed — only block when we expect a profile to exist
+  if (profileError && hasProfile === true) {
     return (
       <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>Failed to load runner profile</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  if (isCreating) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Runner Profile</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <RunnerProfileForm
-          onSubmit={handleCreateProfile}
-          onCancel={() => router.back()}
-          isLoading={isLoading}
-        />
       </SafeAreaView>
     );
   }
@@ -291,7 +290,16 @@ export default function RunnerProfileScreen() {
         </View>
 
         <RunnerProfileForm
-          initialData={runnerProfile}
+          initialData={{
+            firstName: runnerProfile.firstName,
+            lastName: runnerProfile.lastName,
+            dateOfBirth: runnerProfile.dateOfBirth,
+            height: runnerProfile.height,
+            weight: runnerProfile.weight,
+            eyeColor: (runnerProfile.eyeColor || 'Brown') as EyeColor,
+            medicalConditions: runnerProfile.medicalConditions,
+            additionalNotes: runnerProfile.additionalNotes,
+          }}
           isEditing={true}
           onSubmit={handleUpdateProfile}
           onCancel={() => setIsEditing(false)}
@@ -305,12 +313,22 @@ export default function RunnerProfileScreen() {
     return <SafeAreaView style={styles.container}>{renderProfileView(runnerProfile)}</SafeAreaView>;
   }
 
+  // No profile yet — create form for all signed-in users (including role "user")
   return (
-    <SafeAreaView style={styles.errorContainer}>
-      <Text style={styles.errorText}>No runner profile found</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-        <Text style={styles.retryButtonText}>Go Back</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Create Runner Profile</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <RunnerProfileForm
+        onSubmit={handleCreateProfile}
+        onCancel={() => router.back()}
+        isLoading={isLoading}
+      />
     </SafeAreaView>
   );
 }

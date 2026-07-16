@@ -43,6 +43,11 @@ import {
   PhotoUploadProgress,
   EYE_COLORS,
 } from '../types/enhancedRunnerProfile';
+import RunnerProfileForm from '../components/RunnerProfileForm';
+import {
+  CreateRunnerProfileData,
+  UpdateRunnerProfileData,
+} from '../types/runnerProfile';
 
 export default function ProfileScreen() {
   const queryClient = useQueryClient();
@@ -550,8 +555,40 @@ export default function ProfileScreen() {
   };
 
   const handleCreateRunnerProfile = () => {
-    // Navigate to runner profile creation
-    router.push('/portal/runner-profile');
+    setRunnerFormData(prev => ({
+      ...prev,
+      firstName: formData.firstName || prev.firstName,
+      lastName: formData.lastName || prev.lastName,
+    }));
+    setRunnerValidationErrors({});
+    setSaveError(null);
+    setShowCreateRunnerForm(true);
+  };
+
+  const handleSubmitCreateRunnerProfile = async (
+    data: CreateRunnerProfileData | UpdateRunnerProfileData
+  ) => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await EnhancedRunnerProfileService.createRunnerProfile(
+        data as CreateEnhancedRunnerProfileData
+      );
+      await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['runnerProfileExists'] });
+      await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
+      setHasRunnerProfile(true);
+      setShowCreateRunnerForm(false);
+      Alert.alert('Success', 'Runner profile created successfully!');
+    } catch (error: any) {
+      console.error('Failed to create runner profile:', error);
+      const message = error.message || 'Failed to create runner profile.';
+      setSaveError(message);
+      Alert.alert('Error', message);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -806,7 +843,11 @@ export default function ProfileScreen() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['enhancedRunnerProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['runnerProfileExists'] });
+      await queryClient.invalidateQueries({ queryKey: ['hasRunnerProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['runnerPhotos'] });
+      setHasRunnerProfile(true);
+      setShowCreateRunnerForm(false);
       setIsEditingRunnerProfile(false);
     } catch (error: any) {
       console.error('Failed to save runner profile:', error);
@@ -1439,12 +1480,42 @@ export default function ProfileScreen() {
             Your account profile and photo are still saved. Try again later or contact support if this
             continues.
           </Text>
+          <TouchableOpacity
+            style={styles.createRunnerButtonCentered}
+            onPress={handleCreateRunnerProfile}
+          >
+            <Text style={styles.createRunnerButtonText}>Create Runner Profile</Text>
+          </TouchableOpacity>
+        </View>
+      ) : showCreateRunnerForm ? (
+        <View style={styles.noProfileContainer}>
+          {saveError ? <Text style={styles.runnerErrorText}>{saveError}</Text> : null}
+          <RunnerProfileForm
+            initialData={{
+              firstName: runnerFormData.firstName,
+              lastName: runnerFormData.lastName,
+              dateOfBirth: runnerFormData.dateOfBirth,
+              height: runnerFormData.height,
+              weight: runnerFormData.weight,
+              eyeColor: (runnerFormData.eyeColor || 'Brown') as CreateRunnerProfileData['eyeColor'],
+              medicalConditions: runnerFormData.medicalConditions,
+              additionalNotes: runnerFormData.additionalNotes,
+            }}
+            onSubmit={handleSubmitCreateRunnerProfile}
+            onCancel={() => {
+              setShowCreateRunnerForm(false);
+              setSaveError(null);
+              setRunnerValidationErrors({});
+            }}
+            isLoading={isSaving}
+          />
         </View>
       ) : (
         <View style={styles.noProfileContainer}>
           <Text style={styles.noProfileText}>No runner profile created yet.</Text>
           <Text style={styles.noProfileDescription}>
-            Create a runner profile to help with identification in case of emergency.
+            Create a runner profile to help with identification in case of emergency. Available for
+            all account types.
           </Text>
           <TouchableOpacity
             style={styles.createRunnerButtonCentered}
@@ -1647,13 +1718,16 @@ export default function ProfileScreen() {
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/report-case')}>
-        <Text style={styles.menuItemText}>Report Case</Text>
+        <Text style={styles.menuItemText}>Report a Safety Case</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cases')}>
-        <Text style={styles.menuItemText}>Report Sighting</Text>
+        <Text style={styles.menuItemText}>Report a Sighting</Text>
         <Text style={styles.menuItemArrow}>›</Text>
       </TouchableOpacity>
+      <Text style={styles.quickActionHint}>
+        To report a sighting: open Cases, select a case, then tap Report a Sighting.
+      </Text>
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/')}>
         <Text style={styles.menuItemText}>Home</Text>
         <Text style={styles.menuItemArrow}>›</Text>
@@ -2318,6 +2392,13 @@ const styles = StyleSheet.create({
   menuItemArrow: {
     fontSize: typography.sizes.lg,
     color: colors.gray[400],
+  },
+  quickActionHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[500],
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    lineHeight: 20,
   },
   // Enhanced Runner Profile Styles
   runnerProfileContent: {

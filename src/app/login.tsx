@@ -98,16 +98,10 @@ export default function LoginScreen() {
       } else {
         Alert.alert('Login Failed', getLoginErrorMessage(error));
       }
-    } finally {
+      } finally {
       setIsLoading(false);
       setLoadingMessage('Sign In');
     }
-  };
-
-  const handleTestLogin = async () => {
-    setEmail('test@example.com');
-    setPassword('TestPassword123!');
-    console.log('[LOGIN] Test credentials set');
   };
 
   return (

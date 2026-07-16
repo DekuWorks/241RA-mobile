@@ -117,7 +117,7 @@ export default function CasesScreen() {
         <Text style={styles.headerTitle}>Cases</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity onPress={() => router.push('/report-case')} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>Report</Text>
+            <Text style={styles.headerButtonText}>Report Case</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/map')} style={styles.headerButton}>
             <Text style={styles.headerButtonText}>Map</Text>
@@ -139,6 +139,9 @@ export default function CasesScreen() {
           value={searchQuery}
           onChangeText={handleSearch}
         />
+        <Text style={styles.sightingHint}>
+          Tap a case, then use Report a Sighting to submit a safety sighting.
+        </Text>
       </View>
 
       <FlatList
@@ -208,6 +211,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderWidth: 2,
     borderColor: colors.border,
+  },
+  sightingHint: {
+    marginTop: spacing.sm,
+    fontSize: typography.sizes.sm,
+    color: colors.textOnPage,
+    opacity: 0.9,
+    lineHeight: 18,
   },
   listContent: {
     padding: spacing.lg,
