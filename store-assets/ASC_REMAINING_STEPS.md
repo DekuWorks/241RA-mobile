@@ -15,7 +15,7 @@ Version: **1.0.1** · Code: commit `3eeee25` (+ this store-assets / icon / confi
 - ✅ Reviewer notes + demo credentials: `store-assets/APP_REVIEW_INFORMATION.txt` (`apptestreview@dekuworks.com`)
 - ✅ Smoke account seeded in production SQL (see `store-assets/SMOKE_TEST_STATUS.md`)
 - ✅ Simulator screenshots (partial): `store-assets/screenshots/` (login, signup, cases)
-- ⛔ **Blocker:** Azure API App Service `241runners-api-v2` is `AdminDisabled` (subscription Warned). Re-enable billing / start webapp before reviewers can log in.
+- ⛔ **Blocker:** Azure API `241runners-api-v2` is `AdminDisabled` because billing profile is **PastDue** (invoice **G169561565** ~**$36.24**). Pay invoice → wait for subscriptions to leave Warned → `az webapp start -g 241raLinux_group -n 241runners-api-v2`. Details: `store-assets/SMOKE_TEST_STATUS.md`.
 
 No local App Store Connect `.p8` key was available. EAS Submit uses an Expo-managed ASC API key on EAS servers (Key ID `74U6N3NFF7`) for binary upload only — **not** for listing metadata / age rating / screenshots / Resolution Center replies.
 
