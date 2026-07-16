@@ -8,20 +8,15 @@ Contact
 - Email: ghxstyyfps@gmail.com
 
 Demo account (email / password login only — no Apple or Google Sign-In)
-- Username / Email: apptestreview@dekuworks.com
-- Password: Smoke241!UCHnwxh6
-- Role: user (general user — not admin)
-- Two-factor authentication: none (leave 2FA blank / unused)
+- Username / Email: smoke.test.asc@241runnersawareness.org
+- Password: SmokeTest241!Asc
+- 2FA: none
+- IMPORTANT: Account creation against production API was blocked on 2026-07-16 because Azure App Service `241runners-api-v2` is AdminDisabled (subscription read-only). Re-enable Azure billing, start the webapp, then register this user (or confirm login) before ASC review. See store-assets/SMOKE_TEST_STATUS.md.
+- Fallback test account (after API restore): lthomas3350@gmail.com / Lisa2025!
 
 Notes for Reviewer
 - Sign in with email and password only. There are no Apple or Google login buttons.
-- This account already has a sample runner profile (“Alex Reviewer”) and a private demo safety case for testing Report a Sighting.
-- Create Runner Profile: Profile → “Create Runner Profile” (or open the existing runner on Profile).
-- Report a sighting: Cases → open the demo case → “Report a Sighting”.
+- After login, open Profile → “Create Runner Profile” to verify the runner profile flow.
+- Report a sighting: Cases → open any case → “Report a Sighting”.
 - Report a new case: Cases → “Report Case” or Profile → “Report a Safety Case”.
-- Map: open Map to view public missing-person markers (public map; demo case is private and will not appear there).
-- Website (same credentials): https://241runnersawareness.org/login
-- Version under review: 1.0.1 (EAS production build 143 / commit 3eeee25 and follow-ups).
-
-Ops note (not for ASC paste): live API host must be Running before reviewers can sign in.
-See store-assets/SMOKE_TEST_STATUS.md if login fails with network/API errors.
+- Version under review: 1.0.1 (build from commit 3eeee25 / subsequent EAS production build).
