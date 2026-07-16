@@ -52,8 +52,9 @@ Environment variables are configured per profile in EAS:
 ```bash
 # Development
 npm i
-npm run start
-npm run ios
+npm run start          # Metro on :8081 (dev client) — keep this exclusive
+npm run ios            # builds + launches with its own bundler
+npm run start:8082     # use when :8081 is already taken by another Expo app
 npm run android
 
 # Code Quality
@@ -122,6 +123,21 @@ See [docs/README.md](./docs/README.md) for a complete index of all documentation
 
 - Same users, roles, and database as the static site
 - Feature parity delivered in phases; see project board for roadmap
+
+### Dev client / Metro troubleshooting
+
+If the simulator shows errors that do **not** exist in this repo — e.g. `FloatingTabBar.tsx`, `useAuthStore`, `import "../global.css"`, `[Worklets] Native part of Worklets doesn't seem to be initialized`, or `RNGestureHandlerModule` — Metro is serving a **different Expo project** (commonly another app on `:8081`), or Expo Go is open to that project.
+
+This app’s root layout is `src/app/_layout.tsx` and already wraps routes in `QueryClientProvider`. It does not use Reanimated tab bars or Zustand auth stores.
+
+Fix:
+
+1. Confirm Metro status: open `http://127.0.0.1:8081` (or `:8082`) and check `extra.expoClient.name` is **241 Runners**, not another app.
+2. Prefer `npm run ios` (starts the matching bundler) over `expo run:ios --no-bundler` when another Metro is already on `:8081`.
+3. Or attach the installed dev client explicitly:
+   `xcrun simctl openurl booted 'exp+241runners://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081'`
+4. Native rebuild is only needed after adding native modules (Maps, SecureStore plugins, etc.):
+   `npx expo prebuild --clean && npx expo run:ios`
 
 ---
 
