@@ -12,8 +12,10 @@ Version: **1.0.1** · Code: commit `3eeee25` (+ this store-assets / icon / confi
 - ✅ App icon 1024×1024 traffic-light logo in `assets/icon.png` + `store-assets/icon/app-icon-1024.png` (opaque RGB PNG)
 - ✅ Public description draft (no demo credentials): `store-assets/APP_DESCRIPTION.txt`
 - ✅ Review reply draft: `store-assets/APP_REVIEW_REPLY.txt`
-- ✅ Reviewer notes template: `store-assets/APP_REVIEW_INFORMATION.txt`
+- ✅ Reviewer notes + demo credentials: `store-assets/APP_REVIEW_INFORMATION.txt` (`apptestreview@dekuworks.com`)
+- ✅ Smoke account seeded in production SQL (see `store-assets/SMOKE_TEST_STATUS.md`)
 - ✅ Simulator screenshots (partial): `store-assets/screenshots/` (login, signup, cases)
+- ⛔ **Blocker:** Azure API App Service `241runners-api-v2` is `AdminDisabled` (subscription Warned). Re-enable billing / start webapp before reviewers can log in.
 
 No local App Store Connect `.p8` key was available. EAS Submit uses an Expo-managed ASC API key on EAS servers (Key ID `74U6N3NFF7`) for binary upload only — **not** for listing metadata / age rating / screenshots / Resolution Center replies.
 
