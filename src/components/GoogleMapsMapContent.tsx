@@ -192,18 +192,6 @@ export default function GoogleMapsMapContent() {
     );
   };
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load map data</Text>
-        <Text style={styles.errorSubtext}>Please try again later.</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -231,7 +219,7 @@ export default function GoogleMapsMapContent() {
       </View>
 
       <View style={styles.mapWrapper}>
-        {isLoading && (
+        {isLoading && !error && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.primary[600]} />
             <Text style={styles.loadingText}>Loading map data…</Text>
@@ -247,26 +235,43 @@ export default function GoogleMapsMapContent() {
           showsUserLocation
           showsMyLocationButton={false}
         >
-          {filteredCases.map(caseData => (
-            <Marker
-              key={caseData.id}
-              coordinate={{
-                latitude: caseData.latitude,
-                longitude: caseData.longitude,
-              }}
-              pinColor={getMapStatusColor(caseData.status)}
-              onPress={() => handleMarkerPress(caseData)}
-            />
-          ))}
+          {!error &&
+            filteredCases.map(caseData => (
+              <Marker
+                key={caseData.id}
+                coordinate={{
+                  latitude: caseData.latitude,
+                  longitude: caseData.longitude,
+                }}
+                pinColor={getMapStatusColor(caseData.status)}
+                onPress={() => handleMarkerPress(caseData)}
+              />
+            ))}
         </MapView>
 
-        {!isLoading && filteredCases.length === 0 && (
-          <View style={styles.noDataBanner}>
-            <Text style={styles.noDataText}>No missing cases with map location available.</Text>
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerTitle}>Cases temporarily unavailable</Text>
+            <Text style={styles.errorBannerSubtext}>
+              The map is available; case markers could not be loaded.
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => refetch()}
+              disabled={isFetching}
+            >
+              <Text style={styles.retryButtonText}>{isFetching ? 'Retrying…' : 'Retry'}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {filteredCases.length > 0 && (
+        {!isLoading && !error && filteredCases.length === 0 && (
+          <View style={styles.noDataBanner}>
+            <Text style={styles.noDataText}>No public cases to display</Text>
+          </View>
+        )}
+
+        {!error && filteredCases.length > 0 && (
           <View style={styles.approxBanner}>
             <Text style={styles.approxBannerText}>
               Map locations are approximate. Cases without a reported location are shown in the
@@ -276,23 +281,29 @@ export default function GoogleMapsMapContent() {
         )}
       </View>
 
-      {renderCaseInfo()}
+      {!error && renderCaseInfo()}
 
       <View style={styles.statsBar}>
         <Text style={styles.statsText}>
-          {stats.total} cases · {stats.missing} missing · {stats.urgent} urgent
+          {error
+            ? 'Cases unavailable'
+            : `${stats.total} cases · ${stats.missing} missing · ${stats.urgent} urgent`}
         </Text>
       </View>
 
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Status</Text>
-        {(['missing', 'found', 'safe', 'urgent'] as const).map(status => (
-          <View key={status} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: getMapStatusColor(status) }]} />
-            <Text style={styles.legendText}>{status.charAt(0).toUpperCase() + status.slice(1)}</Text>
-          </View>
-        ))}
-      </View>
+      {!error && (
+        <View style={styles.legend}>
+          <Text style={styles.legendTitle}>Status</Text>
+          {(['missing', 'found', 'safe', 'urgent'] as const).map(status => (
+            <View key={status} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: getMapStatusColor(status) }]} />
+              <Text style={styles.legendText}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -510,29 +521,37 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.textSecondary,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  errorBanner: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.error,
     alignItems: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.bg,
+    ...shadows.card,
+    zIndex: 3,
   },
-  errorText: {
-    fontSize: typography.sizes.lg,
+  errorBannerTitle: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
     color: colors.error,
-    marginBottom: spacing.sm,
     textAlign: 'center',
+    marginBottom: spacing.xs,
   },
-  errorSubtext: {
+  errorBannerSubtext: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
-    marginBottom: spacing.lg,
     textAlign: 'center',
+    marginBottom: spacing.md,
   },
   retryButton: {
     backgroundColor: colors.primary[600],
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.md,
   },
   retryButtonText: {
