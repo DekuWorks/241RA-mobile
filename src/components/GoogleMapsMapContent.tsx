@@ -7,8 +7,14 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+
+// iOS: Apple Maps (PROVIDER_DEFAULT). AirGoogleMaps / PROVIDER_GOOGLE is not
+// reliably linked in this Expo prebuild binary and red-screens the map.
+// Android: Google Maps (PROVIDER_GOOGLE) with the configured API key.
+const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -234,7 +240,7 @@ export default function GoogleMapsMapContent() {
 
         <MapView
           ref={mapRef}
-          provider={PROVIDER_GOOGLE}
+          provider={MAP_PROVIDER}
           style={styles.map}
           region={mapRegion}
           onRegionChangeComplete={setMapRegion}

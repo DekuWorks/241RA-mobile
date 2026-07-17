@@ -90,8 +90,10 @@ const config: ExpoConfig = {
         organization: '241-runners-awareness',
       },
     ],
-    // Google Maps API keys are set via ios.config.googleMapsApiKey /
-    // android.config.googleMaps.apiKey (react-native-maps has no Expo config plugin).
+    // Google Maps on iOS: Expo's built-in react-native-maps plugin (SDK 54 /
+    // maps 1.20.x) reads ios.config.googleMapsApiKey and injects the
+    // react-native-google-maps CocoaPod + GMSApiKey / AppDelegate init.
+    // A clean native rebuild is required after changing the key or maps deps.
   ],
   extra: {
     eas: {
