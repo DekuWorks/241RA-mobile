@@ -19,6 +19,7 @@ import { colors, spacing, typography, radii } from '../theme/tokens';
 import { AuthService, User } from '../services/auth';
 import { NotificationService } from '../services/notifications';
 import { APP_CONSTANTS } from '../config/constants';
+import { FEATURES } from '../config/features';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { signalRService } from '../services/signalR';
 import * as ImagePicker from 'expo-image-picker';
@@ -1661,6 +1662,10 @@ export default function ProfileScreen() {
   );
 
   const renderAdminSection = () => {
+    if (!FEATURES.ADMIN_APP_ENABLED) {
+      return null;
+    }
+
     // Show admin section if user has admin roles or is an admin user
     if (
       !user ||

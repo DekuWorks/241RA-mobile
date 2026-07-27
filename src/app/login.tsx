@@ -75,8 +75,8 @@ export default function LoginScreen() {
 
           console.log('[LOGIN] Has admin role:', hasAdminRole);
 
-          // For regular login, always go to profile first
-          // Users can access admin portal through the profile screen if they have admin privileges
+          // For regular login, always go to profile first.
+          // Admin portal is disabled in this app; see src/config/features.ts.
           console.log('[LOGIN] Redirecting to user profile');
           router.replace('/profile');
         } else {

@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // iOS: Apple Maps (PROVIDER_DEFAULT). AirGoogleMaps / PROVIDER_GOOGLE is not
 // reliably linked in this Expo prebuild binary and red-screens the map.
@@ -50,6 +51,7 @@ function formatLastSeen(dateStr: string | null): string {
 }
 
 export default function GoogleMapsMapContent() {
+  const insets = useSafeAreaInsets();
   const { case: deepLinkCaseId } = useLocalSearchParams<{ case?: string }>();
   const mapRef = useRef<MapView>(null);
   const [selectedCase, setSelectedCase] = useState<PublicMapCase | null>(null);
@@ -194,29 +196,33 @@ export default function GoogleMapsMapContent() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Missing Cases Map</Text>
-        <TouchableOpacity onPress={requestUserLocation}>
-          <Text style={styles.locationButton}>📍</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Missing Cases Map
+          </Text>
+          <TouchableOpacity onPress={requestUserLocation} accessibilityRole="button" accessibilityLabel="Center on my location">
+            <Text style={styles.locationButton}>📍</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.controls}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.controlsRow}>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => refetch()} disabled={isFetching}>
-            <Text style={styles.controlBtnText}>{isFetching ? '…' : '🔄 Refresh'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtn} onPress={focusHouston}>
-            <Text style={styles.controlBtnText}>🏙️ Houston</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtnSecondary} onPress={centerOnCases}>
-            <Text style={styles.controlBtnText}>🎯 Center</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+        <View style={styles.controls}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.controlsRow}>
+            <TouchableOpacity style={styles.controlBtn} onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.controlBtnText}>{isFetching ? '…' : '🔄 Refresh'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtn} onPress={focusHouston}>
+              <Text style={styles.controlBtnText}>🏙️ Houston</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlBtnSecondary} onPress={centerOnCases}>
+              <Text style={styles.controlBtnText}>🎯 Center</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
 
       <View style={styles.mapWrapper}>
         {isLoading && !error && (
@@ -283,7 +289,7 @@ export default function GoogleMapsMapContent() {
 
       {!error && renderCaseInfo()}
 
-      <View style={styles.statsBar}>
+      <View style={[styles.statsBar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
         <Text style={styles.statsText}>
           {error
             ? 'Cases unavailable'
@@ -292,7 +298,7 @@ export default function GoogleMapsMapContent() {
       </View>
 
       {!error && (
-        <View style={styles.legend}>
+        <View style={[styles.legend, { top: 90 + insets.top }]}>
           <Text style={styles.legendTitle}>Status</Text>
           {(['missing', 'found', 'safe', 'urgent'] as const).map(status => (
             <View key={status} style={styles.legendItem}>
@@ -313,14 +319,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  headerSafeArea: {
+    backgroundColor: colors.header,
+    zIndex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.header,
-    zIndex: 1,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
