@@ -110,7 +110,7 @@ const config: ExpoConfig = {
     eas: {
       projectId: 'bb791d4e-1e0d-4c6c-a23d-a619d34d3d7e',
     },
-    EXPO_PUBLIC_API_BASE: 'https://241runners-api.onrender.com',
+    EXPO_PUBLIC_API_BASE: 'https://two41runners-api.onrender.com',
     EXPO_PUBLIC_ENABLE_CRASH: 'true',
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
