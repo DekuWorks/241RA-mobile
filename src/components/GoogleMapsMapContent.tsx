@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { CasesService, PublicMapCase } from '../services/cases';
+import { RunnerMapService } from '../services/runnerMap';
 import { MAP_CONFIG, getMapStatusColor } from '../constants/mapConfig';
 import { normalizeCaseId } from '../lib/linking';
 
@@ -53,21 +54,32 @@ function formatLastSeen(dateStr: string | null): string {
 
 export default function GoogleMapsMapContent() {
   const insets = useSafeAreaInsets();
-  const { case: deepLinkCaseId } = useLocalSearchParams<{ case?: string }>();
+  const { case: deepLinkCaseId, source } = useLocalSearchParams<{ case?: string; source?: string }>();
+  const isProfileMap = source === 'profile';
   const mapRef = useRef<MapView>(null);
   const [selectedCase, setSelectedCase] = useState<PublicMapCase | null>(null);
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
 
   const {
-    data: allCases = [],
+    data: mapData,
     error,
     refetch,
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['publicMapCases'],
-    queryFn: () => CasesService.getPublicMapCases(),
+    queryKey: ['mapCases', isProfileMap ? 'profile' : 'public'],
+    queryFn: () =>
+      isProfileMap
+        ? RunnerMapService.getProfileMapData(() => CasesService.getPublicMapCases())
+        : CasesService.getPublicMapCases().then(cases => ({
+            mode: 'public' as const,
+            cases,
+            subtitle: 'Missing cases in the community',
+          })),
   });
+
+  const allCases = mapData?.cases ?? [];
+  const mapSubtitle = mapData?.subtitle ?? 'Missing cases in the community';
 
   const filteredCases = allCases;
 
@@ -153,9 +165,12 @@ export default function GoogleMapsMapContent() {
   };
 
   const handleViewCase = () => {
-    if (selectedCase) {
-      router.push(`/cases/${selectedCase.id}`);
+    if (!selectedCase) return;
+    if (selectedCase.isOwnRunner) {
+      router.push('/profile');
+      return;
     }
+    router.push(`/cases/${selectedCase.id}`);
   };
 
   const renderCaseInfo = () => {
@@ -190,7 +205,9 @@ export default function GoogleMapsMapContent() {
         </Text>
 
         <TouchableOpacity style={styles.viewCaseButton} onPress={handleViewCase}>
-          <Text style={styles.viewCaseButtonText}>View case details</Text>
+          <Text style={styles.viewCaseButtonText}>
+            {selectedCase.isOwnRunner ? 'View runner profile' : 'View case details'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -204,12 +221,16 @@ export default function GoogleMapsMapContent() {
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            Missing Cases Map
+            {isProfileMap ? 'My Map' : 'Missing Cases Map'}
           </Text>
           <TouchableOpacity onPress={requestUserLocation} accessibilityRole="button" accessibilityLabel="Center on my location">
             <Text style={styles.locationButton}>📍</Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.headerSubtitle} numberOfLines={2}>
+          {mapSubtitle}
+        </Text>
 
         <View style={styles.controls}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.controlsRow}>
@@ -251,7 +272,7 @@ export default function GoogleMapsMapContent() {
                   latitude: caseData.latitude,
                   longitude: caseData.longitude,
                 }}
-                pinColor={getMapStatusColor(caseData.status)}
+                pinColor={caseData.isOwnRunner ? '#2563eb' : getMapStatusColor(caseData.status)}
                 onPress={() => handleMarkerPress(caseData)}
               />
             ))}
@@ -342,6 +363,15 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     color: colors.textOnHeader,
+  },
+  headerSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.textOnHeader,
+    opacity: 0.9,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.header,
   },
   locationButton: {
     fontSize: typography.sizes.lg,

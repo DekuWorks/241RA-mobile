@@ -85,6 +85,7 @@ export interface PublicMapCase {
   lastSeenState: string;
   lastSeenCityState: string;
   updatedAt: string | null;
+  isOwnRunner?: boolean;
 }
 
 export interface CreateSightingData {

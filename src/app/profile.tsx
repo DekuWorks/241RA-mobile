@@ -1238,6 +1238,25 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const renderProfileMapSection = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>🗺️ Map</Text>
+      <Text style={styles.mapSectionDescription}>
+        View the community missing-persons map. After you register a runner with map coordinates, this map
+        shows your runner instead.
+      </Text>
+      <TouchableOpacity
+        style={styles.createRunnerButtonCentered}
+        onPress={() => router.push('/map?source=profile')}
+      >
+        <Text style={styles.createRunnerButtonText}>View Map</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.mapFullLink} onPress={() => router.push('/map')}>
+        <Text style={styles.mapFullLinkText}>Open full public map</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderRunnerProfileSection = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -1845,6 +1864,7 @@ export default function ProfileScreen() {
           {renderProfileHeader()}
           {renderPersonalInfoSection()}
           {renderAccountStatsSection()}
+          {renderProfileMapSection()}
           {renderRunnerProfileSection()}
           {renderNotificationSettingsSection()}
           {renderCaseStatusSection()}
@@ -2144,6 +2164,22 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.semibold,
+  },
+  mapSectionDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[600],
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  mapFullLink: {
+    alignSelf: 'center',
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  mapFullLinkText: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary[600],
+    fontWeight: typography.weights.medium,
   },
   viewAllButton: {
     backgroundColor: colors.primary[600],
