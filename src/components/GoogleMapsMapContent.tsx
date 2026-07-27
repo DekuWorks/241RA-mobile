@@ -22,6 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { CasesService, PublicMapCase } from '../services/cases';
 import { MAP_CONFIG, getMapStatusColor } from '../constants/mapConfig';
+import { normalizeCaseId } from '../lib/linking';
 
 const { width } = Dimensions.get('window');
 
@@ -139,7 +140,8 @@ export default function GoogleMapsMapContent() {
 
   useEffect(() => {
     if (!deepLinkCaseId || !allCases.length) return;
-    const match = allCases.find(c => c.id === deepLinkCaseId);
+    const targetId = normalizeCaseId(deepLinkCaseId);
+    const match = allCases.find(c => normalizeCaseId(c.id) === targetId);
     if (match) {
       flyTo(match.latitude, match.longitude, 14);
       setSelectedCase(match);

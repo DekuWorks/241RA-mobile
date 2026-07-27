@@ -22,6 +22,8 @@ import { signalRService } from '../services/signalR';
 import { SentryService } from '../services/sentry';
 import { getSupabase } from '../lib/supabase';
 import { PlatformServiceFactory } from '../platform/shared/platformFactory';
+import { disableElementInspectorOnLaunch } from '../utils/disableElementInspector';
+import { DeepLinkHandler } from '../components/DeepLinkHandler';
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -53,6 +55,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function Root() {
   useEffect(() => {
+    const cleanupInspector = disableElementInspectorOnLaunch();
+
     const initializeApp = async () => {
       try {
         SentryService.init();
@@ -91,6 +95,7 @@ export default function Root() {
     initializeApp();
 
     return () => {
+      cleanupInspector?.();
       signalRService.stopConnection();
     };
   }, []);
@@ -98,6 +103,7 @@ export default function Root() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={qc}>
+        <DeepLinkHandler />
         <OfflineIndicator />
         <Stack screenOptions={{ headerShown: false }} />
       </QueryClientProvider>

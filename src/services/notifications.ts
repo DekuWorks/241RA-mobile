@@ -1,11 +1,12 @@
 import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import { Platform } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { QueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { ApiClient } from './apiClient';
 import { logEvent, recordError } from '../lib/crash';
+import { normalizeCaseId, resolveDeepLinkPath } from '../lib/linking';
 
 let globalQueryClient: QueryClient | null = null;
 
@@ -180,8 +181,14 @@ export class NotificationService {
         handlePushData(data);
       }
 
-      if (data?.caseId) {
-        router.push(`/cases/${data.caseId}`);
+      const caseId = typeof data?.caseId === 'string' ? normalizeCaseId(data.caseId) : '';
+      const url = typeof data?.url === 'string' ? data.url : undefined;
+      const path = typeof data?.path === 'string' ? data.path : undefined;
+
+      if (url || path) {
+        router.push(resolveDeepLinkPath(url || path || '') as Href);
+      } else if (caseId) {
+        router.push(`/cases/${caseId}`);
       } else {
         router.push('/cases');
       }

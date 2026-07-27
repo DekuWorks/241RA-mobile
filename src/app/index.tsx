@@ -1,50 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { router } from 'expo-router';
-import { AuthService } from '../services/auth';
 import { colors, spacing, typography } from '../theme/tokens';
+import { SecureTokenService } from '../services/secureTokens';
 
 export default function Home() {
   const [loadingText, setLoadingText] = useState('Loading...');
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      setLoadingText('Starting app...');
-      console.log('App starting - redirecting to login screen');
-
-      // Add a small delay to ensure proper initialization
-      setTimeout(() => {
+    const bootstrap = async () => {
+      try {
+        setLoadingText('Checking session...');
+        const token = await SecureTokenService.getAccessToken();
+        router.replace(token ? '/profile' : '/login');
+      } catch (error) {
+        console.error('Bootstrap navigation error:', error);
         setLoadingText('Redirecting to login...');
-        try {
-          router.push('/login');
-          console.log('Navigation to login initiated');
-        } catch (navError) {
-          console.error('Navigation error:', navError);
-          setLoadingText('Navigation failed, retrying...');
-          // Retry after a delay
-          setTimeout(() => {
-            router.push('/login');
-          }, 1000);
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setLoadingText('Error occurred, retrying...');
-      // Fallback to login screen
-      setTimeout(() => {
-        try {
-          router.push('/login');
-        } catch (fallbackError) {
-          console.error('Fallback navigation also failed:', fallbackError);
-          setLoadingText('Unable to navigate. Please restart the app.');
-        }
-      }, 1000);
-    }
-  };
+        router.replace('/login');
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      void bootstrap();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <View style={styles.container}>

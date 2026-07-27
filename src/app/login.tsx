@@ -12,13 +12,14 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService, LoginCredentials } from '../services/auth';
 import { isSecureStorageError } from '../services/secureTokens';
 import { getLoginErrorMessage, isRetryableLoginError } from '../types/api';
 
 export default function LoginScreen() {
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
@@ -77,11 +78,19 @@ export default function LoginScreen() {
 
           // For regular login, always go to profile first.
           // Admin portal is disabled in this app; see src/config/features.ts.
-          console.log('[LOGIN] Redirecting to user profile');
-          router.replace('/profile');
+          const destination =
+            typeof redirect === 'string' && redirect.startsWith('/')
+              ? decodeURIComponent(redirect)
+              : '/profile';
+          console.log('[LOGIN] Redirecting after login to:', destination);
+          router.replace(destination);
         } else {
           console.log('[LOGIN] No user data, redirecting to profile');
-          router.replace('/profile');
+          router.replace(
+            typeof redirect === 'string' && redirect.startsWith('/')
+              ? decodeURIComponent(redirect)
+              : '/profile'
+          );
         }
       }
     } catch (error: unknown) {
