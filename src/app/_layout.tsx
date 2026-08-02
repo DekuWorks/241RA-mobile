@@ -57,6 +57,11 @@ export default function Root() {
   useEffect(() => {
     const cleanupInspector = disableElementInspectorOnLaunch();
 
+    // Never leave the native splash up if a permission/service await hangs (common on Simulator).
+    const splashFailsafe = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }, 2500);
+
     const initializeApp = async () => {
       try {
         SentryService.init();
@@ -89,12 +94,15 @@ export default function Root() {
       } catch (error) {
         console.error('App initialization error:', error);
         SplashScreen.hideAsync();
+      } finally {
+        clearTimeout(splashFailsafe);
       }
     };
 
     initializeApp();
 
     return () => {
+      clearTimeout(splashFailsafe);
       cleanupInspector?.();
       signalRService.stopConnection();
     };
