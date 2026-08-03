@@ -49,7 +49,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'org.runners241.app',
-    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#ff0000' },
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#FFFFFF' },
     permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
     intentFilters: [
       {
