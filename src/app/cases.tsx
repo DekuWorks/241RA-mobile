@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.header,
   },
   headerTitle: {
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   searchContainer: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   searchInput: {
     backgroundColor: colors.white,
@@ -220,16 +220,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   listContent: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
     paddingTop: 0,
   },
   caseItem: {
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginBottom: spacing.sm,
+    borderWidth: 0,
     ...shadows.card,
   },
   caseHeader: {

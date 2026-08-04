@@ -10,8 +10,10 @@ import {
   Platform,
   ScrollView,
   Image,
+  StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { AuthService } from '../services/auth';
 
@@ -167,20 +169,23 @@ export default function SignupScreen() {
   ];
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        bounces={false}
       >
         <View style={styles.header}>
           <Image
-            source={require('../../assets/241-logo-new.jpg')}
+            source={require('../../assets/icon-white.png')}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
             accessibilityLabel="241 Runners Awareness logo"
           />
           <Text style={styles.title}>241 Runners Awareness</Text>
@@ -310,7 +315,8 @@ export default function SignupScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -319,23 +325,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  flex: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     // Avoid justifyContent:'center' — on iPad it can push footer CTAs outside
     // the scrollable hit area and make "Sign In Here" unresponsive.
     justifyContent: 'flex-start',
-    padding: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.xxl + spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   logo: {
-    width: 200,
-    height: 149,
-    borderRadius: radii.md,
+    width: 112,
+    height: 112,
+    borderRadius: radii.lg,
     marginBottom: spacing.md,
   },
   title: {
@@ -354,10 +363,9 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
     backgroundColor: colors.surface,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 0,
     ...shadows.card,
   },
   inputContainer: {

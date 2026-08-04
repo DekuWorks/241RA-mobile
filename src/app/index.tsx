@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 import { router } from 'expo-router';
-import { colors, spacing, typography } from '../theme/tokens';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, typography, radii } from '../theme/tokens';
 import { SecureTokenService } from '../services/secureTokens';
 
 export default function Home() {
@@ -28,17 +29,18 @@ export default function Home() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
       <Image
-        source={require('../../assets/241-logo-new.jpg')}
+        source={require('../../assets/icon-white.png')}
         style={styles.logo}
-        resizeMode="contain"
+        resizeMode="cover"
         accessibilityLabel="241 Runners Awareness logo"
       />
       <ActivityIndicator size="large" color={colors.white} style={styles.spinner} />
       <Text style={styles.title}>241 Runners Awareness</Text>
       <Text style={styles.subtitle}>{loadingText}</Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -48,12 +50,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.bg,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   logo: {
-    width: 200,
-    height: 149,
-    borderRadius: 8,
+    width: 128,
+    height: 128,
+    borderRadius: radii.lg,
     marginBottom: spacing.xl,
   },
   spinner: {
