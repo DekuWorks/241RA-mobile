@@ -4,24 +4,31 @@ App Review Information — paste into App Store Connect → App Review Informati
 Contact
 - First name: Marcus
 - Last name: Brown
-- Phone: (add your phone in ASC)
+- Phone: 8645247473
 - Email: ghxstyyfps@gmail.com
 
 Demo account (email / password login only — no Apple or Google Sign-In)
-- Username / Email: apptestreview@dekuworks.com
-- Password: Smoke241!UCHnwxh6
+- Username / Email: dekuworks1@gmail.com
+- Password: marcus2025
 - Role: user (general user — not admin)
 - Two-factor authentication: none (leave 2FA blank / unused)
 
 Notes for Reviewer
+- These are the App Review login credentials.
+- How to sign in: Open the app → tap Login → enter Email and Password using the credentials above.
 - Sign in with email and password only. There are no Apple or Google login buttons.
+- App Review credentials:
+  Email: dekuworks1@gmail.com
+  Password: marcus2025
+- Phone Number is optional on Create Account and Profile edit. Registration succeeds without a phone number (Guideline 5.1.1(v)).
+- “Sign In Here” on the Create Account screen is tappable on iPad (Guideline 2.1). Please verify on iPad Air / iPadOS.
 - This account already has a sample runner profile (“Alex Reviewer”) and a private demo safety case for testing Report a Sighting.
 - Create Runner Profile: Profile → “Create Runner Profile” (or open the existing runner on Profile).
 - Report a sighting: Cases → open the demo case → “Report a Sighting”.
 - Report a new case: Cases → “Report Case” or Profile → “Report a Safety Case”.
 - Map: open Map to view public missing-person markers (public map; demo case is private and will not appear there).
 - Website (same credentials): https://241runnersawareness.org/login
-- Version under review: 1.0.1 (EAS production build 143 / commit 3eeee25 and follow-ups).
+- Version under review: 1.0.1 (new production build after phone-optional + iPad Sign In Here fixes).
 
 Ops note (not for ASC paste): live API host must be Running before reviewers can sign in.
 See store-assets/SMOKE_TEST_STATUS.md if login fails with network/API errors.

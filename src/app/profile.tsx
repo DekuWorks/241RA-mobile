@@ -1191,14 +1191,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>PHONE NUMBER</Text>
+          <Text style={styles.infoLabel}>PHONE NUMBER (OPTIONAL)</Text>
           {isEditingPersonalInfo ? (
             <View style={styles.inputContainer}>
               <TextInput
                 style={[styles.textInput, validationErrors.phoneNumber && styles.inputError]}
                 value={formData.phoneNumber}
                 onChangeText={value => handleInputChange('phoneNumber', value)}
-                placeholder="Enter phone number"
+                placeholder="Enter phone number (optional)"
                 keyboardType="phone-pad"
               />
               {validationErrors.phoneNumber && (

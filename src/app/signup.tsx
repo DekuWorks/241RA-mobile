@@ -70,10 +70,8 @@ export default function SignupScreen() {
       newErrors.email = 'Email format is invalid';
     }
 
-    // Phone validation
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else {
+    // Phone is optional; validate format only when provided
+    if (formData.phoneNumber.trim()) {
       const cleanPhone = formData.phoneNumber.replace(/[\s\-\(\)]/g, '');
       if (!/^[\+]?[1-9][\d]{9,14}$/.test(cleanPhone)) {
         newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)';
@@ -118,7 +116,7 @@ export default function SignupScreen() {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         role: formData.role,
-        phoneNumber: formData.phoneNumber.trim(),
+        phoneNumber: formData.phoneNumber.trim() || undefined,
         organization: null,
         title: null,
       };
@@ -173,7 +171,11 @@ export default function SignupScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={styles.header}>
           <Image
             source={require('../../assets/241-logo-new.jpg')}
@@ -230,12 +232,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number *</Text>
+            <Text style={styles.label}>Phone Number (optional)</Text>
             <TextInput
               style={[styles.input, errors.phoneNumber && styles.inputError]}
               value={formData.phoneNumber}
               onChangeText={value => updateFormData('phoneNumber', value)}
-              placeholder="Enter your phone number"
+              placeholder="Enter your phone number (optional)"
               placeholderTextColor={colors.gray[400]}
               keyboardType="phone-pad"
               autoCorrect={false}
@@ -294,10 +296,17 @@ export default function SignupScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.loginSection}>
+        <View style={styles.loginSection} pointerEvents="box-none">
           <Text style={styles.loginText}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.loginLink}>Sign in here</Text>
+          <TouchableOpacity
+            style={styles.loginLinkButton}
+            onPress={() => router.push('/login')}
+            activeOpacity={0.7}
+            hitSlop={{ top: 16, bottom: 16, left: 24, right: 24 }}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in here"
+          >
+            <Text style={styles.loginLink}>Sign In Here</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -312,9 +321,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    // Avoid justifyContent:'center' — on iPad it can push footer CTAs outside
+    // the scrollable hit area and make "Sign In Here" unresponsive.
+    justifyContent: 'flex-start',
     padding: spacing.lg,
-    paddingVertical: spacing.xxl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl + spacing.xl,
   },
   header: {
     alignItems: 'center',
@@ -416,11 +428,20 @@ const styles = StyleSheet.create({
   loginSection: {
     alignItems: 'center',
     marginTop: spacing.xl,
+    zIndex: 2,
   },
   loginText: {
     fontSize: typography.sizes.base,
     color: colors.textOnPage,
     marginBottom: spacing.sm,
+  },
+  loginLinkButton: {
+    minHeight: 48,
+    minWidth: 160,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loginLink: {
     fontSize: typography.sizes.base,

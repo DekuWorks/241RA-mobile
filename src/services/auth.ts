@@ -317,7 +317,7 @@ export class AuthService {
     firstName: string;
     lastName: string;
     role: string;
-    phoneNumber: string;
+    phoneNumber?: string;
     organization?: string | null;
     title?: string | null;
   }): Promise<{
@@ -336,13 +336,15 @@ export class AuthService {
         };
       }
 
+      const phoneNumber = signupData.phoneNumber?.trim() || undefined;
+
       const data = await ApiClient.post('/api/v1/auth/register', {
         email: signupData.email.toLowerCase().trim(),
         password: signupData.password,
         firstName: ValidationUtils.sanitizeInput(signupData.firstName),
         lastName: ValidationUtils.sanitizeInput(signupData.lastName),
         role: signupData.role,
-        phoneNumber: signupData.phoneNumber.trim(),
+        ...(phoneNumber ? { phoneNumber } : {}),
         organization: signupData.organization ?? null,
         title: signupData.title ?? null,
       });

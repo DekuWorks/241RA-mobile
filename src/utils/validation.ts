@@ -34,14 +34,14 @@ export class ValidationUtils {
   static readonly PROFILE_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
   /**
-   * Validate US phone number (10 digits, optional leading 1)
+   * Validate US phone number (10 digits, optional leading 1).
+   * Empty/whitespace is valid — phone is optional for signup/profile.
    */
   static validatePhoneNumber(phoneNumber: string): ValidationResult {
     const errors: string[] = [];
 
     if (!phoneNumber || phoneNumber.trim().length === 0) {
-      errors.push('Phone number is required');
-      return { isValid: false, errors };
+      return { isValid: true, errors };
     }
 
     const digitsOnly = phoneNumber.replace(/\D/g, '');
@@ -183,10 +183,14 @@ export class ValidationUtils {
       errors.push('Relationship is too long');
     }
 
-    // Validate phone number
-    const phoneValidation = this.validatePhoneNumber(contact.phoneNumber);
-    if (!phoneValidation.isValid) {
-      errors.push(...phoneValidation.errors);
+    // Emergency contact phone is required when a contact is provided
+    if (!contact.phoneNumber || contact.phoneNumber.trim().length === 0) {
+      errors.push('Phone number is required');
+    } else {
+      const phoneValidation = this.validatePhoneNumber(contact.phoneNumber);
+      if (!phoneValidation.isValid) {
+        errors.push(...phoneValidation.errors);
+      }
     }
 
     // Validate email if provided

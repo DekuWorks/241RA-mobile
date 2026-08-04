@@ -118,7 +118,11 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={styles.header}>
           <Image
             source={require('../../assets/241-logo-new.jpg')}
@@ -177,6 +181,10 @@ export default function LoginScreen() {
             style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={isLoading}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Sign In"
           >
             {isLoading ? (
               <View style={styles.buttonContent}>
@@ -199,7 +207,12 @@ export default function LoginScreen() {
 
           <View style={styles.signupSection}>
             <Text style={styles.signupText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => router.push('/signup')}>
+            <TouchableOpacity
+              onPress={() => router.push('/signup')}
+              hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+              accessibilityRole="button"
+              accessibilityLabel="Create Account"
+            >
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
           </View>
@@ -220,8 +233,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
   header: {
     alignItems: 'center',
@@ -277,7 +292,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[600],
     borderRadius: radii.md,
     padding: spacing.md,
+    minHeight: 48,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: spacing.lg,
     ...shadows.button,
   },
