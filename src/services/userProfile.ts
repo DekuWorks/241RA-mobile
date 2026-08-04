@@ -106,7 +106,12 @@ export class UserProfileService {
    */
   static async getProfile(): Promise<UserProfile> {
     const local = await resolveLocalApiUser();
-    if (local) {
+    const localIncomplete =
+      !!local && (!local.createdAt || !local.profileImageUrl || local.isAdminUser == null);
+
+    // Prefer a network refresh when the cache is missing avatar / join date /
+    // admin flags — those fields are often absent from JWT-only snapshots.
+    if (local && !localIncomplete) {
       refreshRemoteUserInBackground();
       return mapApiUserToProfile(local);
     }
@@ -114,6 +119,10 @@ export class UserProfileService {
     try {
       return await fetchProfileWithRetry();
     } catch (error: unknown) {
+      if (local) {
+        refreshRemoteUserInBackground();
+        return mapApiUserToProfile(local);
+      }
       if (__DEV__ && !isTimeoutError(error)) {
         console.warn('Failed to get user profile:', error);
       }

@@ -57,7 +57,23 @@ export const RunnerMapService = {
   },
 
   async getProfileMapData(getPublicCases: () => Promise<PublicMapCase[]>): Promise<ProfileMapResult> {
-    const mine = await RunnerMapService.getUserRunnerMapCases();
+    // Never fail the whole map if the runner endpoint is slow/unauthorized —
+    // fall through to the public community markers instead.
+    let mine: PublicMapCase[] = [];
+    let hasRunners = false;
+    try {
+      mine = await RunnerMapService.getUserRunnerMapCases();
+      hasRunners = mine.length > 0;
+      if (!hasRunners) {
+        const probe = await ApiClient.get<{ runners?: ApiRunner[]; success?: boolean }>(
+          '/api/v1/runner?page=1&pageSize=1'
+        );
+        hasRunners = (probe.runners?.length ?? 0) > 0;
+      }
+    } catch (error) {
+      console.warn('[MAP] Runner map lookup failed; using public cases:', error);
+    }
+
     if (mine.length > 0) {
       return {
         mode: 'mine',
@@ -66,17 +82,20 @@ export const RunnerMapService = {
       };
     }
 
-    const hasRunners = await ApiClient.get<{ runners?: ApiRunner[] }>(
-      '/api/v1/runner?page=1&pageSize=1'
-    ).then(data => (data.runners?.length ?? 0) > 0).catch(() => false);
+    let publicCases: PublicMapCase[] = [];
+    try {
+      publicCases = await getPublicCases();
+    } catch (error) {
+      console.warn('[MAP] Public map fetch failed:', error);
+      throw error;
+    }
 
-    const publicCases = await getPublicCases();
     return {
       mode: 'public',
       cases: publicCases,
       subtitle: hasRunners
         ? 'Community map — add coordinates to your runner to see them here'
-        : 'Missing-persons cases in the community',
+        : 'Missing cases in the community',
     };
   },
 };

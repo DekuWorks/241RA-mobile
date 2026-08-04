@@ -61,16 +61,30 @@ export function normalizeApiUserPayload(raw: Record<string, unknown>): ApiUserPa
     throw new Error('Invalid profile response');
   }
 
+  const role = readStringField(raw, 'role', 'Role') || 'user';
+  const allRolesRaw = (raw.allRoles ?? raw.AllRoles) as string[] | undefined;
+  const allRoles =
+    Array.isArray(allRolesRaw) && allRolesRaw.length > 0
+      ? allRolesRaw.map(String)
+      : [role];
+  const roleIsAdmin = allRoles.some(r =>
+    ['admin', 'super_admin', 'moderator'].includes(String(r).toLowerCase())
+  );
+  const isAdminUser = Boolean(raw.isAdminUser ?? raw.IsAdminUser) || roleIsAdmin;
+  // /auth/me often omits primaryUserRole — keep community role separate from admin flag.
+  const primaryUserRole =
+    readStringField(raw, 'primaryUserRole', 'PrimaryUserRole') || (isAdminUser ? 'user' : role);
+
   return {
     id: raw.id ?? raw.Id ?? '',
     email,
     firstName: resolvedFirstName || undefined,
     lastName: resolvedLastName || undefined,
     fullName: fullName || undefined,
-    role: readStringField(raw, 'role', 'Role') || 'user',
-    allRoles: (raw.allRoles ?? raw.AllRoles) as string[] | undefined,
-    primaryUserRole: readStringField(raw, 'primaryUserRole', 'PrimaryUserRole'),
-    isAdminUser: Boolean(raw.isAdminUser ?? raw.IsAdminUser),
+    role,
+    allRoles,
+    primaryUserRole,
+    isAdminUser,
     phoneNumber: readStringField(raw, 'phoneNumber', 'PhoneNumber'),
     profileImageUrl: readStringField(raw, 'profileImageUrl', 'ProfileImageUrl'),
     address: readStringField(raw, 'address', 'Address'),

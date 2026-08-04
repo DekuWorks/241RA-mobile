@@ -26,4 +26,12 @@ describe('imageUrl', () => {
       'file:///var/mobile/photo.jpg'
     );
   });
+
+  it('rewrites stale Render ImageUpload hosts to the current API', () => {
+    expect(
+      resolveImageDisplayUrl(
+        'https://241runners-api.onrender.com/api/ImageUpload/bd7ecf80-d82c-4934-b560-899c8f949e56.jpg'
+      )
+    ).toBe(`${apiBase}/api/ImageUpload/bd7ecf80-d82c-4934-b560-899c8f949e56.jpg`);
+  });
 });

@@ -270,7 +270,10 @@ export class AuthService {
 
   static async getCurrentUser(): Promise<User | null> {
     const local = await resolveLocalApiUser();
-    if (local) {
+    const localIncomplete =
+      !!local && (!local.createdAt || local.isAdminUser == null || !local.role);
+
+    if (local && !localIncomplete) {
       this.refreshCurrentUserInBackground();
       return mapApiUserToAuthUser(local);
     }
@@ -283,6 +286,9 @@ export class AuthService {
     try {
       return await this.fetchCurrentUserFromApi();
     } catch (error: unknown) {
+      if (local) {
+        return mapApiUserToAuthUser(local);
+      }
       if (__DEV__ && !isTimeoutError(error)) {
         console.warn('[AUTH] Failed to fetch current user:', error);
       }

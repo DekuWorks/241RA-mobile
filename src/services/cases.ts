@@ -205,17 +205,40 @@ export class CasesService {
   /**
    * Public missing cases for map — no auth required (matches website map)
    * GET /api/public/map/missing
+   * Retries once on timeout/5xx so Render cold starts don't blank the map.
    */
   static async getPublicMapCases(): Promise<PublicMapCase[]> {
-    const response = await axios.get<PublicMapCaseRaw[]>(
-      `${ENV.API_URL}/api/public/map/missing`,
-      { timeout: 30000 }
-    );
-    const items = Array.isArray(response.data) ? response.data : [];
+    const url = `${ENV.API_URL}/api/public/map/missing`;
+    let lastError: unknown;
 
-    return items
-      .map(item => CasesService.normalizePublicMapItem(item))
-      .filter((item): item is PublicMapCase => item != null);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await axios.get<PublicMapCaseRaw[] | { data?: PublicMapCaseRaw[] }>(url, {
+          timeout: 45000,
+          headers: { Accept: 'application/json' },
+        });
+        const payload = response.data;
+        const items = Array.isArray(payload)
+          ? payload
+          : Array.isArray((payload as { data?: PublicMapCaseRaw[] })?.data)
+            ? ((payload as { data: PublicMapCaseRaw[] }).data)
+            : [];
+
+        return items
+          .map(item => CasesService.normalizePublicMapItem(item))
+          .filter((item): item is PublicMapCase => item != null);
+      } catch (error) {
+        lastError = error;
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+          continue;
+        }
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Failed to load public map cases');
   }
 
   /** @deprecated Use getPublicMapCases — map always uses the public endpoint like the website */

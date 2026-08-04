@@ -4,18 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
   ScrollView,
   Platform,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// iOS: Apple Maps (PROVIDER_DEFAULT). AirGoogleMaps / PROVIDER_GOOGLE is not
-// reliably linked in this Expo prebuild binary and red-screens the map.
-// Android: Google Maps (PROVIDER_GOOGLE) with the configured API key.
-const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +19,10 @@ import { RunnerMapService } from '../services/runnerMap';
 import { MAP_CONFIG, getMapStatusColor } from '../constants/mapConfig';
 import { normalizeCaseId } from '../lib/linking';
 
-const { width } = Dimensions.get('window');
+// iOS: Apple Maps (PROVIDER_DEFAULT). AirGoogleMaps / PROVIDER_GOOGLE is not
+// reliably linked in this Expo prebuild binary and red-screens the map.
+// Android: Google Maps (PROVIDER_GOOGLE) with the configured API key.
+const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 
 const DEFAULT_REGION: Region = {
   latitude: MAP_CONFIG.DEFAULT_CENTER.lat,
@@ -215,7 +212,30 @@ export default function GoogleMapsMapContent() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+      <MapView
+        ref={mapRef}
+        provider={MAP_PROVIDER}
+        style={styles.map}
+        region={mapRegion}
+        onRegionChangeComplete={setMapRegion}
+        showsUserLocation
+        showsMyLocationButton={false}
+      >
+        {!error &&
+          filteredCases.map(caseData => (
+            <Marker
+              key={caseData.id}
+              coordinate={{
+                latitude: caseData.latitude,
+                longitude: caseData.longitude,
+              }}
+              pinColor={caseData.isOwnRunner ? '#2563eb' : getMapStatusColor(caseData.status)}
+              onPress={() => handleMarkerPress(caseData)}
+            />
+          ))}
+      </MapView>
+
+      <View style={[styles.headerOverlay, { paddingTop: Math.max(insets.top, spacing.sm) }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
             <Text style={styles.backButtonText}>← Back</Text>
@@ -245,70 +265,45 @@ export default function GoogleMapsMapContent() {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </SafeAreaView>
-
-      <View style={styles.mapWrapper}>
-        {isLoading && !error && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary[600]} />
-            <Text style={styles.loadingText}>Loading map data…</Text>
-          </View>
-        )}
-
-        <MapView
-          ref={mapRef}
-          provider={MAP_PROVIDER}
-          style={styles.map}
-          region={mapRegion}
-          onRegionChangeComplete={setMapRegion}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
-          {!error &&
-            filteredCases.map(caseData => (
-              <Marker
-                key={caseData.id}
-                coordinate={{
-                  latitude: caseData.latitude,
-                  longitude: caseData.longitude,
-                }}
-                pinColor={caseData.isOwnRunner ? '#2563eb' : getMapStatusColor(caseData.status)}
-                onPress={() => handleMarkerPress(caseData)}
-              />
-            ))}
-        </MapView>
-
-        {error && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerTitle}>Cases temporarily unavailable</Text>
-            <Text style={styles.errorBannerSubtext}>
-              The map is available; case markers could not be loaded.
-            </Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => refetch()}
-              disabled={isFetching}
-            >
-              <Text style={styles.retryButtonText}>{isFetching ? 'Retrying…' : 'Retry'}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!isLoading && !error && filteredCases.length === 0 && (
-          <View style={styles.noDataBanner}>
-            <Text style={styles.noDataText}>No public cases to display</Text>
-          </View>
-        )}
-
-        {!error && filteredCases.length > 0 && (
-          <View style={styles.approxBanner}>
-            <Text style={styles.approxBannerText}>
-              Map locations are approximate. Cases without a reported location are shown in the
-              general Houston area.
-            </Text>
-          </View>
-        )}
       </View>
+
+      {isLoading && !error && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary[600]} />
+          <Text style={styles.loadingText}>Loading map data…</Text>
+        </View>
+      )}
+
+      {error && (
+        <View style={[styles.errorBanner, { top: insets.top + 120 }]}>
+          <Text style={styles.errorBannerTitle}>Cases temporarily unavailable</Text>
+          <Text style={styles.errorBannerSubtext}>
+            The map is available; case markers could not be loaded.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+            disabled={isFetching}
+          >
+            <Text style={styles.retryButtonText}>{isFetching ? 'Retrying…' : 'Retry'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!isLoading && !error && filteredCases.length === 0 && (
+        <View style={styles.noDataBanner}>
+          <Text style={styles.noDataText}>No public cases to display</Text>
+        </View>
+      )}
+
+      {!error && filteredCases.length > 0 && (
+        <View style={styles.approxBanner}>
+          <Text style={styles.approxBannerText}>
+            Map locations are approximate. Cases without a reported location are shown in the
+            general Houston area.
+          </Text>
+        </View>
+      )}
 
       {!error && renderCaseInfo()}
 
@@ -321,7 +316,7 @@ export default function GoogleMapsMapContent() {
       </View>
 
       {!error && (
-        <View style={[styles.legend, { top: 90 + insets.top }]}>
+        <View style={[styles.legend, { top: insets.top + 118 }]}>
           <Text style={styles.legendTitle}>Status</Text>
           {(['missing', 'found', 'safe', 'urgent'] as const).map(status => (
             <View key={status} style={styles.legendItem}>
@@ -340,11 +335,15 @@ export default function GoogleMapsMapContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
-  },
-  headerSafeArea: {
     backgroundColor: colors.header,
-    zIndex: 1,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 4,
+    backgroundColor: 'rgba(0,0,0,0.82)',
   },
   header: {
     flexDirection: 'row',
@@ -352,7 +351,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.header,
   },
   backButtonText: {
     fontSize: typography.sizes.base,
@@ -371,13 +369,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xs,
-    backgroundColor: colors.header,
   },
   locationButton: {
     fontSize: typography.sizes.lg,
   },
   controls: {
-    backgroundColor: colors.header,
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.sm,
   },
@@ -403,13 +399,8 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
-  mapWrapper: {
-    flex: 1,
-    position: 'relative',
-  },
   map: {
-    flex: 1,
-    width,
+    ...StyleSheet.absoluteFillObject,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -517,8 +508,13 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   statsBar: {
-    backgroundColor: colors.surface,
-    paddingVertical: spacing.xs,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 4,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    paddingTop: spacing.xs,
     paddingHorizontal: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,

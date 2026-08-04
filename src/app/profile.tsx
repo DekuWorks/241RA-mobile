@@ -980,38 +980,54 @@ export default function ProfileScreen() {
       case 'super_admin':
         return colors.error;
       case 'admin':
-        return colors.warning[600];
+        return colors.trafficLight.yellow;
       case 'moderator':
         return colors.info[600];
       case 'runner':
-        return colors.success[600];
+        return colors.success;
       case 'parent':
         return colors.primary[600];
       case 'adoptive_parent':
         return colors.primary[600];
       case 'therapist':
         return colors.info[500];
+      case 'aba_therapist':
+        return colors.info[500];
+      case 'caregiver':
+        return colors.trafficLight.greenMedium;
       case 'guardian':
-        return colors.warning[500];
+        return colors.trafficLight.yellowMedium;
+      case 'user':
+        return colors.gray[700];
       default:
-        return colors.gray[600];
+        return colors.gray[700];
     }
   };
 
   const formatRoleDisplay = (role: string) => {
-    switch (role?.toLowerCase()) {
+    const normalized = (role || '').trim().toLowerCase();
+    switch (normalized) {
       case 'adoptive_parent':
         return 'Adoptive Parent';
+      case 'aba_therapist':
+        return 'ABA Therapist';
       case 'super_admin':
         return 'Super Admin';
+      case 'admin':
+        return 'Admin';
+      case '':
+        return 'User';
       default:
-        return role?.charAt(0).toUpperCase() + role?.slice(1) || 'User';
+        return normalized.charAt(0).toUpperCase() + normalized.slice(1);
     }
   };
 
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) {
+        return 'Unknown';
+      }
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -2300,7 +2316,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
     borderWidth: 4,
-    borderColor: colors.primary[600][100],
+    borderColor: colors.primary[100],
     position: 'relative',
   },
   avatarText: {
@@ -2333,17 +2349,19 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   section: {
-    marginBottom: spacing.md,
-    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    marginHorizontal: 0,
     backgroundColor: colors.white,
-    borderRadius: radii.lg,
+    borderRadius: 0,
     padding: spacing.lg,
     shadowColor: colors.gray[900],
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
     borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
   },
   sectionTitle: {
     fontSize: typography.sizes.lg,
